@@ -1,8 +1,8 @@
 "use client";
 
-import { Check, ChevronDown, ChevronUp, GripVertical, Save } from "lucide-react";
-import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, GripVertical, Save } from "lucide-react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { bodyPartColorOptions, getBodyPartColorByColorKey } from "@/lib/workouts/body-part-colors";
@@ -15,9 +15,12 @@ export function BodyPartMasterCard() {
   const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
   const [activeColorBodyPartId, setActiveColorBodyPartId] = useState<string | null>(null);
   const [draggingBodyPartId, setDraggingBodyPartId] = useState<string | null>(null);
+  const [touchDraggingBodyPartId, setTouchDraggingBodyPartId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const touchDragBodyPartIdRef = useRef<string | null>(null);
+  const touchDragTimerRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
     if (!user) {
@@ -38,15 +41,13 @@ export function BodyPartMasterCard() {
     }
   }, [authStatus, load, profileStatus]);
 
-  const moveBodyPart = (targetBodyPart: BodyPart) => {
-    if (!draggingBodyPartId || draggingBodyPartId === targetBodyPart.id) {
-      setDraggingBodyPartId(null);
+  const moveBodyPartById = (sourceBodyPartId: string, targetBodyPartId: string) => {
+    if (sourceBodyPartId === targetBodyPartId) {
       return;
     }
-
     setBodyParts((current) => {
-      const sourceIndex = current.findIndex((bodyPart) => bodyPart.id === draggingBodyPartId);
-      const targetIndex = current.findIndex((bodyPart) => bodyPart.id === targetBodyPart.id);
+      const sourceIndex = current.findIndex((bodyPart) => bodyPart.id === sourceBodyPartId);
+      const targetIndex = current.findIndex((bodyPart) => bodyPart.id === targetBodyPartId);
       if (sourceIndex < 0 || targetIndex < 0) {
         return current;
       }
@@ -55,6 +56,15 @@ export function BodyPartMasterCard() {
       next.splice(targetIndex, 0, moved);
       return next.map((bodyPart, index) => ({ ...bodyPart, displayOrder: index + 1 }));
     });
+  };
+
+  const moveBodyPart = (targetBodyPart: BodyPart) => {
+    if (!draggingBodyPartId || draggingBodyPartId === targetBodyPart.id) {
+      setDraggingBodyPartId(null);
+      return;
+    }
+
+    moveBodyPartById(draggingBodyPartId, targetBodyPart.id);
     setDraggingBodyPartId(null);
   };
 
@@ -90,20 +100,42 @@ export function BodyPartMasterCard() {
     );
   };
 
-  const moveBodyPartByIndex = (index: number, delta: number) => {
-    setBodyParts((current) => {
-      const targetIndex = index + delta;
-      if (targetIndex < 0 || targetIndex >= current.length) {
-        return current;
-      }
-      const next = [...current];
-      const [moved] = next.splice(index, 1);
-      next.splice(targetIndex, 0, moved);
-      return next.map((bodyPart, bodyPartIndex) => ({
-        ...bodyPart,
-        displayOrder: bodyPartIndex + 1,
-      }));
-    });
+  const clearTouchDrag = () => {
+    if (touchDragTimerRef.current !== null) {
+      window.clearTimeout(touchDragTimerRef.current);
+      touchDragTimerRef.current = null;
+    }
+    touchDragBodyPartIdRef.current = null;
+    setTouchDraggingBodyPartId(null);
+  };
+
+  const startTouchDrag = (bodyPartId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
+    if (event.pointerType === "mouse") {
+      return;
+    }
+    if (touchDragTimerRef.current !== null) {
+      window.clearTimeout(touchDragTimerRef.current);
+    }
+    event.currentTarget.setPointerCapture(event.pointerId);
+    touchDragTimerRef.current = window.setTimeout(() => {
+      touchDragBodyPartIdRef.current = bodyPartId;
+      setTouchDraggingBodyPartId(bodyPartId);
+    }, 260);
+  };
+
+  const moveTouchDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+    const sourceBodyPartId = touchDragBodyPartIdRef.current;
+    if (!sourceBodyPartId) {
+      return;
+    }
+    event.preventDefault();
+    const target = document
+      .elementFromPoint(event.clientX, event.clientY)
+      ?.closest<HTMLElement>("[data-body-part-id]");
+    const targetBodyPartId = target?.dataset.bodyPartId;
+    if (targetBodyPartId && targetBodyPartId !== sourceBodyPartId) {
+      moveBodyPartById(sourceBodyPartId, targetBodyPartId);
+    }
   };
 
   return (
@@ -120,17 +152,19 @@ export function BodyPartMasterCard() {
         </button>
       </div>
       <p className="text-sm text-[var(--muted)]">
-        ここで変更した順番は、種目マスタ、トレーニング記録、履歴の部位順に反映されます。
+        三本線を長押しして並べ替えます。ここで変更した順番は、種目マスタ、トレーニング記録、履歴の部位順に反映されます。
       </p>
       <div className="space-y-2">
-        {bodyParts.map((bodyPart, index) => (
+        {bodyParts.map((bodyPart) => (
           <div
             key={bodyPart.id}
-            draggable
-            onDragStart={() => setDraggingBodyPartId(bodyPart.id)}
+            data-body-part-id={bodyPart.id}
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => moveBodyPart(bodyPart)}
-            className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3"
+            className={[
+              "rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3",
+              touchDraggingBodyPartId === bodyPart.id ? "opacity-60" : "",
+            ].join(" ")}
           >
             <div className="flex items-center gap-2">
               <button
@@ -140,7 +174,6 @@ export function BodyPartMasterCard() {
                 }
                 className="flex min-w-0 flex-1 items-center gap-2 text-left"
               >
-                <GripVertical size={18} className="shrink-0 text-[var(--muted)]" />
                 <span
                   aria-hidden="true"
                   className="color-orb h-4 w-4 shrink-0 rounded-full"
@@ -152,26 +185,19 @@ export function BodyPartMasterCard() {
                 />
                 <span className="min-w-0 flex-1 font-medium">{bodyPart.displayName}</span>
               </button>
-              <div className="flex shrink-0 gap-1">
-                <button
-                  type="button"
-                  onClick={() => moveBodyPartByIndex(index, -1)}
-                  disabled={index === 0}
-                  aria-label={`${bodyPart.displayName}を上へ移動`}
-                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
-                >
-                  <ChevronUp size={18} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => moveBodyPartByIndex(index, 1)}
-                  disabled={index === bodyParts.length - 1}
-                  aria-label={`${bodyPart.displayName}を下へ移動`}
-                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
-                >
-                  <ChevronDown size={18} />
-                </button>
-              </div>
+              <button
+                type="button"
+                draggable
+                onDragStart={() => setDraggingBodyPartId(bodyPart.id)}
+                onPointerDown={(event) => startTouchDrag(bodyPart.id, event)}
+                onPointerMove={moveTouchDrag}
+                onPointerUp={clearTouchDrag}
+                onPointerCancel={clearTouchDrag}
+                aria-label={`${bodyPart.displayName}を並べ替え`}
+                className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)]"
+              >
+                <GripVertical size={20} />
+              </button>
             </div>
             {activeColorBodyPartId === bodyPart.id ? (
               <div className="mt-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
