@@ -48,6 +48,7 @@ export interface WorkoutSet {
   reps: number | null;
   rir: number | null;
   isWarmup: boolean;
+  note: string | null;
 }
 
 export interface WorkoutExercise {
@@ -71,6 +72,7 @@ export interface CreateWorkoutSetInput {
   weightKg: number | null;
   reps: number | null;
   isWarmup: boolean;
+  note: string | null;
 }
 
 export interface CreateWorkoutInput {

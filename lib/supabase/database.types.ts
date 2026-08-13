@@ -242,6 +242,7 @@ export interface Database {
           rir: number | null;
           rpe: number | null;
           is_warmup: boolean;
+          note: string | null;
           duration_sec: number | null;
           distance_km: number | null;
           created_at: string;
@@ -257,6 +258,7 @@ export interface Database {
           rir?: number | null;
           rpe?: number | null;
           is_warmup?: boolean;
+          note?: string | null;
           duration_sec?: number | null;
           distance_km?: number | null;
           created_at?: string;
@@ -272,6 +274,7 @@ export interface Database {
           rir?: number | null;
           rpe?: number | null;
           is_warmup?: boolean;
+          note?: string | null;
           duration_sec?: number | null;
           distance_km?: number | null;
           created_at?: string;

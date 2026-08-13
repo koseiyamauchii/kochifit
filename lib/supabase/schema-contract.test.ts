@@ -53,6 +53,10 @@ const profileAccessibilityPreferencesMigrationSql = readFileSync(
   ),
   "utf8",
 );
+const setNotesMigrationSql = readFileSync(
+  join(process.cwd(), "supabase", "migrations", "20260813162000_add_set_notes.sql"),
+  "utf8",
+);
 
 describe("Supabase schema migration", () => {
   it("defines the required tables", () => {
@@ -216,5 +220,10 @@ describe("Supabase schema migration", () => {
     expect(profileAccessibilityPreferencesMigrationSql).toContain("accent_preference text not null default 'gray'");
     expect(profileAccessibilityPreferencesMigrationSql).toContain("profiles_theme_preference_value");
     expect(profileAccessibilityPreferencesMigrationSql).toContain("profiles_accent_preference_value");
+  });
+
+  it("adds per-set notes", () => {
+    expect(setNotesMigrationSql).toContain("alter table public.sets");
+    expect(setNotesMigrationSql).toContain("add column if not exists note text");
   });
 });

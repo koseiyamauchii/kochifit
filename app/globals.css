@@ -18,18 +18,18 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #050505;
-  --surface: #0f0f10;
-  --surface-soft: #18181b;
-  --surface-strong: #27272a;
+  --background: #151517;
+  --surface: #242428;
+  --surface-soft: #303036;
+  --surface-strong: #3c3c43;
   --text: #f4f4f5;
-  --muted: #a1a1aa;
-  --border: #2f2f32;
-  --accent: #52525b;
-  --accent-strong: #e4e4e7;
-  --accent-soft: #27272a;
+  --muted: #b8b8c0;
+  --border: #46464f;
+  --accent: #73737d;
+  --accent-strong: #f0f0f3;
+  --accent-soft: #36363d;
   --warning: #fbbf24;
-  --shadow: 0 18px 52px rgba(0, 0, 0, 0.45);
+  --shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
 }
 
 :root[data-accent="orange"] {
@@ -179,4 +179,10 @@ a {
     inset 0 0 0 1px color-mix(in srgb, var(--border) 72%, transparent),
     0 12px 26px rgba(0, 0, 0, 0.08);
   filter: saturate(1.02);
+}
+
+:root {
+  --hairline: color-mix(in srgb, var(--border) 52%, transparent);
+  --accent-tint: color-mix(in srgb, var(--accent) 14%, transparent);
+  --accent-tint-strong: color-mix(in srgb, var(--accent) 24%, transparent);
 }

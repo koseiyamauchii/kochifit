@@ -118,6 +118,7 @@ function mapSet(row: {
   reps: number | null;
   rir: number | null;
   is_warmup: boolean;
+  note: string | null;
 }): WorkoutSet {
   return {
     id: row.id,
@@ -126,6 +127,7 @@ function mapSet(row: {
     reps: row.reps,
     rir: row.rir,
     isWarmup: row.is_warmup,
+    note: row.note,
   };
 }
 
@@ -628,7 +630,7 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
   if (workoutExerciseIds.length > 0) {
     const { data: sets, error: setError } = await client
       .from("sets")
-      .select("id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup")
+      .select("id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, note")
       .in("workout_exercise_id", workoutExerciseIds)
       .order("set_number");
 
@@ -715,7 +717,7 @@ export async function getLatestWorkoutForExerciseBeforeDate(
 
   const { data: sets, error: setError } = await client
     .from("sets")
-    .select("id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup")
+    .select("id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, note")
     .eq("workout_exercise_id", latest.id)
     .order("set_number");
 
@@ -834,7 +836,7 @@ async function insertSets(
   client: Client,
   input: Pick<CreateWorkoutInput, "sets" | "userId"> & { workoutExerciseId: string },
 ) {
-  const validSets = input.sets.filter((set) => set.weightKg !== null || set.reps !== null);
+  const validSets = input.sets.filter((set) => set.weightKg !== null || set.reps !== null || set.note !== null);
   if (validSets.length === 0) {
     return;
   }
@@ -848,6 +850,7 @@ async function insertSets(
       reps: set.reps,
       rir: null,
       is_warmup: set.isWarmup,
+      note: set.note,
     })),
   );
 

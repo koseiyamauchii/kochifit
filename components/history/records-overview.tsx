@@ -72,13 +72,13 @@ export function RecordsOverview() {
   }, [authStatus, loadRecords, profileStatus]);
 
   return (
-    <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
+    <section className="rounded-[8px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-lg font-semibold">履歴</h1>
+        <h1 className="text-base font-semibold">履歴</h1>
         <button
           type="button"
           onClick={() => void loadRecords()}
-          className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--border)] px-3 text-sm font-medium"
+          className="flex min-h-9 items-center gap-2 rounded-[8px] bg-[var(--surface-soft)] px-3 text-sm font-medium"
         >
           <RefreshCw size={16} />
           更新
@@ -96,23 +96,23 @@ export function RecordsOverview() {
                 {bodyPartRecords.map((record) => (
                   <article
                     key={record.exerciseId}
-                    className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] p-3"
+                    className="rounded-[8px] bg-[var(--surface-soft)] p-3"
                   >
                     <h3 className="font-semibold">{record.exerciseName}</h3>
-                    <dl className="mt-3 grid grid-cols-3 gap-2 text-sm">
-                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-2">
+                    <dl className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
+                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
                         <dt className="text-xs text-[var(--muted)]">最高重量</dt>
                         <dd className="mt-1 font-semibold">
                           {formatNumber(record.maxWeightKg, "kg")}
                         </dd>
                       </div>
-                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-2">
+                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
                         <dt className="text-xs text-[var(--muted)]">最大量</dt>
                         <dd className="mt-1 font-semibold">
                           {formatNumber(record.maxVolumeKg, "kg")}
                         </dd>
                       </div>
-                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-2">
+                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
                         <dt className="text-xs text-[var(--muted)]">最終</dt>
                         <dd className="mt-1 font-semibold">{formatDate(record.lastWorkoutDate)}</dd>
                       </div>
@@ -121,7 +121,7 @@ export function RecordsOverview() {
                 ))}
               </div>
             ) : (
-              <p className="rounded-[8px] border border-dashed border-[var(--border)] px-3 py-3 text-sm text-[var(--muted)]">
+              <p className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
                 {isLoading ? "読込中" : "記録なし"}
               </p>
             )}
