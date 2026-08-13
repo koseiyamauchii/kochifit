@@ -76,7 +76,7 @@ export function HomeDashboard() {
       setDistribution(nextDistribution);
     } catch (loadError) {
       console.error("Workout stats load error", loadError);
-      setError("集計の読み込みに失敗しました．");
+      setError("集計の読み込みに失敗しました。");
     }
   }, [client, profile, user]);
 
@@ -226,7 +226,7 @@ export function HomeDashboard() {
               })
             ) : (
               <p className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
-                記録が増えると部位別の割合を表示します．
+                記録が増えると部位別の割合を表示します。
               </p>
             )}
           </div>

@@ -178,7 +178,7 @@ export function ExerciseMasterCard() {
       setExercises(nextExercises);
     } catch (loadError) {
       console.error("Exercise master load error", loadError);
-      setError("種目マスタの読み込みに失敗しました．");
+      setError("種目マスタの読み込みに失敗しました。");
     }
   }, [client, user]);
 
@@ -215,7 +215,7 @@ export function ExerciseMasterCard() {
       return;
     }
     if (!draft.name.trim() || !draft.bodyPartId) {
-      setError("種目名と部位を入力してください．");
+      setError("種目名と部位を入力してください。");
       return;
     }
     setIsSaving(true);
@@ -240,10 +240,10 @@ export function ExerciseMasterCard() {
       setDraft(null);
       setNewDraftBodyPartId(null);
       setArchiveTarget(null);
-      setMessage("保存しました．");
+      setMessage("保存しました。");
     } catch (saveError) {
       console.error("Exercise master save error", saveError);
-      setError("種目の保存に失敗しました．");
+      setError("種目の保存に失敗しました。");
     } finally {
       setIsSaving(false);
     }
@@ -262,10 +262,10 @@ export function ExerciseMasterCard() {
       setDraft(null);
       setNewDraftBodyPartId(null);
       setArchiveTarget(null);
-      setMessage("種目を非表示にしました．");
+      setMessage("種目を非表示にしました。");
     } catch (archiveError) {
       console.error("Exercise archive error", archiveError);
-      setError("種目の非表示化に失敗しました．");
+      setError("種目の非表示化に失敗しました。");
     } finally {
       setIsSaving(false);
     }
@@ -314,10 +314,10 @@ export function ExerciseMasterCard() {
         bodyPartId: targetExercise.bodyPartId,
         exerciseIds: nextGroup.map((exercise) => exercise.id),
       });
-      setMessage("並び順を保存しました．");
+      setMessage("並び順を保存しました。");
     } catch (reorderError) {
       console.error("Exercise reorder error", reorderError);
-      setError("並び順の保存に失敗しました．");
+      setError("並び順の保存に失敗しました。");
       await load();
     } finally {
       setDraggingExerciseId(null);
@@ -325,9 +325,8 @@ export function ExerciseMasterCard() {
   };
 
   return (
-    <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">種目マスタ</h2>
+    <section className="space-y-4">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => startNew()}
@@ -338,7 +337,7 @@ export function ExerciseMasterCard() {
         </button>
       </div>
 
-      <div className="mt-4 space-y-4">
+      <div className="space-y-4">
         {groupedExercises.map(({ bodyPart, exercises: bodyPartExercises }) => (
           <section key={bodyPart.id} className="space-y-2">
             <div className="flex items-center justify-between gap-3">
@@ -425,7 +424,7 @@ export function ExerciseMasterCard() {
               <div className="min-w-0">
                 <h3 className="text-base font-semibold">種目を削除しますか？</h3>
                 <p className="mt-1 text-sm text-[var(--muted)]">
-                  {archiveTarget.name} を種目マスタから非表示にします．過去のトレーニング記録は残ります．
+                  {archiveTarget.name} を種目マスタから非表示にします。過去のトレーニング記録は残ります。
                 </p>
               </div>
             </div>

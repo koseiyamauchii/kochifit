@@ -4,7 +4,7 @@ export default function AuthCodeErrorPage() {
       <p className="text-sm text-[var(--muted)]">KochiFit</p>
       <h1 className="mt-1 text-2xl font-semibold">ログインに失敗しました</h1>
       <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-        時間をおいて，もう一度Googleでログインしてください．
+        時間をおいて、もう一度Googleでログインしてください。
       </p>
     </main>
   );

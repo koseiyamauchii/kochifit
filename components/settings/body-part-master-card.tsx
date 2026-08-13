@@ -28,7 +28,7 @@ export function BodyPartMasterCard() {
       setBodyParts(await getBodyParts(client));
     } catch (loadError) {
       console.error("Body part master load error", loadError);
-      setError("部位マスタの読み込みに失敗しました．");
+      setError("部位マスタの読み込みに失敗しました。");
     }
   }, [client, user]);
 
@@ -75,10 +75,10 @@ export function BodyPartMasterCard() {
       });
       await load();
       setActiveColorBodyPartId(null);
-      setMessage("部位の順番を保存しました．");
+      setMessage("部位の順番を保存しました。");
     } catch (saveError) {
       console.error("Body part order save error", saveError);
-      setError("部位の順番保存に失敗しました．");
+      setError("部位の順番保存に失敗しました。");
     } finally {
       setIsSaving(false);
     }
@@ -91,9 +91,8 @@ export function BodyPartMasterCard() {
   };
 
   return (
-    <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-base font-semibold">部位マスタ</h2>
+    <section className="space-y-4">
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={() => void saveOrder()}
@@ -104,10 +103,10 @@ export function BodyPartMasterCard() {
           {isSaving ? "保存中" : "保存"}
         </button>
       </div>
-      <p className="mt-2 text-sm text-[var(--muted)]">
-        ここで変更した順番は，種目マスタ，トレーニング記録，履歴の部位順に反映されます．
+      <p className="text-sm text-[var(--muted)]">
+        ここで変更した順番は、種目マスタ、トレーニング記録、履歴の部位順に反映されます。
       </p>
-      <div className="mt-4 space-y-2">
+      <div className="space-y-2">
         {bodyParts.map((bodyPart) => (
           <div
             key={bodyPart.id}

@@ -24,8 +24,8 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="text-sm text-[var(--muted)]">起動中</p>
           {isSlowLoading ? (
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
-              起動に時間がかかっています．スマホ確認では `pnpm run dev:lan` で起動し，
-              `http://PCのLAN内IP:3000` のようにポート番号付きで開いてください．
+              起動に時間がかかっています。スマホ確認では `pnpm run dev:lan` で起動し、
+              `http://PCのLAN内IP:3000` のようにポート番号付きで開いてください。
             </p>
           ) : null}
         </div>
@@ -40,7 +40,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
           <p className="text-sm text-[var(--muted)]">KochiFit</p>
           <h1 className="mt-1 text-2xl font-semibold">トレーニング記録</h1>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
-            アプリの認証設定が完了していません．
+            アプリの認証設定が完了していません。
           </p>
         </div>
       </main>

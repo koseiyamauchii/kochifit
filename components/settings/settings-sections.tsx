@@ -31,15 +31,16 @@ export type SettingsSection =
 const sectionItems: Array<{
   id: SettingsSection;
   title: string;
+  detailTitle: string;
   icon: React.ReactNode;
 }> = [
-  { id: "profile", title: "プロフィール", icon: <User size={21} /> },
-  { id: "bodyParts", title: "部位マスタ", icon: <Dumbbell size={21} /> },
-  { id: "exercises", title: "種目マスタ", icon: <Dumbbell size={21} /> },
-  { id: "formula", title: "計算式", icon: <Calculator size={21} /> },
-  { id: "accessibility", title: "アクセシビリティ", icon: <Palette size={21} /> },
-  { id: "support", title: "問い合わせ", icon: <Mail size={21} /> },
-  { id: "account", title: "アカウント", icon: <UserCircle size={21} /> },
+  { id: "profile", title: "プロフィール", detailTitle: "プロフィール設定", icon: <User size={21} /> },
+  { id: "bodyParts", title: "部位マスタ", detailTitle: "部位マスタ設定", icon: <Dumbbell size={21} /> },
+  { id: "exercises", title: "種目マスタ", detailTitle: "種目マスタ設定", icon: <Dumbbell size={21} /> },
+  { id: "formula", title: "計算式", detailTitle: "計算式", icon: <Calculator size={21} /> },
+  { id: "accessibility", title: "表示", detailTitle: "表示設定", icon: <Palette size={21} /> },
+  { id: "support", title: "問い合わせ", detailTitle: "問い合わせ", icon: <Mail size={21} /> },
+  { id: "account", title: "アカウント", detailTitle: "アカウント設定", icon: <UserCircle size={21} /> },
 ];
 
 function renderSection(section: SettingsSection) {
@@ -78,40 +79,44 @@ export function SettingsSections({
 
   return (
     <div className="space-y-4">
-      {activeSection && showBackToList ? (
-        <button
-          type="button"
-          onClick={() => setActiveSection(null)}
-          className="flex min-h-11 items-center gap-2 rounded-[8px] border border-[var(--border)] px-3 text-base font-semibold"
-        >
-          <ChevronLeft size={19} />
-          設定一覧
-        </button>
-      ) : null}
-
       {!activeSection ? (
-        <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-2 shadow-[var(--shadow)]">
-          <div className="grid gap-1">
-            {sectionItems.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => setActiveSection(item.id)}
-                className="flex min-h-14 items-center gap-3 rounded-[8px] px-3 py-2 text-left text-[var(--text)] hover:bg-[var(--surface-soft)]"
-              >
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]">
-                  {item.icon}
-                </span>
-                <span className="min-w-0 flex-1 text-base font-semibold">{item.title}</span>
-                <ChevronRight size={19} className="shrink-0 text-[var(--muted)]" />
-              </button>
-            ))}
-          </div>
-        </section>
+        <>
+          <h1 className="text-base font-semibold">設定</h1>
+          <section className="rounded-[8px] bg-[var(--surface-soft)] p-1">
+            <div className="grid gap-1">
+              {sectionItems.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveSection(item.id)}
+                  className="flex min-h-14 items-center gap-3 rounded-[8px] px-3 py-2 text-left text-[var(--text)] hover:bg-[var(--surface)]"
+                >
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)]">
+                    {item.icon}
+                  </span>
+                  <span className="min-w-0 flex-1 text-base font-semibold">{item.title}</span>
+                  <ChevronRight size={19} className="shrink-0 text-[var(--muted)]" />
+                </button>
+              ))}
+            </div>
+          </section>
+        </>
       ) : (
-        <div>
-          {activeItem && showBackToList && activeSection !== "account" ? (
-            <h2 className="mb-3 text-base font-semibold">{activeItem.title}</h2>
+        <div className="space-y-4">
+          {activeItem ? (
+            <div className="flex items-center gap-3">
+              {showBackToList ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveSection(null)}
+                  aria-label="設定一覧に戻る"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
+                >
+                  <ChevronLeft size={22} />
+                </button>
+              ) : null}
+              <h1 className="text-base font-semibold">{activeItem.detailTitle}</h1>
+            </div>
           ) : null}
           {renderSection(activeSection)}
         </div>

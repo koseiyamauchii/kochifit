@@ -20,6 +20,107 @@ import type {
 type Client = SupabaseClient<Database>;
 type ExerciseSettingKey = "rack_position" | "memo";
 
+type SetRow = {
+  id: string;
+  workout_exercise_id: string;
+  set_number: number;
+  weight_kg: number | null;
+  reps: number | null;
+  rir: number | null;
+  is_warmup: boolean;
+  note?: string | null;
+};
+
+const setSelectColumns = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup";
+const setSelectColumnsWithNote = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, note";
+
+function isSetNoteUnavailable(error: unknown) {
+  if (!error || typeof error !== "object") {
+    return false;
+  }
+
+  const record = error as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown };
+  const text = [record.code, record.message, record.details, record.hint]
+    .filter((value) => value !== undefined && value !== null)
+    .map(String)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    text.includes("note") &&
+    text.includes("sets") &&
+    (text.includes("pgrst204") ||
+      text.includes("42703") ||
+      text.includes("schema cache") ||
+      text.includes("could not find") ||
+      text.includes("column"))
+  );
+}
+
+function withoutSetNotes<T extends { weight_kg: number | null; reps: number | null; note?: string | null }>(sets: T[]) {
+  return sets
+    .filter((set) => set.weight_kg !== null || set.reps !== null)
+    .map((set) => {
+      const setWithoutNote = { ...set };
+      delete setWithoutNote.note;
+      return setWithoutNote;
+    });
+}
+
+async function getSetsByWorkoutExerciseIds(client: Client, workoutExerciseIds: string[]) {
+  const withNoteResult = await client
+    .from("sets")
+    .select(setSelectColumnsWithNote)
+    .in("workout_exercise_id", workoutExerciseIds)
+    .order("set_number");
+
+  if (!withNoteResult.error) {
+    return withNoteResult.data ?? [];
+  }
+  if (!isSetNoteUnavailable(withNoteResult.error)) {
+    throw withNoteResult.error;
+  }
+
+  const fallbackResult = await client
+    .from("sets")
+    .select(setSelectColumns)
+    .in("workout_exercise_id", workoutExerciseIds)
+    .order("set_number");
+
+  if (fallbackResult.error) {
+    throw fallbackResult.error;
+  }
+
+  return (fallbackResult.data ?? []).map((row) => ({ ...row, note: null }));
+}
+
+async function getSetsByWorkoutExerciseId(client: Client, workoutExerciseId: string) {
+  const withNoteResult = await client
+    .from("sets")
+    .select(setSelectColumnsWithNote)
+    .eq("workout_exercise_id", workoutExerciseId)
+    .order("set_number");
+
+  if (!withNoteResult.error) {
+    return withNoteResult.data ?? [];
+  }
+  if (!isSetNoteUnavailable(withNoteResult.error)) {
+    throw withNoteResult.error;
+  }
+
+  const fallbackResult = await client
+    .from("sets")
+    .select(setSelectColumns)
+    .eq("workout_exercise_id", workoutExerciseId)
+    .order("set_number");
+
+  if (fallbackResult.error) {
+    throw fallbackResult.error;
+  }
+
+  return (fallbackResult.data ?? []).map((row) => ({ ...row, note: null }));
+}
+
 const exerciseSettingLabels: Record<ExerciseSettingKey, string> = {
   rack_position: "ラック位置",
   memo: "メモ",
@@ -110,16 +211,7 @@ async function saveExerciseSettings(client: Client, exerciseId: string, input: E
   ]);
 }
 
-function mapSet(row: {
-  id: string;
-  workout_exercise_id: string;
-  set_number: number;
-  weight_kg: number | null;
-  reps: number | null;
-  rir: number | null;
-  is_warmup: boolean;
-  note: string | null;
-}): WorkoutSet {
+function mapSet(row: SetRow): WorkoutSet {
   return {
     id: row.id,
     setNumber: row.set_number,
@@ -127,7 +219,7 @@ function mapSet(row: {
     reps: row.reps,
     rir: row.rir,
     isWarmup: row.is_warmup,
-    note: row.note,
+    note: row.note ?? null,
   };
 }
 
@@ -628,15 +720,7 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
   const workoutExerciseIds = workoutExercises.map((item) => item.id);
   const setsByWorkoutExercise = new Map<string, WorkoutSet[]>();
   if (workoutExerciseIds.length > 0) {
-    const { data: sets, error: setError } = await client
-      .from("sets")
-      .select("id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, note")
-      .in("workout_exercise_id", workoutExerciseIds)
-      .order("set_number");
-
-    if (setError) {
-      throw setError;
-    }
+    const sets = await getSetsByWorkoutExerciseIds(client, workoutExerciseIds);
 
     for (const set of sets) {
       const current = setsByWorkoutExercise.get(set.workout_exercise_id) ?? [];
@@ -715,15 +799,7 @@ export async function getLatestWorkoutForExerciseBeforeDate(
     throw exerciseError;
   }
 
-  const { data: sets, error: setError } = await client
-    .from("sets")
-    .select("id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, note")
-    .eq("workout_exercise_id", latest.id)
-    .order("set_number");
-
-  if (setError) {
-    throw setError;
-  }
+  const sets = await getSetsByWorkoutExerciseId(client, latest.id);
 
   return {
     id: latest.id,
@@ -841,21 +917,33 @@ async function insertSets(
     return;
   }
 
-  const { error } = await client.from("sets").insert(
-    validSets.map((set, index) => ({
-      user_id: input.userId,
-      workout_exercise_id: input.workoutExerciseId,
-      set_number: index + 1,
-      weight_kg: set.weightKg,
-      reps: set.reps,
-      rir: null,
-      is_warmup: set.isWarmup,
-      note: set.note,
-    })),
-  );
+  const payload = validSets.map((set, index) => ({
+    user_id: input.userId,
+    workout_exercise_id: input.workoutExerciseId,
+    set_number: index + 1,
+    weight_kg: set.weightKg,
+    reps: set.reps,
+    rir: null,
+    is_warmup: set.isWarmup,
+    note: set.note,
+  }));
+  const { error } = await client.from("sets").insert(payload);
 
-  if (error) {
+  if (!error) {
+    return;
+  }
+  if (!isSetNoteUnavailable(error)) {
     throw error;
+  }
+
+  const fallbackPayload = withoutSetNotes(payload);
+  if (fallbackPayload.length === 0) {
+    return;
+  }
+
+  const { error: fallbackError } = await client.from("sets").insert(fallbackPayload);
+  if (fallbackError) {
+    throw fallbackError;
   }
 }
 

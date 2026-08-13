@@ -96,19 +96,18 @@ export function ProfileSettingsCard() {
 
       setDefaultSetCount(String(parsedSetCount));
       await refreshProfile();
-      setMessage("保存しました．");
+      setMessage("保存しました。");
     } catch (saveError) {
       console.error("Profile settings save error", saveError);
-      setError("プロフィール設定の保存に失敗しました．");
+      setError("プロフィール設定の保存に失敗しました。");
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
-      <h2 className="text-base font-semibold">プロフィール設定</h2>
-      <div className="mt-3 grid grid-cols-2 gap-3">
+    <section className="space-y-4">
+      <div className="grid grid-cols-2 gap-3">
         <label className="block space-y-1">
           <span className="text-sm font-medium text-[var(--muted)]">身長 cm</span>
           <select
@@ -168,7 +167,7 @@ export function ProfileSettingsCard() {
           </select>
         </label>
       </div>
-      <label className="mt-3 block space-y-1">
+      <label className="block space-y-1">
         <span className="text-sm font-medium text-[var(--muted)]">分割法</span>
         <select
           value={trainingSplit}
@@ -182,7 +181,7 @@ export function ProfileSettingsCard() {
           <option value="body_part_split">部位別</option>
         </select>
       </label>
-      <label className="mt-3 block space-y-1">
+      <label className="block space-y-1">
         <span className="text-sm font-medium text-[var(--muted)]">デフォルトセット数</span>
         <select
           value={defaultSetCount}
@@ -196,7 +195,7 @@ export function ProfileSettingsCard() {
           ))}
         </select>
       </label>
-      <div className="mt-5 space-y-3">
+      <div className="space-y-3">
         <h3 className="text-base font-semibold">目標</h3>
         <label className="block space-y-1">
           <span className="text-sm font-medium text-[var(--muted)]">目的</span>
@@ -206,7 +205,7 @@ export function ProfileSettingsCard() {
             maxLength={200}
             rows={2}
             className="min-h-20 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2"
-            placeholder="例：健康維持，増量，減量"
+            placeholder="例：健康維持、増量、減量"
           />
         </label>
         <label className="block space-y-1">
@@ -217,7 +216,7 @@ export function ProfileSettingsCard() {
             maxLength={200}
             rows={2}
             className="min-h-20 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2"
-            placeholder="例：ベンチプレス100kg，体脂肪率を下げる"
+            placeholder="例：ベンチプレス100kg、体脂肪率を下げる"
           />
         </label>
         <label className="block space-y-1">
@@ -285,7 +284,7 @@ export function ProfileSettingsCard() {
         type="button"
         onClick={() => void save()}
         disabled={isSaving}
-        className="mt-4 flex min-h-12 w-full items-center justify-center gap-2 rounded-[8px] bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-50"
+        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[8px] bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-50"
       >
         <Save size={18} />
         {isSaving ? "保存中" : "保存"}

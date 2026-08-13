@@ -29,8 +29,6 @@ export function AppShell({
     setIsSettingsOpen(true);
   };
 
-  const showModalTitle = !(initialSettingsSection === "account" && !settingsListBackEnabled);
-
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-3 pb-6 pt-3 sm:px-6 sm:pt-6">
       {user ? (
@@ -58,29 +56,23 @@ export function AppShell({
           onClick={() => setIsSettingsOpen(false)}
         >
           <section
-            className="safe-bottom max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]"
+            className="safe-bottom relative max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div
-              className={[
-                "flex items-center justify-between gap-3",
-                showModalTitle ? "mb-4" : "mb-2",
-              ].join(" ")}
+            <button
+              type="button"
+              onClick={() => setIsSettingsOpen(false)}
+              aria-label="設定を閉じる"
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--muted)] hover:bg-[var(--border)]"
             >
-              {showModalTitle ? <h1 className="text-base font-semibold">設定</h1> : <div />}
-              <button
-                type="button"
-                onClick={() => setIsSettingsOpen(false)}
-                aria-label="設定を閉じる"
-                className="mt-2 flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border)]"
-              >
-                <X size={19} />
-              </button>
+              <X size={18} />
+            </button>
+            <div className="pr-11">
+              <SettingsSections
+                initialSection={initialSettingsSection}
+                showBackToList={settingsListBackEnabled}
+              />
             </div>
-            <SettingsSections
-              initialSection={initialSettingsSection}
-              showBackToList={settingsListBackEnabled}
-            />
           </section>
         </div>
       ) : null}

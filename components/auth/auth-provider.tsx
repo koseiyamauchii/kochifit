@@ -114,12 +114,13 @@ function reportAuthError(error: unknown, fallbackMessage: string) {
   return fallbackMessage;
 }
 
-function getOAuthRedirectOrigin() {
-  const url = new URL(window.location.origin);
-  if (url.hostname === "0.0.0.0") {
-    url.hostname = "localhost";
+function getOAuthRedirectTo() {
+  const callbackUrl = new URL("/auth/callback", window.location.href);
+  if (callbackUrl.hostname === "0.0.0.0") {
+    callbackUrl.hostname = "localhost";
   }
-  return url.origin;
+  callbackUrl.searchParams.set("next", "/");
+  return callbackUrl.toString();
 }
 
 async function getSessionWithTimeout(client: SupabaseClient<Database>) {
@@ -191,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setInitialExercisesCount(nextInitialExercisesCount);
         setInitialExercisesStatus(nextInitialExercisesCount > 0 ? "ready" : "error");
       } catch (err) {
-        setError(reportAuthError(err, "プロフィールの初期化に失敗しました．"));
+        setError(reportAuthError(err, "プロフィールの初期化に失敗しました。"));
         setProfileStatus("error");
         setInitialExercisesStatus("error");
       }
@@ -215,7 +216,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     getSessionWithTimeout(client)
       .then(({ data, error: sessionError }) => {
         if (sessionError) {
-          setError(reportAuthError(sessionError, "ログイン状態の確認に失敗しました．"));
+          setError(reportAuthError(sessionError, "ログイン状態の確認に失敗しました。"));
           setAuthStatus("error");
           return;
         }
@@ -227,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch((sessionError: unknown) => {
-        reportAuthError(sessionError, "ログイン状態の確認に失敗しました．");
+        reportAuthError(sessionError, "ログイン状態の確認に失敗しました。");
         setSession(null);
         setAuthStatus("unauthenticated");
       });
@@ -259,7 +260,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     resetThemePreferenceToDefault();
-    const redirectTo = `${getOAuthRedirectOrigin()}/auth/callback?next=/`;
+    const redirectTo = getOAuthRedirectTo();
     const { error: loginError } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
@@ -269,7 +270,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     if (loginError) {
-      setError(reportAuthError(loginError, "Googleログインを開始できませんでした．"));
+      setError(reportAuthError(loginError, "Googleログインを開始できませんでした。"));
       setAuthStatus("error");
     }
   }, [supabase]);
@@ -296,7 +297,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { error: logoutError } = await supabase.auth.signOut();
     if (logoutError) {
-      setError(reportAuthError(logoutError, "ログアウトに失敗しました．"));
+      setError(reportAuthError(logoutError, "ログアウトに失敗しました。"));
       return;
     }
 

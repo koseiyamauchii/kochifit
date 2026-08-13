@@ -206,7 +206,7 @@ function PreviousWorkoutBlock({
           ) : null}
         </div>
       ) : (
-        <p className="text-sm text-[var(--muted)]">この種目の前回記録はまだありません．</p>
+        <p className="text-sm text-[var(--muted)]">この種目の前回記録はまだありません。</p>
       )}
     </div>
   );
@@ -711,7 +711,7 @@ export function WorkoutCalendar({
       }));
     } catch (loadError) {
       console.error("Workout data load error", loadError);
-      setError("トレーニングデータの読み込みに失敗しました．");
+      setError("トレーニングデータの読み込みに失敗しました。");
     } finally {
       setIsLoading(false);
     }
@@ -752,7 +752,7 @@ export function WorkoutCalendar({
     if (authStatus === "authenticated" && profileStatus === "ready") {
       void loadMonth().catch((loadError) => {
         console.error("Workout summary load error", loadError);
-        setError("カレンダーの読み込みに失敗しました．");
+        setError("カレンダーの読み込みに失敗しました。");
       });
     }
   }, [authStatus, loadMonth, profileStatus]);
@@ -761,7 +761,7 @@ export function WorkoutCalendar({
     if (authStatus === "authenticated" && profileStatus === "ready") {
       void loadSelectedDate().catch((loadError) => {
         console.error("Workout detail load error", loadError);
-        setError("選択日の記録読み込みに失敗しました．");
+        setError("選択日の記録読み込みに失敗しました。");
       });
     }
   }, [authStatus, loadSelectedDate, profileStatus]);
@@ -843,7 +843,7 @@ export function WorkoutCalendar({
       setIsAddFormOpen(false);
     } catch (saveError) {
       console.error("Workout save error", saveError);
-      setError("トレーニングの保存に失敗しました．入力値を確認してください．");
+      setError("トレーニングの保存に失敗しました。入力値を確認してください。");
     } finally {
       setSavingKey(null);
     }
@@ -859,7 +859,7 @@ export function WorkoutCalendar({
       return;
     }
     if (!hasAnySetInput(draft, profile)) {
-      setError("重量または回数を入力してください．");
+      setError("重量または回数を入力してください。");
       return;
     }
 
@@ -878,7 +878,7 @@ export function WorkoutCalendar({
       await Promise.all([loadMonth(), loadSelectedDate(), loadPreviousWorkout()]);
     } catch (saveError) {
       console.error("Workout update error", saveError);
-      setError("トレーニングの更新に失敗しました．");
+      setError("トレーニングの更新に失敗しました。");
     } finally {
       setSavingKey(null);
     }
@@ -895,7 +895,7 @@ export function WorkoutCalendar({
       await Promise.all([loadMonth(), loadSelectedDate(), loadPreviousWorkout()]);
     } catch (deleteError) {
       console.error("Workout delete error", deleteError);
-      setError("トレーニングの削除に失敗しました．");
+      setError("トレーニングの削除に失敗しました。");
     } finally {
       setSavingKey(null);
     }
@@ -1104,7 +1104,7 @@ export function WorkoutCalendar({
             type="button"
             onClick={() => setIsAddFormOpen(true)}
             aria-label="記録を追加"
-            className="fixed bottom-8 right-7 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
+            className="fixed bottom-12 right-10 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
           >
             <Plus size={20} />
           </button>

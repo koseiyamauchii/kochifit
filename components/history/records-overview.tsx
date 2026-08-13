@@ -59,7 +59,7 @@ export function RecordsOverview() {
       setRecords(nextRecords);
     } catch (loadError) {
       console.error("Exercise records load error", loadError);
-      setError("履歴の読み込みに失敗しました．");
+      setError("履歴の読み込みに失敗しました。");
     } finally {
       setIsLoading(false);
     }

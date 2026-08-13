@@ -8,7 +8,6 @@ export function SupabaseAccountCard() {
 
   return (
     <section className="space-y-2">
-      <h2 className="text-base font-semibold">Googleアカウント</h2>
       <AccountMenu />
       {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
     </section>
