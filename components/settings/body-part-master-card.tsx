@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, GripVertical, Save } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, GripVertical, Save } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -90,6 +90,22 @@ export function BodyPartMasterCard() {
     );
   };
 
+  const moveBodyPartByIndex = (index: number, delta: number) => {
+    setBodyParts((current) => {
+      const targetIndex = index + delta;
+      if (targetIndex < 0 || targetIndex >= current.length) {
+        return current;
+      }
+      const next = [...current];
+      const [moved] = next.splice(index, 1);
+      next.splice(targetIndex, 0, moved);
+      return next.map((bodyPart, bodyPartIndex) => ({
+        ...bodyPart,
+        displayOrder: bodyPartIndex + 1,
+      }));
+    });
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex justify-end">
@@ -107,7 +123,7 @@ export function BodyPartMasterCard() {
         ここで変更した順番は、種目マスタ、トレーニング記録、履歴の部位順に反映されます。
       </p>
       <div className="space-y-2">
-        {bodyParts.map((bodyPart) => (
+        {bodyParts.map((bodyPart, index) => (
           <div
             key={bodyPart.id}
             draggable
@@ -116,25 +132,47 @@ export function BodyPartMasterCard() {
             onDrop={() => moveBodyPart(bodyPart)}
             className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3"
           >
-            <button
-              type="button"
-              onClick={() =>
-                setActiveColorBodyPartId((current) => (current === bodyPart.id ? null : bodyPart.id))
-              }
-              className="flex w-full items-center gap-2 text-left"
-            >
-              <GripVertical size={18} className="shrink-0 text-[var(--muted)]" />
-              <span
-                aria-hidden="true"
-                className="color-orb h-4 w-4 shrink-0 rounded-full"
-                style={
-                  {
-                    "--color-orb": getBodyPartColorByColorKey(bodyPart.colorKey),
-                  } as CSSProperties
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  setActiveColorBodyPartId((current) => (current === bodyPart.id ? null : bodyPart.id))
                 }
-              />
-              <span className="min-w-0 flex-1 font-medium">{bodyPart.displayName}</span>
-            </button>
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              >
+                <GripVertical size={18} className="shrink-0 text-[var(--muted)]" />
+                <span
+                  aria-hidden="true"
+                  className="color-orb h-4 w-4 shrink-0 rounded-full"
+                  style={
+                    {
+                      "--color-orb": getBodyPartColorByColorKey(bodyPart.colorKey),
+                    } as CSSProperties
+                  }
+                />
+                <span className="min-w-0 flex-1 font-medium">{bodyPart.displayName}</span>
+              </button>
+              <div className="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  onClick={() => moveBodyPartByIndex(index, -1)}
+                  disabled={index === 0}
+                  aria-label={`${bodyPart.displayName}を上へ移動`}
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
+                >
+                  <ChevronUp size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveBodyPartByIndex(index, 1)}
+                  disabled={index === bodyParts.length - 1}
+                  aria-label={`${bodyPart.displayName}を下へ移動`}
+                  className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
+                >
+                  <ChevronDown size={18} />
+                </button>
+              </div>
+            </div>
             {activeColorBodyPartId === bodyPart.id ? (
               <div className="mt-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
                 <div className="grid grid-cols-5 gap-2">

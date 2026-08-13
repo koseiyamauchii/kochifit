@@ -146,6 +146,18 @@ select {
   font-size: 16px;
 }
 
+select,
+select option {
+  background: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] select option {
+  background: #111113;
+  color: var(--text);
+}
+
 button {
   -webkit-tap-highlight-color: transparent;
 }

@@ -1,13 +1,13 @@
 "use client";
 
-import { ArrowLeft, ChevronLeft, ChevronRight, Copy, History, Plus, Save, Scale, Trash2, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Copy, History, Plus, Save, Scale, Trash2, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
-import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
+import { getBodyPartColor, getTextColorForBodyPartColor } from "@/lib/workouts/body-part-colors";
 import { estimateWorkoutExerciseCalories } from "@/lib/workouts/calories";
 import {
   addMonths,
@@ -163,6 +163,24 @@ function estimateDraftCalories(
   });
 }
 
+function findBodyPart(bodyParts: BodyPart[], exercise: Exercise | null) {
+  if (!exercise) {
+    return null;
+  }
+  return bodyParts.find((bodyPart) => bodyPart.id === exercise.bodyPartId) ?? null;
+}
+
+function getExerciseHeaderStyle(bodyParts: BodyPart[], exercise: Exercise | null): CSSProperties {
+  const bodyPart = findBodyPart(bodyParts, exercise);
+  const color = bodyPart
+    ? getBodyPartColor(bodyPart.key, bodyPart.colorKey)
+    : getBodyPartColor(exercise?.bodyPartKey ?? null);
+  return {
+    background: color,
+    color: getTextColorForBodyPartColor(color),
+  };
+}
+
 function hasAnySetInput(draft: EntryDraft, profile: ReturnType<typeof useAuth>["profile"]) {
   return toSetInputs(draft.sets, profile).some(
     (set) => set.weightKg !== null || set.reps !== null || set.note !== null,
@@ -249,6 +267,7 @@ function WorkoutEntryForm({
       ? exercises.filter((exercise) => exercise.bodyPartId === selectedBodyPartId)
       : exercises;
   const estimatedCalories = estimateDraftCalories(draft, exercises, profile);
+  const exerciseHeaderStyle = getExerciseHeaderStyle(bodyParts, selectedExercise);
   const exerciseRecord = exerciseRecords.find((record) => record.exerciseId === draft.exerciseId);
   const maxWeightKg = exerciseRecord?.maxWeightKg ?? null;
   const canSave = Boolean(draft.exerciseId && hasAnySetInput(draft, profile));
@@ -332,15 +351,19 @@ function WorkoutEntryForm({
   };
 
   return (
-    <section className="space-y-3 rounded-[8px] border border-[var(--accent)] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
-      <div className="flex items-center justify-between gap-2">
-        <h3 className="min-w-0 truncate text-base font-semibold">
-          {mode === "add" ? "記録を追加" : selectedExercise?.name ?? "記録"}
-        </h3>
-        <div className="shrink-0 whitespace-nowrap rounded-[8px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--muted)]">
+    <section className="overflow-hidden rounded-[8px] bg-[var(--surface)] shadow-[var(--shadow)]">
+      <div className="flex items-center justify-between gap-3 px-3 py-2.5" style={exerciseHeaderStyle}>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold opacity-80">{mode === "add" ? "記録を追加" : "記録"}</p>
+          <h3 className="min-w-0 truncate text-base font-semibold">
+            {selectedExercise?.name ?? "種目を追加してください"}
+          </h3>
+        </div>
+        <div className="shrink-0 whitespace-nowrap rounded-[8px] bg-black/15 px-2.5 py-1.5 text-[11px] font-semibold text-current">
           約{estimatedCalories}kcal
         </div>
       </div>
+      <div className="space-y-3 p-3">
 
       {mode === "add" && selectedBodyPartId && setSelectedBodyPartId ? (
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
@@ -384,7 +407,7 @@ function WorkoutEntryForm({
           <select
             value={draft.exerciseId}
             onChange={(event) => onDraftChange({ ...draft, exerciseId: event.target.value })}
-            className="min-h-11 w-full rounded-[8px] bg-[var(--accent-tint)] px-3 text-sm font-semibold ring-1 ring-[var(--accent)]"
+            className="min-h-11 w-full rounded-[8px] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text)] ring-1 ring-[var(--border)]"
           >
             {filteredExercises.map((exercise) => (
               <option key={exercise.id} value={exercise.id}>
@@ -395,8 +418,20 @@ function WorkoutEntryForm({
         </label>
       ) : null}
 
+      {mode === "add" && filteredExercises.length === 0 ? (
+        <p className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--muted)]">
+          種目マスタで種目を追加してください。
+        </p>
+      ) : null}
+
+      {mode === "add" && filteredExercises.length > 0 && !hasAnySetInput(draft, profile) ? (
+        <p className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--muted)]">
+          重量、回数、メモのいずれかを入力してください。
+        </p>
+      ) : null}
+
       {selectedExercise?.rackPosition || selectedExercise?.memo ? (
-        <div className="space-y-1 rounded-[8px] bg-[var(--accent-tint)] px-3 py-2 text-sm ring-1 ring-[var(--accent)]">
+        <div className="space-y-1 rounded-[8px] bg-[var(--surface-soft)] px-3 py-2 text-sm">
           {selectedExercise.rackPosition ? (
             <p>
               <span className="text-[var(--muted)]">ラック位置：</span>
@@ -587,6 +622,7 @@ function WorkoutEntryForm({
           {isSaving ? "保存中" : "追加"}
         </button>
       )}
+      </div>
     </section>
   );
 }
@@ -1075,9 +1111,9 @@ export function WorkoutCalendar({
                 <Link
                   href={backHref}
                   aria-label="戻る"
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-[var(--border)]"
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
                 >
-                  <ArrowLeft size={18} />
+                  <ChevronLeft size={22} />
                 </Link>
               ) : null}
               <h1 className="min-w-0 whitespace-nowrap text-base font-semibold leading-tight sm:text-lg">
@@ -1148,10 +1184,10 @@ export function WorkoutCalendar({
               <button
                 type="button"
                 onClick={() => setIsAddFormOpen(false)}
-                className="mb-3 flex min-h-9 items-center gap-2 rounded-[8px] bg-[var(--surface-soft)] px-3 text-sm font-semibold"
+                aria-label="戻る"
+                className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
               >
-                <ArrowLeft size={17} />
-                戻る
+                <ChevronLeft size={22} />
               </button>
               <WorkoutEntryForm
                 bodyParts={bodyParts}

@@ -49,3 +49,16 @@ export function getBodyPartColor(
 ) {
   return getBodyPartColorByColorKey(colorKey ?? getDefaultBodyPartColorKey(bodyPartKey));
 }
+
+export function getTextColorForBodyPartColor(color: string) {
+  const hex = color.replace("#", "");
+  if (!/^[0-9a-f]{6}$/i.test(hex)) {
+    return "#ffffff";
+  }
+
+  const red = Number.parseInt(hex.slice(0, 2), 16) / 255;
+  const green = Number.parseInt(hex.slice(2, 4), 16) / 255;
+  const blue = Number.parseInt(hex.slice(4, 6), 16) / 255;
+  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+  return luminance > 0.62 ? "#171717" : "#ffffff";
+}

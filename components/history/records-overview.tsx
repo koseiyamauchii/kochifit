@@ -1,9 +1,11 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
+import { getBodyPartColor, getTextColorForBodyPartColor } from "@/lib/workouts/body-part-colors";
 import { getBodyParts, getExerciseRecords } from "@/lib/workouts/repository";
 import type { BodyPart, ExerciseRecord } from "@/lib/workouts/types";
 
@@ -88,45 +90,54 @@ export function RecordsOverview() {
       {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
 
       <div className="mt-4 space-y-5">
-        {groupedRecords.map(({ bodyPart, records: bodyPartRecords }) => (
-          <section key={bodyPart.id} className="space-y-2">
-            <h2 className="text-sm font-semibold text-[var(--muted)]">{bodyPart.displayName}</h2>
-            {bodyPartRecords.length > 0 ? (
-              <div className="space-y-2">
-                {bodyPartRecords.map((record) => (
-                  <article
-                    key={record.exerciseId}
-                    className="rounded-[8px] bg-[var(--surface-soft)] p-3"
-                  >
-                    <h3 className="font-semibold">{record.exerciseName}</h3>
-                    <dl className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
-                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
-                        <dt className="text-xs text-[var(--muted)]">最高重量</dt>
-                        <dd className="mt-1 font-semibold">
-                          {formatNumber(record.maxWeightKg, "kg")}
-                        </dd>
-                      </div>
-                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
-                        <dt className="text-xs text-[var(--muted)]">最大量</dt>
-                        <dd className="mt-1 font-semibold">
-                          {formatNumber(record.maxVolumeKg, "kg")}
-                        </dd>
-                      </div>
-                      <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
-                        <dt className="text-xs text-[var(--muted)]">最終</dt>
-                        <dd className="mt-1 font-semibold">{formatDate(record.lastWorkoutDate)}</dd>
-                      </div>
-                    </dl>
-                  </article>
-                ))}
-              </div>
-            ) : (
-              <p className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
-                {isLoading ? "読込中" : "記録なし"}
-              </p>
-            )}
-          </section>
-        ))}
+        {groupedRecords.map(({ bodyPart, records: bodyPartRecords }) => {
+          const headerColor = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
+          const headerStyle = {
+            background: headerColor,
+            color: getTextColorForBodyPartColor(headerColor),
+          } as CSSProperties;
+          return (
+            <section key={bodyPart.id} className="overflow-hidden rounded-[8px] bg-[var(--surface)] shadow-[var(--shadow)]">
+              <h2 className="px-3 py-2.5 text-sm font-semibold" style={headerStyle}>
+                {bodyPart.displayName}
+              </h2>
+              {bodyPartRecords.length > 0 ? (
+                <div className="space-y-2 p-2">
+                  {bodyPartRecords.map((record) => (
+                    <article
+                      key={record.exerciseId}
+                      className="rounded-[8px] bg-[var(--surface-soft)] p-3"
+                    >
+                      <h3 className="font-semibold">{record.exerciseName}</h3>
+                      <dl className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
+                        <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
+                          <dt className="text-xs text-[var(--muted)]">最高重量</dt>
+                          <dd className="mt-1 font-semibold">
+                            {formatNumber(record.maxWeightKg, "kg")}
+                          </dd>
+                        </div>
+                        <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
+                          <dt className="text-xs text-[var(--muted)]">最大量</dt>
+                          <dd className="mt-1 font-semibold">
+                            {formatNumber(record.maxVolumeKg, "kg")}
+                          </dd>
+                        </div>
+                        <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
+                          <dt className="text-xs text-[var(--muted)]">最終</dt>
+                          <dd className="mt-1 font-semibold">{formatDate(record.lastWorkoutDate)}</dd>
+                        </div>
+                      </dl>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <p className="m-2 rounded-[8px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
+                  {isLoading ? "読込中" : "記録なし"}
+                </p>
+              )}
+            </section>
+          );
+        })}
       </div>
     </section>
   );

@@ -1,6 +1,7 @@
 "use client";
 
-import { AlertTriangle, GripVertical, Plus, Save, Trash2, X } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, GripVertical, Plus, Save, Trash2, X } from "lucide-react";
+import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
@@ -12,6 +13,7 @@ import {
   reorderExercises,
   updateExercise,
 } from "@/lib/workouts/repository";
+import { getBodyPartColor, getTextColorForBodyPartColor } from "@/lib/workouts/body-part-colors";
 import type { BodyPart, Exercise } from "@/lib/workouts/types";
 
 interface Draft {
@@ -276,6 +278,44 @@ export function ExerciseMasterCard() {
       setArchiveTarget(draft);
     }
   };
+  const persistExerciseOrder = async (bodyPartId: string, nextGroup: Exercise[]) => {
+    if (!user) {
+      return;
+    }
+    setExercises((current) =>
+      current.map((exercise) => {
+        const nextIndex = nextGroup.findIndex((item) => item.id === exercise.id);
+        return nextIndex >= 0 ? { ...exercise, displayOrder: nextIndex + 1 } : exercise;
+      }),
+    );
+
+    try {
+      await reorderExercises(client, {
+        userId: user.id,
+        bodyPartId,
+        exerciseIds: nextGroup.map((exercise) => exercise.id),
+      });
+      setMessage("並び順を保存しました。");
+    } catch (reorderError) {
+      console.error("Exercise reorder error", reorderError);
+      setError("並び順の保存に失敗しました。");
+      await load();
+    }
+  };
+
+  const moveExerciseByIndex = async (bodyPartId: string, index: number, delta: number) => {
+    const currentGroup = exercises
+      .filter((exercise) => exercise.bodyPartId === bodyPartId)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    const targetIndex = index + delta;
+    if (targetIndex < 0 || targetIndex >= currentGroup.length) {
+      return;
+    }
+    const nextGroup = [...currentGroup];
+    const [moved] = nextGroup.splice(index, 1);
+    nextGroup.splice(targetIndex, 0, moved);
+    await persistExerciseOrder(bodyPartId, nextGroup);
+  };
 
   const moveExercise = async (targetExercise: Exercise) => {
     if (!user || !draggingExerciseId || draggingExerciseId === targetExercise.id) {
@@ -301,24 +341,9 @@ export function ExerciseMasterCard() {
     const nextGroup = [...currentGroup];
     const [moved] = nextGroup.splice(sourceIndex, 1);
     nextGroup.splice(targetIndex, 0, moved);
-    setExercises((current) =>
-      current.map((exercise) => {
-        const nextIndex = nextGroup.findIndex((item) => item.id === exercise.id);
-        return nextIndex >= 0 ? { ...exercise, displayOrder: nextIndex + 1 } : exercise;
-      }),
-    );
 
     try {
-      await reorderExercises(client, {
-        userId: user.id,
-        bodyPartId: targetExercise.bodyPartId,
-        exerciseIds: nextGroup.map((exercise) => exercise.id),
-      });
-      setMessage("並び順を保存しました。");
-    } catch (reorderError) {
-      console.error("Exercise reorder error", reorderError);
-      setError("並び順の保存に失敗しました。");
-      await load();
+      await persistExerciseOrder(targetExercise.bodyPartId, nextGroup);
     } finally {
       setDraggingExerciseId(null);
     }
@@ -338,72 +363,103 @@ export function ExerciseMasterCard() {
       </div>
 
       <div className="space-y-4">
-        {groupedExercises.map(({ bodyPart, exercises: bodyPartExercises }) => (
-          <section key={bodyPart.id} className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-sm font-semibold text-[var(--muted)]">{bodyPart.displayName}</h3>
-              <button
-                type="button"
-                onClick={() => startNew(bodyPart.id)}
-                className="rounded-[8px] border border-[var(--border)] px-2 py-1 text-xs font-medium"
-              >
-                追加
-              </button>
-            </div>
-            {draft && !draft.id && newDraftBodyPartId === bodyPart.id ? (
-              <DraftPanel
-                bodyParts={bodyParts}
-                draft={draft}
-                isSaving={isSaving}
-                onArchive={requestArchive}
-                onClose={() => {
-                  setDraft(null);
-                  setNewDraftBodyPartId(null);
-                }}
-                onDraftChange={setDraft}
-                onSave={() => void save()}
-              />
-            ) : null}
-            <div className="grid gap-2">
-              {bodyPartExercises.map((exercise) => (
-                <div key={exercise.id}>
-                  <button
-                    type="button"
-                    draggable
-                    onClick={() => selectExercise(exercise)}
-                    onDragStart={() => setDraggingExerciseId(exercise.id)}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={() => void moveExercise(exercise)}
-                    className="flex w-full items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-left"
-                  >
-                    <GripVertical size={17} className="shrink-0 text-[var(--muted)]" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-medium">{exercise.name}</span>
-                      {exercise.rackPosition || exercise.memo ? (
-                        <span className="block truncate text-sm text-[var(--muted)]">
-                          {exercise.rackPosition ? `ラック：${exercise.rackPosition}` : ""}
-                          {exercise.rackPosition && exercise.memo ? " / " : ""}
-                          {exercise.memo ? `メモ：${exercise.memo}` : ""}
-                        </span>
+        {groupedExercises.map(({ bodyPart, exercises: bodyPartExercises }) => {
+          const headerColor = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
+          const headerStyle = {
+            background: headerColor,
+            color: getTextColorForBodyPartColor(headerColor),
+          } as CSSProperties;
+          return (
+            <section key={bodyPart.id} className="overflow-hidden rounded-[8px] bg-[var(--surface)] shadow-[var(--shadow)]">
+              <div className="flex items-center justify-between gap-3 px-3 py-2.5" style={headerStyle}>
+                <h3 className="min-w-0 truncate text-sm font-semibold">{bodyPart.displayName}</h3>
+                <button
+                  type="button"
+                  onClick={() => startNew(bodyPart.id)}
+                  className="rounded-[8px] bg-black/15 px-2.5 py-1 text-xs font-semibold text-current"
+                >
+                  追加
+                </button>
+              </div>
+              <div className="space-y-2 p-2">
+                {draft && !draft.id && newDraftBodyPartId === bodyPart.id ? (
+                  <DraftPanel
+                    bodyParts={bodyParts}
+                    draft={draft}
+                    isSaving={isSaving}
+                    onArchive={requestArchive}
+                    onClose={() => {
+                      setDraft(null);
+                      setNewDraftBodyPartId(null);
+                    }}
+                    onDraftChange={setDraft}
+                    onSave={() => void save()}
+                  />
+                ) : null}
+                <div className="grid gap-2">
+                  {bodyPartExercises.map((exercise, index) => (
+                    <div key={exercise.id}>
+                      <div className="flex w-full min-w-0 items-center gap-2 rounded-[8px] bg-[var(--surface-soft)] px-3 py-2">
+                        <button
+                          type="button"
+                          draggable
+                          onClick={() => selectExercise(exercise)}
+                          onDragStart={() => setDraggingExerciseId(exercise.id)}
+                          onDragOver={(event) => event.preventDefault()}
+                          onDrop={() => void moveExercise(exercise)}
+                          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                        >
+                          <GripVertical size={17} className="shrink-0 text-[var(--muted)]" />
+                          <span className="min-w-0 flex-1">
+                            <span className="block font-medium">{exercise.name}</span>
+                            {exercise.rackPosition || exercise.memo ? (
+                              <span className="block truncate text-sm text-[var(--muted)]">
+                                {exercise.rackPosition ? `ラック：${exercise.rackPosition}` : ""}
+                                {exercise.rackPosition && exercise.memo ? " / " : ""}
+                                {exercise.memo ? `メモ：${exercise.memo}` : ""}
+                              </span>
+                            ) : null}
+                          </span>
+                        </button>
+                        <div className="flex shrink-0 gap-1">
+                          <button
+                            type="button"
+                            onClick={() => void moveExerciseByIndex(bodyPart.id, index, -1)}
+                            disabled={index === 0}
+                            aria-label={`${exercise.name}を上へ移動`}
+                            className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
+                          >
+                            <ChevronUp size={18} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => void moveExerciseByIndex(bodyPart.id, index, 1)}
+                            disabled={index === bodyPartExercises.length - 1}
+                            aria-label={`${exercise.name}を下へ移動`}
+                            className="flex h-9 w-9 items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
+                          >
+                            <ChevronDown size={18} />
+                          </button>
+                        </div>
+                      </div>
+                      {draft?.id === exercise.id ? (
+                        <DraftPanel
+                          bodyParts={bodyParts}
+                          draft={draft}
+                          isSaving={isSaving}
+                          onArchive={requestArchive}
+                          onClose={() => setDraft(null)}
+                          onDraftChange={setDraft}
+                          onSave={() => void save()}
+                        />
                       ) : null}
-                    </span>
-                  </button>
-                  {draft?.id === exercise.id ? (
-                    <DraftPanel
-                      bodyParts={bodyParts}
-                      draft={draft}
-                      isSaving={isSaving}
-                      onArchive={requestArchive}
-                      onClose={() => setDraft(null)}
-                      onDraftChange={setDraft}
-                      onSave={() => void save()}
-                    />
-                  ) : null}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
-        ))}
+              </div>
+            </section>
+          );
+        })}
       </div>
 
       {message ? <p className="mt-3 text-sm text-emerald-500">{message}</p> : null}

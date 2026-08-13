@@ -67,12 +67,10 @@ export function AppShell({
             >
               <X size={18} />
             </button>
-            <div className="pr-11">
-              <SettingsSections
-                initialSection={initialSettingsSection}
-                showBackToList={settingsListBackEnabled}
-              />
-            </div>
+            <SettingsSections
+              initialSection={initialSettingsSection}
+              showBackToList={settingsListBackEnabled}
+            />
           </section>
         </div>
       ) : null}
