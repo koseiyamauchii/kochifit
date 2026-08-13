@@ -620,7 +620,18 @@ export function WorkoutCalendar({
 
   const router = useRouter();
   const client = useMemo(() => createClient(), []);
-  const cells = useMemo(() => getCalendarCells(month), [month]);
+  const calendarPages = useMemo(
+    () =>
+      [-1, 0, 1].map((offset) => {
+        const pageMonth = addMonths(month, offset);
+        return {
+          key: `${pageMonth.getFullYear()}-${pageMonth.getMonth()}`,
+          month: pageMonth,
+          cells: getCalendarCells(pageMonth),
+        };
+      }),
+    [month],
+  );
   const summariesByDate = useMemo(
     () => new Map(summaries.map((summary) => [summary.workoutDate, summary])),
     [summaries],
@@ -638,8 +649,9 @@ export function WorkoutCalendar({
     if (!user) {
       return;
     }
-    const range = getMonthRange(month);
-    setSummaries(await getWorkoutSummaries(client, range.start, range.end));
+    const previousRange = getMonthRange(addMonths(month, -1));
+    const nextRange = getMonthRange(addMonths(month, 1));
+    setSummaries(await getWorkoutSummaries(client, previousRange.start, nextRange.end));
   }, [client, month, user]);
 
   const loadSelectedDate = useCallback(async () => {
@@ -861,7 +873,7 @@ export function WorkoutCalendar({
       setSavingKey(null);
     }
   };
-  const dragOffset = touchStartX === null ? 0 : Math.max(-44, Math.min(44, touchDeltaX * 0.32));
+  const dragOffset = touchStartX === null ? 0 : Math.max(-280, Math.min(280, touchDeltaX));
 
   return (
     <div
@@ -897,7 +909,8 @@ export function WorkoutCalendar({
     >
       {showCalendar ? (
         <>
-          <div className="mb-4 grid grid-cols-[44px_1fr_auto] items-center gap-3">
+          <div className="relative mb-4 pr-12">
+            <div className="grid grid-cols-[44px_1fr_44px] items-center gap-3">
             <button
               type="button"
               onClick={() => moveMonth(-1)}
@@ -918,15 +931,6 @@ export function WorkoutCalendar({
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
             </label>
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={jumpToToday}
-                aria-label="今日へ戻る"
-                className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] text-sm font-semibold"
-              >
-                {todayDay}
-              </button>
               <button
                 type="button"
                 onClick={() => moveMonth(1)}
@@ -936,70 +940,87 @@ export function WorkoutCalendar({
                 <ChevronRight size={22} />
               </button>
             </div>
+            <button
+              type="button"
+              onClick={jumpToToday}
+              aria-label="今日へ戻る"
+              className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] text-sm font-semibold"
+            >
+              {todayDay}
+            </button>
           </div>
 
-          <div
-            className={[
-              "grid grid-cols-7 justify-items-center gap-y-1 text-center will-change-transform",
-              touchStartX === null ? "transition-transform duration-150 ease-out" : "transition-none",
-            ].join(" ")}
-            style={{ transform: `translateX(${dragOffset}px)` }}
-          >
-            {weekdays.map((weekday) => (
-              <div key={weekday} className="py-1 text-xs font-medium text-[var(--muted)]">
-                {weekday}
-              </div>
-            ))}
-            {cells.map((day, index) => {
-              const dateKey = day
-                ? toDateKey(new Date(month.getFullYear(), month.getMonth(), day))
-                : null;
-              const summary = dateKey ? summariesByDate.get(dateKey) : null;
-              const isToday = dateKey === todayKey;
-              const isSelected = dateKey === effectiveSelectedDate;
-              const summaryBodyParts = summary?.bodyParts.slice(0, 7) ?? [];
-              return (
-                <button
-                  key={`${day ?? "blank"}-${index}`}
-                  type="button"
-                  disabled={!dateKey}
-                  onClick={() => {
-                    if (dateKey) {
-                      handleDateClick(dateKey);
-                    }
-                  }}
-                  className={[
-                    "relative flex h-10 w-8 flex-col items-center justify-start rounded-[8px] pt-0.5 text-base font-medium",
-                    dateKey ? "bg-transparent" : "invisible",
-                    isSelected && !isToday ? "bg-[var(--surface-soft)]" : "",
-                  ].join(" ")}
+          <div className="overflow-hidden">
+            <div
+              className={[
+                "flex will-change-transform",
+                touchStartX === null ? "transition-transform duration-200 ease-out" : "transition-none",
+              ].join(" ")}
+              style={{ transform: `translateX(calc(-100% + ${dragOffset}px))` }}
+            >
+              {calendarPages.map((page) => (
+                <div
+                  key={page.key}
+                  className="grid w-full shrink-0 grid-cols-7 justify-items-center gap-y-1 text-center"
                 >
-                  <span
-                    className={[
-                      "flex h-7 w-7 items-center justify-center rounded-full",
-                      isToday ? "accent-orb text-white" : "",
-                    ].join(" ")}
-                  >
-                    {day}
-                  </span>
-                  {summaryBodyParts.length > 0 ? (
-                    <span className="mt-0.5 flex max-w-8 flex-wrap justify-center gap-0.5">
-                      {summaryBodyParts.map((bodyPart) => {
-                        const color = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
-                        return (
-                          <span
-                            key={bodyPart.key}
-                            aria-hidden="true"
-                            className="color-orb h-1.5 w-1.5 rounded-full"
-                            style={{ "--color-orb": color } as CSSProperties}
-                          />
-                        );
-                      })}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
+                  {weekdays.map((weekday) => (
+                    <div key={weekday} className="py-1 text-xs font-medium text-[var(--muted)]">
+                      {weekday}
+                    </div>
+                  ))}
+                  {page.cells.map((day, index) => {
+                    const dateKey = day
+                      ? toDateKey(new Date(page.month.getFullYear(), page.month.getMonth(), day))
+                      : null;
+                    const summary = dateKey ? summariesByDate.get(dateKey) : null;
+                    const isToday = dateKey === todayKey;
+                    const isSelected = dateKey === effectiveSelectedDate;
+                    const summaryBodyParts = summary?.bodyParts.slice(0, 7) ?? [];
+                    return (
+                      <button
+                        key={`${page.key}-${day ?? "blank"}-${index}`}
+                        type="button"
+                        disabled={!dateKey}
+                        onClick={() => {
+                          if (dateKey) {
+                            handleDateClick(dateKey);
+                          }
+                        }}
+                        className={[
+                          "relative flex h-10 w-8 flex-col items-center justify-start rounded-[8px] pt-0.5 text-base font-medium",
+                          dateKey ? "bg-transparent" : "invisible",
+                          isSelected && !isToday ? "bg-[var(--surface-soft)]" : "",
+                        ].join(" ")}
+                      >
+                        <span
+                          className={[
+                            "flex h-7 w-7 items-center justify-center rounded-full",
+                            isToday ? "accent-orb text-white" : "",
+                          ].join(" ")}
+                        >
+                          {day}
+                        </span>
+                        {summaryBodyParts.length > 0 ? (
+                          <span className="mt-0.5 flex max-w-8 flex-wrap justify-center gap-0.5">
+                            {summaryBodyParts.map((bodyPart) => {
+                              const color = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
+                              return (
+                                <span
+                                  key={bodyPart.key}
+                                  aria-hidden="true"
+                                  className="color-orb h-1.5 w-1.5 rounded-full"
+                                  style={{ "--color-orb": color } as CSSProperties}
+                                />
+                              );
+                            })}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
           </div>
 
           <div className="mt-4">

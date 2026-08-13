@@ -143,10 +143,10 @@ export function HomeDashboard() {
             ) : null}
             {visibleGoalDeadlines.map(({ label, date, value }) => (
               <div key={label} className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-2.5">
-                <h3 className="text-[16px] font-semibold leading-snug">
-                  <span>{label}</span>
+                <h3 className="flex items-baseline justify-between gap-2 text-[16px] font-semibold leading-snug">
+                  <span className="shrink-0">{label}</span>
                   {date ? (
-                    <span className="mt-0.5 block break-words text-sm font-medium text-[var(--muted)]">
+                    <span className="min-w-0 truncate text-right text-sm font-medium text-[var(--muted)]">
                       （～{formatDate(date)}）
                     </span>
                   ) : null}

@@ -1,12 +1,22 @@
 "use client";
 
-import { Calculator, ChevronLeft, ChevronRight, Dumbbell, Palette, User, UserCircle } from "lucide-react";
+import {
+  Calculator,
+  ChevronLeft,
+  ChevronRight,
+  Dumbbell,
+  Mail,
+  Palette,
+  User,
+  UserCircle,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { BodyPartMasterCard } from "@/components/settings/body-part-master-card";
 import { ExerciseMasterCard } from "@/components/settings/exercise-master-card";
-import { FormulaSupportCard } from "@/components/settings/formula-support-card";
+import { FormulaCard } from "@/components/settings/formula-card";
 import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
 import { SupabaseAccountCard } from "@/components/settings/supabase-account-card";
+import { SupportCard } from "@/components/settings/support-card";
 import { ThemeSelector } from "@/components/settings/theme-selector";
 
 export type SettingsSection =
@@ -14,7 +24,8 @@ export type SettingsSection =
   | "accessibility"
   | "bodyParts"
   | "exercises"
-  | "formulaSupport"
+  | "formula"
+  | "support"
   | "account";
 
 const sectionItems: Array<{
@@ -23,10 +34,11 @@ const sectionItems: Array<{
   icon: React.ReactNode;
 }> = [
   { id: "profile", title: "プロフィール", icon: <User size={21} /> },
-  { id: "accessibility", title: "アクセシビリティ", icon: <Palette size={21} /> },
   { id: "bodyParts", title: "部位マスタ", icon: <Dumbbell size={21} /> },
   { id: "exercises", title: "種目マスタ", icon: <Dumbbell size={21} /> },
-  { id: "formulaSupport", title: "計算式・問い合わせ", icon: <Calculator size={21} /> },
+  { id: "formula", title: "計算式", icon: <Calculator size={21} /> },
+  { id: "accessibility", title: "アクセシビリティ", icon: <Palette size={21} /> },
+  { id: "support", title: "問い合わせ", icon: <Mail size={21} /> },
   { id: "account", title: "アカウント", icon: <UserCircle size={21} /> },
 ];
 
@@ -40,8 +52,10 @@ function renderSection(section: SettingsSection) {
       return <BodyPartMasterCard />;
     case "exercises":
       return <ExerciseMasterCard />;
-    case "formulaSupport":
-      return <FormulaSupportCard />;
+    case "formula":
+      return <FormulaCard />;
+    case "support":
+      return <SupportCard />;
     case "account":
       return <SupabaseAccountCard />;
   }
