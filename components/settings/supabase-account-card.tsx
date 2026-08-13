@@ -7,8 +7,8 @@ export function SupabaseAccountCard() {
   const { error } = useAuth();
 
   return (
-    <section className="space-y-3">
-      <h2 className="text-lg font-semibold">Google アカウント</h2>
+    <section className="space-y-2">
+      <h2 className="text-base font-semibold">Googleアカウント</h2>
       <AccountMenu />
       {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
     </section>

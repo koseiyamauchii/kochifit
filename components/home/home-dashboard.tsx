@@ -143,10 +143,10 @@ export function HomeDashboard() {
             ) : null}
             {visibleGoalDeadlines.map(({ label, date, value }) => (
               <div key={label} className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-2.5">
-                <h3 className="text-[17px] font-semibold">
-                  {label}
+                <h3 className="text-[16px] font-semibold leading-snug">
+                  <span>{label}</span>
                   {date ? (
-                    <span className="ml-1 text-sm font-medium text-[var(--muted)]">
+                    <span className="mt-0.5 block break-words text-sm font-medium text-[var(--muted)]">
                       （～{formatDate(date)}）
                     </span>
                   ) : null}
@@ -180,7 +180,7 @@ export function HomeDashboard() {
       </section>
 
       <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
-        <h2 className="text-lg font-semibold">部位別トレーニング日数</h2>
+        <h2 className="text-base font-semibold">部位別トレーニング日数</h2>
         <div className="mt-4 grid grid-cols-[132px_1fr] items-center gap-4">
           <div className="relative h-[132px] w-[132px] rounded-full p-2">
             <div

@@ -19,7 +19,7 @@ const sectionItems: Array<{
   { id: "accessibility", title: "アクセシビリティ", icon: <Palette size={21} /> },
   { id: "bodyParts", title: "部位マスタ", icon: <Dumbbell size={21} /> },
   { id: "exercises", title: "種目マスタ", icon: <Dumbbell size={21} /> },
-  { id: "account", title: "Google", icon: <UserCircle size={21} /> },
+  { id: "account", title: "アカウント", icon: <UserCircle size={21} /> },
 ];
 
 function renderSection(section: SettingsSection) {
@@ -86,7 +86,7 @@ export function SettingsSections({
         </section>
       ) : (
         <div>
-          {activeItem && showBackToList ? (
+          {activeItem && showBackToList && activeSection !== "account" ? (
             <h2 className="mb-3 text-xl font-semibold">{activeItem.title}</h2>
           ) : null}
           {renderSection(activeSection)}

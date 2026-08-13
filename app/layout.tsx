@@ -17,7 +17,7 @@ const notoSansJp = Noto_Sans_JP({
 
 export const metadata: Metadata = {
   title: "Work Out",
-  description: "iPhone優先のトレーニング記録Webアプリ",
+  description: "トレーニング記録Webアプリ",
 };
 
 export const viewport: Viewport = {

@@ -74,7 +74,7 @@ export function RecordsOverview() {
   return (
     <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold">履歴</h1>
+        <h1 className="text-lg font-semibold">履歴</h1>
         <button
           type="button"
           onClick={() => void loadRecords()}

@@ -24,6 +24,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const themeStorageKey = "work_out_theme";
 const accentStorageKey = "work_out_accent";
 const themeResetEventName = "work_out_theme_reset";
+const themeSyncEventName = "work_out_theme_sync";
 const defaultTheme: ThemePreference = "system";
 const defaultAccent: AccentPreference = "gray";
 const accentValues: AccentPreference[] = [
@@ -59,8 +60,28 @@ export function resetThemePreferenceToDefault() {
   window.dispatchEvent(new Event(themeResetEventName));
 }
 
+export function syncThemePreference(theme: ThemePreference, accent: AccentPreference) {
+  window.localStorage.setItem(themeStorageKey, theme);
+  window.localStorage.setItem(accentStorageKey, accent);
+  applyTheme(theme);
+  applyAccent(accent);
+  window.dispatchEvent(
+    new CustomEvent(themeSyncEventName, {
+      detail: { theme, accent },
+    }),
+  );
+}
+
 function isAccentPreference(value: string | null): value is AccentPreference {
   return accentValues.includes(value as AccentPreference);
+}
+
+export function isThemePreference(value: string | null): value is ThemePreference {
+  return value === "system" || value === "light" || value === "dark";
+}
+
+export function isAccentValue(value: string | null): value is AccentPreference {
+  return isAccentPreference(value);
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
@@ -92,8 +113,26 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       applyTheme(defaultTheme);
       applyAccent(defaultAccent);
     };
+    const onSync = (event: Event) => {
+      const detail = (event as CustomEvent<{ theme?: string; accent?: string }>).detail;
+      if (!detail) {
+        return;
+      }
+      const themeDetail = detail.theme ?? null;
+      const accentDetail = detail.accent ?? null;
+      const nextTheme = isThemePreference(themeDetail) ? themeDetail : defaultTheme;
+      const nextAccent = isAccentPreference(accentDetail) ? accentDetail : defaultAccent;
+      setThemeState(nextTheme);
+      setAccentState(nextAccent);
+      applyTheme(nextTheme);
+      applyAccent(nextAccent);
+    };
     window.addEventListener(themeResetEventName, onReset);
-    return () => window.removeEventListener(themeResetEventName, onReset);
+    window.addEventListener(themeSyncEventName, onSync);
+    return () => {
+      window.removeEventListener(themeResetEventName, onReset);
+      window.removeEventListener(themeSyncEventName, onSync);
+    };
   }, []);
 
   useEffect(() => {

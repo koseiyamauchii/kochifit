@@ -25,15 +25,13 @@ export default async function TodayPage({
   return (
     <AppShell active="today">
       <AuthGate>
-        <main className="space-y-5">
-          <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
-            <WorkoutCalendar
-              backHref="/"
-              detailsHeading={heading}
-              showCalendar={false}
-              selectedDateOverride={selectedDate}
-            />
-          </section>
+        <main>
+          <WorkoutCalendar
+            backHref="/"
+            detailsHeading={heading}
+            showCalendar={false}
+            selectedDateOverride={selectedDate}
+          />
         </main>
       </AuthGate>
     </AppShell>

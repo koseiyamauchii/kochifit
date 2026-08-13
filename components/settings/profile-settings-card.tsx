@@ -114,7 +114,7 @@ export function ProfileSettingsCard() {
           <select
             value={heightCm}
             onChange={(event) => setHeightCm(event.target.value)}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+            className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
           >
             <option value="">未設定</option>
             {heightOptions.map((value) => (
@@ -129,7 +129,7 @@ export function ProfileSettingsCard() {
           <select
             value={bodyWeightKg}
             onChange={(event) => setBodyWeightKg(event.target.value)}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+            className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
           >
             <option value="">未設定</option>
             {weightOptions.map((value) => (
@@ -144,7 +144,7 @@ export function ProfileSettingsCard() {
           <select
             value={age}
             onChange={(event) => setAge(event.target.value)}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+            className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
           >
             <option value="">未設定</option>
             {ageOptions.map((value) => (
@@ -159,7 +159,7 @@ export function ProfileSettingsCard() {
           <select
             value={sex}
             onChange={(event) => setSex(event.target.value)}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+            className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
           >
             <option value="unspecified">未設定</option>
             <option value="male">男性</option>
@@ -226,7 +226,7 @@ export function ProfileSettingsCard() {
             type="date"
             value={oneMonthGoalDate}
             onChange={(event) => setOneMonthGoalDate(event.target.value)}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+            className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
           />
         </label>
         <label className="block space-y-1">
@@ -246,7 +246,7 @@ export function ProfileSettingsCard() {
             type="date"
             value={threeMonthGoalDate}
             onChange={(event) => setThreeMonthGoalDate(event.target.value)}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+            className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
           />
         </label>
         <label className="block space-y-1">

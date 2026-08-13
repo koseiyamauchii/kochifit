@@ -7,6 +7,9 @@ import {
   type AccentPreference,
   type ThemePreference,
 } from "@/components/settings/theme-provider";
+import { useAuth } from "@/components/auth/auth-provider";
+import { createClient } from "@/lib/supabase/client";
+import { useMemo } from "react";
 
 const choices: Array<{ value: ThemePreference; label: string; icon: React.ReactNode }> = [
   { value: "system", label: "システム", icon: <Monitor size={16} /> },
@@ -27,6 +30,36 @@ const accentChoices: Array<{ value: AccentPreference; label: string; color: stri
 
 export function ThemeSelector() {
   const { theme, accent, setTheme, setAccent } = useThemePreference();
+  const { refreshProfile, user } = useAuth();
+  const client = useMemo(() => createClient(), []);
+
+  const savePreference = async (nextTheme: ThemePreference, nextAccent: AccentPreference) => {
+    if (!user) {
+      return;
+    }
+    const { error } = await client
+      .from("profiles")
+      .update({
+        theme_preference: nextTheme,
+        accent_preference: nextAccent,
+      })
+      .eq("id", user.id);
+    if (error) {
+      console.error("Theme preference save error", error);
+      return;
+    }
+    await refreshProfile();
+  };
+
+  const handleThemeChange = (nextTheme: ThemePreference) => {
+    setTheme(nextTheme);
+    void savePreference(nextTheme, accent);
+  };
+
+  const handleAccentChange = (nextAccent: AccentPreference) => {
+    setAccent(nextAccent);
+    void savePreference(theme, nextAccent);
+  };
 
   return (
     <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
@@ -36,7 +69,7 @@ export function ThemeSelector() {
           <button
             key={choice.value}
             type="button"
-            onClick={() => setTheme(choice.value)}
+            onClick={() => handleThemeChange(choice.value)}
             aria-pressed={theme === choice.value}
             className={[
               "flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-[8px] px-1 text-[13px] font-medium sm:text-sm",
@@ -56,7 +89,7 @@ export function ThemeSelector() {
           <button
             key={choice.value}
             type="button"
-            onClick={() => setAccent(choice.value)}
+            onClick={() => handleAccentChange(choice.value)}
             aria-pressed={accent === choice.value}
             className={[
               "flex min-h-11 items-center gap-2 rounded-[8px] border px-3 text-sm font-medium",

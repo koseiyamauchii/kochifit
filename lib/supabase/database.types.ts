@@ -22,6 +22,8 @@ export interface Database {
           three_month_goal_text: string | null;
           one_year_goal_date: string | null;
           one_year_goal_text: string | null;
+          theme_preference: string;
+          accent_preference: string;
           created_at: string;
           updated_at: string;
         };
@@ -43,6 +45,8 @@ export interface Database {
           three_month_goal_text?: string | null;
           one_year_goal_date?: string | null;
           one_year_goal_text?: string | null;
+          theme_preference?: string;
+          accent_preference?: string;
           created_at?: string;
           updated_at?: string;
         };
@@ -64,6 +68,8 @@ export interface Database {
           three_month_goal_text?: string | null;
           one_year_goal_date?: string | null;
           one_year_goal_text?: string | null;
+          theme_preference?: string;
+          accent_preference?: string;
           created_at?: string;
           updated_at?: string;
         };

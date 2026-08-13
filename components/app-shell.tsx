@@ -1,6 +1,7 @@
 "use client";
 
 import { Settings, X } from "lucide-react";
+import Link from "next/link";
 import { useState } from "react";
 import { AccountAvatarButton } from "@/components/auth/account-menu";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -42,7 +43,9 @@ export function AppShell({
           >
             <Settings size={22} />
           </button>
-          <p className="truncate text-center text-lg font-semibold">筋トレ記録アプリ</p>
+          <Link href="/" className="truncate text-center text-lg font-semibold">
+            筋トレ記録アプリ
+          </Link>
           <AccountAvatarButton onClick={() => openSettings("account", false)} />
         </header>
       ) : null}
@@ -58,7 +61,12 @@ export function AppShell({
             className="safe-bottom max-h-[88dvh] w-full max-w-2xl overflow-y-auto rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div
+              className={[
+                "flex items-center justify-between gap-3",
+                showModalTitle ? "mb-4" : "mb-2",
+              ].join(" ")}
+            >
               {showModalTitle ? <h1 className="text-2xl font-semibold">設定</h1> : <div />}
               <button
                 type="button"

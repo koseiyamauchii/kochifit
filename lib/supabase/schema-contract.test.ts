@@ -44,6 +44,15 @@ const bodyPartColorPreferencesMigrationSql = readFileSync(
   ),
   "utf8",
 );
+const profileAccessibilityPreferencesMigrationSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260813150000_add_profile_accessibility_preferences.sql",
+  ),
+  "utf8",
+);
 
 describe("Supabase schema migration", () => {
   it("defines the required tables", () => {
@@ -200,5 +209,12 @@ describe("Supabase schema migration", () => {
     expect(bodyPartColorPreferencesMigrationSql).toContain(
       "check (color_key is null or char_length(color_key) <= 32)",
     );
+  });
+
+  it("adds profile accessibility preferences", () => {
+    expect(profileAccessibilityPreferencesMigrationSql).toContain("theme_preference text not null default 'system'");
+    expect(profileAccessibilityPreferencesMigrationSql).toContain("accent_preference text not null default 'gray'");
+    expect(profileAccessibilityPreferencesMigrationSql).toContain("profiles_theme_preference_value");
+    expect(profileAccessibilityPreferencesMigrationSql).toContain("profiles_accent_preference_value");
   });
 });

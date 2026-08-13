@@ -317,11 +317,11 @@ function WorkoutEntryForm({
 
   return (
     <section className="space-y-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] p-3">
-      <div className="flex items-center justify-between gap-3">
-        <h3 className="text-lg font-semibold">
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="min-w-0 truncate text-base font-semibold">
           {mode === "add" ? "記録を追加" : selectedExercise?.name ?? "記録"}
         </h3>
-        <div className="rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-sm font-semibold text-[var(--accent-strong)]">
+        <div className="shrink-0 whitespace-nowrap rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-strong)]">
           約{estimatedCalories}kcal
         </div>
       </div>
@@ -418,7 +418,7 @@ function WorkoutEntryForm({
               ) : null}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              <div className="block space-y-1">
+              <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
                   <span className="min-w-0 flex-1">重量 kg</span>
                   <div className="flex shrink-0 items-center gap-0.5">
@@ -448,10 +448,10 @@ function WorkoutEntryForm({
                   inputMode="decimal"
                   value={set.weightKg}
                   onChange={(event) => updateSet(index, { weightKg: event.target.value })}
-                  className="min-h-12 min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+                  className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
                 />
               </div>
-              <div className="block space-y-1">
+              <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
                   <span className="min-w-0 flex-1">回数</span>
                   <button
@@ -469,10 +469,10 @@ function WorkoutEntryForm({
                   inputMode="numeric"
                   value={set.reps}
                   onChange={(event) => updateSet(index, { reps: event.target.value })}
-                  className="min-h-12 min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+                  className="min-h-12 w-full min-w-0 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
                 />
               </div>
-              <div className="col-span-2 block space-y-1">
+              <div className="col-span-2 min-w-0 space-y-1">
                 <span className="text-xs font-medium text-[var(--muted)]">推定1RM</span>
                 <div className="flex min-h-12 items-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm font-semibold">
                   {formatRm(toWeightNumberOrNull(set.weightKg, profile), toNumberOrNull(set.reps))}
@@ -576,6 +576,7 @@ export function WorkoutCalendar({
   const [selectedDate, setSelectedDate] = useState(() => selectedDateOverride ?? todayKey);
   const effectiveSelectedDate = selectedDateOverride ?? selectedDate;
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
+  const [monthSlideDirection, setMonthSlideDirection] = useState<"left" | "right" | null>(null);
   const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
@@ -734,7 +735,11 @@ export function WorkoutCalendar({
     }
   }, [addDraft.exerciseId, exercises, selectedBodyPartId]);
 
-  const moveMonth = (delta: number) => setMonth((current) => addMonths(current, delta));
+  const moveMonth = (delta: number) => {
+    setMonthSlideDirection(delta > 0 ? "left" : "right");
+    setMonth((current) => addMonths(current, delta));
+    window.setTimeout(() => setMonthSlideDirection(null), 220);
+  };
   const handleDateClick = (dateKey: string) => {
     setSelectedDate(dateKey);
     if (!showWorkoutDetails) {
@@ -854,7 +859,7 @@ export function WorkoutCalendar({
             >
               <ChevronLeft size={22} />
             </button>
-            <h2 className="text-xl font-semibold">
+            <h2 className="text-lg font-semibold">
               {month.getFullYear()}年{month.getMonth() + 1}月
             </h2>
             <button
@@ -867,7 +872,13 @@ export function WorkoutCalendar({
             </button>
           </div>
 
-          <div className="grid grid-cols-7 justify-items-center gap-y-1 text-center">
+          <div
+            className={[
+              "grid grid-cols-7 justify-items-center gap-y-1 text-center transition-transform duration-200 ease-out",
+              monthSlideDirection === "left" ? "translate-x-1 opacity-90" : "",
+              monthSlideDirection === "right" ? "-translate-x-1 opacity-90" : "",
+            ].join(" ")}
+          >
             {weekdays.map((weekday) => (
               <div key={weekday} className="py-1 text-xs font-medium text-[var(--muted)]">
                 {weekday}
@@ -946,53 +957,46 @@ export function WorkoutCalendar({
       {showWorkoutDetails ? (
       <section className={[!showCalendar && detailsHeading ? "mt-0" : "mt-5", "space-y-3"].join(" ")}>
         {!showCalendar && detailsHeading ? (
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-center gap-3">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               {backHref ? (
                 <Link
                   href={backHref}
                   aria-label="戻る"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-[var(--border)]"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px] border border-[var(--border)]"
                 >
-                  <ArrowLeft size={19} />
+                  <ArrowLeft size={18} />
                 </Link>
               ) : null}
-              <h1 className="min-w-0 whitespace-nowrap text-xl font-semibold leading-tight">
+              <h1 className="min-w-0 whitespace-nowrap text-base font-semibold leading-tight sm:text-lg">
                 {detailsHeading}
               </h1>
             </div>
-            <div className="flex shrink-0 flex-col items-end gap-2">
-              <button
-                type="button"
-                onClick={() => setIsAddFormOpen(true)}
-                aria-label="記録を追加"
-                className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
-              >
-                <Plus size={22} />
-              </button>
-              <div className="rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-sm font-semibold text-[var(--accent-strong)]">
-                日合計 約{totalCalories}kcal
-              </div>
+            <div className="shrink-0 whitespace-nowrap rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-strong)]">
+              合計 約{totalCalories}kcal
             </div>
           </div>
         ) : (
         <div className="flex items-start justify-end gap-3">
           <div className="flex flex-col items-end gap-2">
-            <button
-              type="button"
-              onClick={() => setIsAddFormOpen(true)}
-              aria-label="記録を追加"
-              className="flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
-            >
-              <Plus size={22} />
-            </button>
-            <div className="rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-1.5 text-sm font-semibold text-[var(--accent-strong)]">
-              日合計 約{totalCalories}kcal
+            <div className="whitespace-nowrap rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-strong)]">
+              合計 約{totalCalories}kcal
             </div>
           </div>
           {isLoading ? <span className="text-sm text-[var(--muted)]">読込中</span> : null}
         </div>
         )}
+
+        {!isAddFormOpen ? (
+          <button
+            type="button"
+            onClick={() => setIsAddFormOpen(true)}
+            aria-label="記録を追加"
+            className="fixed bottom-5 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
+          >
+            <Plus size={18} />
+          </button>
+        ) : null}
 
         {workouts.map((workout) => {
           const draft = editDrafts[workout.id];
