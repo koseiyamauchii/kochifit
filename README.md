@@ -2,7 +2,7 @@
 
 スマートフォンで使いやすい，Web完結型のトレーニング記録アプリです．
 
-公開URL: https://work-out-sepia.vercel.app/
+公開URL: https://kochifit.vercel.app/
 
 ## 使い方
 
@@ -46,7 +46,7 @@
 現在の公開URLは以下です．
 
 ```text
-https://work-out-sepia.vercel.app/
+https://kochifit.vercel.app/
 ```
 
 VercelのProject名やCustom Domainを変更すると，利用するURLを変更できます．
@@ -74,10 +74,10 @@ Supabase Dashboardで以下を設定します．
 
 ```text
 Site URL:
-https://work-out-sepia.vercel.app
+https://kochifit.vercel.app
 
 Redirect URLs:
-https://work-out-sepia.vercel.app/auth/callback
+https://kochifit.vercel.app/auth/callback
 ```
 
 ローカル開発も行う場合は，Redirect URLsに以下も追加します．

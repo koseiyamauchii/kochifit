@@ -64,14 +64,14 @@ Site URL
 Redirect URLs
 ```
 
-本番URLが `https://work-out-sepia.vercel.app` の場合は，以下を登録する．
+本番URLが `https://kochifit.vercel.app` の場合は，以下を登録する．
 
 ```text
 Site URL:
-https://work-out-sepia.vercel.app
+https://kochifit.vercel.app
 
 Redirect URLs:
-https://work-out-sepia.vercel.app/auth/callback
+https://kochifit.vercel.app/auth/callback
 ```
 
 ローカル開発も行う場合は，Redirect URLsに以下を追加する．

@@ -19,6 +19,17 @@ const notoSansJp = Noto_Sans_JP({
 export const metadata: Metadata = {
   title: "KochiFit",
   description: "トレーニング記録Webアプリ",
+  applicationName: "KochiFit",
+  manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/kochifit_icon.png", type: "image/png" }],
+    apple: [{ url: "/kochifit_icon.png", type: "image/png" }],
+  },
+  appleWebApp: {
+    capable: true,
+    title: "KochiFit",
+    statusBarStyle: "default",
+  },
 };
 
 export const viewport: Viewport = {

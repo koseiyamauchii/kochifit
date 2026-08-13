@@ -38,7 +38,7 @@ Supabase
 ## ディレクトリ構成
 
 ```text
-work_out_app/
+kochifit/
   app/
     auth/
       callback/

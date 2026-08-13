@@ -21,10 +21,14 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
-const themeStorageKey = "work_out_theme";
-const accentStorageKey = "work_out_accent";
-const themeResetEventName = "work_out_theme_reset";
-const themeSyncEventName = "work_out_theme_sync";
+const storagePrefix = "kochifit";
+const legacyStoragePrefix = ["work", "out"].join("_");
+const themeStorageKey = `${storagePrefix}_theme`;
+const accentStorageKey = `${storagePrefix}_accent`;
+const legacyThemeStorageKey = `${legacyStoragePrefix}_theme`;
+const legacyAccentStorageKey = `${legacyStoragePrefix}_accent`;
+const themeResetEventName = `${storagePrefix}_theme_reset`;
+const themeSyncEventName = `${storagePrefix}_theme_sync`;
 const defaultTheme: ThemePreference = "system";
 const defaultAccent: AccentPreference = "gray";
 const accentValues: AccentPreference[] = [
@@ -50,6 +54,20 @@ function applyTheme(theme: ThemePreference) {
 
 function applyAccent(accent: AccentPreference) {
   document.documentElement.dataset.accent = accent;
+}
+
+function getStoredPreference(primaryKey: string, legacyKey: string) {
+  const primaryValue = window.localStorage.getItem(primaryKey);
+  if (primaryValue !== null) {
+    return primaryValue;
+  }
+
+  const legacyValue = window.localStorage.getItem(legacyKey);
+  if (legacyValue !== null) {
+    window.localStorage.setItem(primaryKey, legacyValue);
+    window.localStorage.removeItem(legacyKey);
+  }
+  return legacyValue;
 }
 
 export function resetThemePreferenceToDefault() {
@@ -89,7 +107,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [accent, setAccentState] = useState<AccentPreference>(defaultAccent);
 
   useEffect(() => {
-    const saved = window.localStorage.getItem(themeStorageKey);
+    const saved = getStoredPreference(themeStorageKey, legacyThemeStorageKey);
     if (saved === "system" || saved === "light" || saved === "dark") {
       setThemeState(saved);
       applyTheme(saved);
@@ -97,7 +115,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       applyTheme("system");
     }
 
-    const savedAccent = window.localStorage.getItem(accentStorageKey);
+    const savedAccent = getStoredPreference(accentStorageKey, legacyAccentStorageKey);
     if (isAccentPreference(savedAccent)) {
       setAccentState(savedAccent);
       applyAccent(savedAccent);
