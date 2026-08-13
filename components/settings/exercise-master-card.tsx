@@ -1,0 +1,456 @@
+"use client";
+
+import { AlertTriangle, GripVertical, Plus, Save, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/components/auth/auth-provider";
+import { createClient } from "@/lib/supabase/client";
+import {
+  archiveExercise,
+  createExercise,
+  getBodyParts,
+  getExercises,
+  reorderExercises,
+  updateExercise,
+} from "@/lib/workouts/repository";
+import type { BodyPart, Exercise } from "@/lib/workouts/types";
+
+interface Draft {
+  id: string | null;
+  bodyPartId: string;
+  name: string;
+  displayOrder: string;
+  rackPosition: string;
+  memo: string;
+}
+
+function createEmptyDraft(bodyPartId = "", displayOrder = 1): Draft {
+  return {
+    id: null,
+    bodyPartId,
+    name: "",
+    displayOrder: String(displayOrder),
+    rackPosition: "",
+    memo: "",
+  };
+}
+
+function DraftPanel({
+  bodyParts,
+  draft,
+  isSaving,
+  onArchive,
+  onClose,
+  onDraftChange,
+  onSave,
+}: {
+  bodyParts: BodyPart[];
+  draft: Draft;
+  isSaving: boolean;
+  onArchive: () => void;
+  onClose: () => void;
+  onDraftChange: (draft: Draft) => void;
+  onSave: () => void;
+}) {
+  return (
+    <div className="mt-2 rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] p-3">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="font-semibold">{draft.id ? "種目を編集" : "種目を追加"}</h4>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="閉じる"
+          className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)]"
+        >
+          <X size={17} />
+        </button>
+      </div>
+      <div className="mt-3 space-y-3">
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-[var(--muted)]">種目名</span>
+          <input
+            value={draft.name}
+            onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
+            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
+          />
+        </label>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-[var(--muted)]">部位</span>
+          <select
+            value={draft.bodyPartId}
+            onChange={(event) => onDraftChange({ ...draft, bodyPartId: event.target.value })}
+            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
+          >
+            {bodyParts.map((bodyPart) => (
+              <option key={bodyPart.id} value={bodyPart.id}>
+                {bodyPart.displayName}
+              </option>
+            ))}
+          </select>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">表示順</span>
+            <input
+              inputMode="numeric"
+              value={draft.displayOrder}
+              onChange={(event) => onDraftChange({ ...draft, displayOrder: event.target.value })}
+              className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">ラック位置</span>
+            <input
+              value={draft.rackPosition}
+              onChange={(event) => onDraftChange({ ...draft, rackPosition: event.target.value })}
+              className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
+            />
+          </label>
+        </div>
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-[var(--muted)]">メモ</span>
+          <textarea
+            value={draft.memo}
+            onChange={(event) => onDraftChange({ ...draft, memo: event.target.value })}
+            rows={3}
+            className="w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+          />
+        </label>
+        <div className="grid gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={isSaving}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-[8px] bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-50"
+          >
+            <Save size={18} />
+            {isSaving ? "保存中" : "保存"}
+          </button>
+          <button
+            type="button"
+            onClick={onArchive}
+            disabled={!draft.id || isSaving}
+            className="flex min-h-12 items-center justify-center gap-2 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 font-semibold text-[var(--muted)] disabled:opacity-40"
+          >
+            <Trash2 size={18} />
+            削除
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ExerciseMasterCard() {
+  const { authStatus, profileStatus, user } = useAuth();
+  const client = useMemo(() => createClient(), []);
+  const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [newDraftBodyPartId, setNewDraftBodyPartId] = useState<string | null>(null);
+  const [archiveTarget, setArchiveTarget] = useState<Draft | null>(null);
+  const [draggingExerciseId, setDraggingExerciseId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const groupedExercises = useMemo(
+    () =>
+      bodyParts.map((bodyPart) => ({
+        bodyPart,
+        exercises: exercises
+          .filter((exercise) => exercise.bodyPartId === bodyPart.id)
+          .sort((a, b) => a.displayOrder - b.displayOrder),
+      })),
+    [bodyParts, exercises],
+  );
+
+  const load = useCallback(async () => {
+    if (!user) {
+      return;
+    }
+    setError(null);
+    try {
+      const [nextBodyParts, nextExercises] = await Promise.all([
+        getBodyParts(client),
+        getExercises(client),
+      ]);
+      setBodyParts(nextBodyParts);
+      setExercises(nextExercises);
+    } catch (loadError) {
+      console.error("Exercise master load error", loadError);
+      setError("種目マスタの読み込みに失敗しました．");
+    }
+  }, [client, user]);
+
+  useEffect(() => {
+    if (authStatus === "authenticated" && profileStatus === "ready") {
+      void load();
+    }
+  }, [authStatus, load, profileStatus]);
+
+  const selectExercise = (exercise: Exercise) => {
+    setDraft({
+      id: exercise.id,
+      bodyPartId: exercise.bodyPartId,
+      name: exercise.name,
+      displayOrder: String(exercise.displayOrder),
+      rackPosition: exercise.rackPosition ?? "",
+      memo: exercise.memo ?? "",
+    });
+    setNewDraftBodyPartId(null);
+    setMessage(null);
+    setError(null);
+  };
+
+  const startNew = (bodyPartId = bodyParts[0]?.id ?? "") => {
+    const nextOrder = exercises.filter((exercise) => exercise.bodyPartId === bodyPartId).length + 1;
+    setDraft(createEmptyDraft(bodyPartId, nextOrder));
+    setNewDraftBodyPartId(bodyPartId);
+    setMessage(null);
+    setError(null);
+  };
+
+  const save = async () => {
+    if (!user || !draft) {
+      return;
+    }
+    if (!draft.name.trim() || !draft.bodyPartId) {
+      setError("種目名と部位を入力してください．");
+      return;
+    }
+    setIsSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      const displayOrder = Math.max(1, Math.trunc(Number(draft.displayOrder) || 1));
+      const input = {
+        userId: user.id,
+        bodyPartId: draft.bodyPartId,
+        name: draft.name,
+        displayOrder,
+        rackPosition: draft.rackPosition.trim() || null,
+        memo: draft.memo.trim() || null,
+      };
+      if (draft.id) {
+        await updateExercise(client, draft.id, input);
+      } else {
+        await createExercise(client, input);
+      }
+      await load();
+      setDraft(null);
+      setNewDraftBodyPartId(null);
+      setArchiveTarget(null);
+      setMessage("保存しました．");
+    } catch (saveError) {
+      console.error("Exercise master save error", saveError);
+      setError("種目の保存に失敗しました．");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const archive = async () => {
+    if (!archiveTarget?.id) {
+      return;
+    }
+    setIsSaving(true);
+    setMessage(null);
+    setError(null);
+    try {
+      await archiveExercise(client, archiveTarget.id);
+      await load();
+      setDraft(null);
+      setNewDraftBodyPartId(null);
+      setArchiveTarget(null);
+      setMessage("種目を非表示にしました．");
+    } catch (archiveError) {
+      console.error("Exercise archive error", archiveError);
+      setError("種目の非表示化に失敗しました．");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const requestArchive = () => {
+    if (draft?.id) {
+      setArchiveTarget(draft);
+    }
+  };
+
+  const moveExercise = async (targetExercise: Exercise) => {
+    if (!user || !draggingExerciseId || draggingExerciseId === targetExercise.id) {
+      setDraggingExerciseId(null);
+      return;
+    }
+    const sourceExercise = exercises.find((exercise) => exercise.id === draggingExerciseId);
+    if (!sourceExercise || sourceExercise.bodyPartId !== targetExercise.bodyPartId) {
+      setDraggingExerciseId(null);
+      return;
+    }
+
+    const currentGroup = exercises
+      .filter((exercise) => exercise.bodyPartId === targetExercise.bodyPartId)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    const sourceIndex = currentGroup.findIndex((exercise) => exercise.id === draggingExerciseId);
+    const targetIndex = currentGroup.findIndex((exercise) => exercise.id === targetExercise.id);
+    if (sourceIndex < 0 || targetIndex < 0) {
+      setDraggingExerciseId(null);
+      return;
+    }
+
+    const nextGroup = [...currentGroup];
+    const [moved] = nextGroup.splice(sourceIndex, 1);
+    nextGroup.splice(targetIndex, 0, moved);
+    setExercises((current) =>
+      current.map((exercise) => {
+        const nextIndex = nextGroup.findIndex((item) => item.id === exercise.id);
+        return nextIndex >= 0 ? { ...exercise, displayOrder: nextIndex + 1 } : exercise;
+      }),
+    );
+
+    try {
+      await reorderExercises(client, {
+        userId: user.id,
+        bodyPartId: targetExercise.bodyPartId,
+        exerciseIds: nextGroup.map((exercise) => exercise.id),
+      });
+      setMessage("並び順を保存しました．");
+    } catch (reorderError) {
+      console.error("Exercise reorder error", reorderError);
+      setError("並び順の保存に失敗しました．");
+      await load();
+    } finally {
+      setDraggingExerciseId(null);
+    }
+  };
+
+  return (
+    <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-lg font-semibold">種目マスタ</h2>
+        <button
+          type="button"
+          onClick={() => startNew()}
+          className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--border)] px-3 text-sm font-medium"
+        >
+          <Plus size={16} />
+          新規
+        </button>
+      </div>
+
+      <div className="mt-4 space-y-4">
+        {groupedExercises.map(({ bodyPart, exercises: bodyPartExercises }) => (
+          <section key={bodyPart.id} className="space-y-2">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-semibold text-[var(--muted)]">{bodyPart.displayName}</h3>
+              <button
+                type="button"
+                onClick={() => startNew(bodyPart.id)}
+                className="rounded-[8px] border border-[var(--border)] px-2 py-1 text-xs font-medium"
+              >
+                追加
+              </button>
+            </div>
+            {draft && !draft.id && newDraftBodyPartId === bodyPart.id ? (
+              <DraftPanel
+                bodyParts={bodyParts}
+                draft={draft}
+                isSaving={isSaving}
+                onArchive={requestArchive}
+                onClose={() => {
+                  setDraft(null);
+                  setNewDraftBodyPartId(null);
+                }}
+                onDraftChange={setDraft}
+                onSave={() => void save()}
+              />
+            ) : null}
+            <div className="grid gap-2">
+              {bodyPartExercises.map((exercise) => (
+                <div key={exercise.id}>
+                  <button
+                    type="button"
+                    draggable
+                    onClick={() => selectExercise(exercise)}
+                    onDragStart={() => setDraggingExerciseId(exercise.id)}
+                    onDragOver={(event) => event.preventDefault()}
+                    onDrop={() => void moveExercise(exercise)}
+                    className="flex w-full items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2 text-left"
+                  >
+                    <GripVertical size={17} className="shrink-0 text-[var(--muted)]" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-medium">{exercise.name}</span>
+                      {exercise.rackPosition || exercise.memo ? (
+                        <span className="block truncate text-sm text-[var(--muted)]">
+                          {exercise.rackPosition ? `ラック：${exercise.rackPosition}` : ""}
+                          {exercise.rackPosition && exercise.memo ? " / " : ""}
+                          {exercise.memo ? `メモ：${exercise.memo}` : ""}
+                        </span>
+                      ) : null}
+                    </span>
+                  </button>
+                  {draft?.id === exercise.id ? (
+                    <DraftPanel
+                      bodyParts={bodyParts}
+                      draft={draft}
+                      isSaving={isSaving}
+                      onArchive={requestArchive}
+                      onClose={() => setDraft(null)}
+                      onDraftChange={setDraft}
+                      onSave={() => void save()}
+                    />
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </section>
+        ))}
+      </div>
+
+      {message ? <p className="mt-3 text-sm text-emerald-500">{message}</p> : null}
+      {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
+      {archiveTarget ? (
+        <div
+          className="fixed inset-0 z-40 flex items-end bg-black/45 px-3 pb-3"
+          onClick={() => setArchiveTarget(null)}
+        >
+          <section
+            className="safe-bottom w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-amber-100 text-amber-800">
+                <AlertTriangle size={20} />
+              </div>
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold">種目を削除しますか？</h3>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  {archiveTarget.name} を種目マスタから非表示にします．過去のトレーニング記録は残ります．
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setArchiveTarget(null)}
+                disabled={isSaving}
+                className="min-h-12 rounded-[8px] border border-[var(--border)] px-4 font-semibold"
+              >
+                キャンセル
+              </button>
+              <button
+                type="button"
+                onClick={() => void archive()}
+                disabled={isSaving}
+                className="flex min-h-12 items-center justify-center gap-2 rounded-[8px] bg-[var(--warning)] px-4 font-semibold text-white disabled:opacity-50"
+              >
+                <Trash2 size={18} />
+                {isSaving ? "削除中" : "削除"}
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </section>
+  );
+}

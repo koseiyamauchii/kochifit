@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: light;
+  --background: #f5f5f4;
+  --surface: #ffffff;
+  --surface-soft: #f3f4f6;
+  --surface-strong: #e5e7eb;
+  --text: #171717;
+  --muted: #6b7280;
+  --border: #d4d4d4;
+  --accent: #52525b;
+  --accent-strong: #27272a;
+  --accent-soft: #e5e7eb;
+  --warning: #b45309;
+  --shadow: 0 16px 44px rgba(23, 23, 23, 0.08);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #050505;
+  --surface: #0f0f10;
+  --surface-soft: #18181b;
+  --surface-strong: #27272a;
+  --text: #f4f4f5;
+  --muted: #a1a1aa;
+  --border: #2f2f32;
+  --accent: #52525b;
+  --accent-strong: #e4e4e7;
+  --accent-soft: #27272a;
+  --warning: #fbbf24;
+  --shadow: 0 18px 52px rgba(0, 0, 0, 0.45);
+}
+
+:root[data-accent="orange"] {
+  --accent: #ea580c;
+  --accent-strong: #9a3412;
+  --accent-soft: #ffedd5;
+}
+
+:root[data-accent="red"] {
+  --accent: #dc2626;
+  --accent-strong: #991b1b;
+  --accent-soft: #fee2e2;
+}
+
+:root[data-theme="dark"][data-accent="red"] {
+  --accent: #ef4444;
+  --accent-strong: #fecaca;
+  --accent-soft: #351112;
+}
+
+:root[data-theme="dark"][data-accent="orange"] {
+  --accent: #fb923c;
+  --accent-strong: #fed7aa;
+  --accent-soft: #341c0c;
+}
+
+:root[data-accent="yellow"] {
+  --accent: #d6a000;
+  --accent-strong: #8a5f00;
+  --accent-soft: #fef3c7;
+}
+
+:root[data-theme="dark"][data-accent="yellow"] {
+  --accent: #facc15;
+  --accent-strong: #fef08a;
+  --accent-soft: #30270a;
+}
+
+:root[data-accent="pink"] {
+  --accent: #db2777;
+  --accent-strong: #9d174d;
+  --accent-soft: #fce7f3;
+}
+
+:root[data-theme="dark"][data-accent="pink"] {
+  --accent: #f472b6;
+  --accent-strong: #fbcfe8;
+  --accent-soft: #331123;
+}
+
+:root[data-accent="green"] {
+  --accent: #16a34a;
+  --accent-strong: #166534;
+  --accent-soft: #dcfce7;
+}
+
+:root[data-theme="dark"][data-accent="green"] {
+  --accent: #16a34a;
+  --accent-strong: #dcfce7;
+  --accent-soft: #0d2415;
+}
+
+:root[data-accent="blue"] {
+  --accent: #2563eb;
+  --accent-strong: #1d4ed8;
+  --accent-soft: #dbeafe;
+}
+
+:root[data-theme="dark"][data-accent="blue"] {
+  --accent: #60a5fa;
+  --accent-strong: #bfdbfe;
+  --accent-soft: #10233f;
+}
+
+:root[data-accent="purple"] {
+  --accent: #9333ea;
+  --accent-strong: #7e22ce;
+  --accent-soft: #f3e8ff;
+}
+
+:root[data-theme="dark"][data-accent="purple"] {
+  --accent: #a855f7;
+  --accent-strong: #f3e8ff;
+  --accent-soft: #27163d;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+  background: var(--background);
+}
+
+body {
+  min-height: 100%;
+  margin: 0;
+  background: var(--background);
+  color: var(--text);
+  font-family:
+    var(--font-noto-sans),
+    var(--font-noto-sans-jp),
+    system-ui,
+    sans-serif;
+  letter-spacing: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  font-size: 16px;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.color-orb {
+  background: var(--color-orb);
+  box-shadow: none;
+}
+
+.color-orb-selected {
+  box-shadow: none;
+}
+
+.accent-orb {
+  background: var(--accent);
+  box-shadow: none;
+}
+
+.color-donut {
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 0 0 1px color-mix(in srgb, var(--border) 72%, transparent),
+    0 12px 26px rgba(0, 0, 0, 0.08);
+  filter: saturate(1.02);
+}

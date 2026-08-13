@@ -1,0 +1,79 @@
+"use client";
+
+import { Monitor, Moon, Sun } from "lucide-react";
+import type { CSSProperties } from "react";
+import {
+  useThemePreference,
+  type AccentPreference,
+  type ThemePreference,
+} from "@/components/settings/theme-provider";
+
+const choices: Array<{ value: ThemePreference; label: string; icon: React.ReactNode }> = [
+  { value: "system", label: "システム", icon: <Monitor size={16} /> },
+  { value: "light", label: "ライト", icon: <Sun size={16} /> },
+  { value: "dark", label: "ダーク", icon: <Moon size={16} /> },
+];
+
+const accentChoices: Array<{ value: AccentPreference; label: string; color: string }> = [
+  { value: "gray", label: "デフォルト", color: "#52525b" },
+  { value: "red", label: "レッド", color: "#dc2626" },
+  { value: "orange", label: "オレンジ", color: "#ea580c" },
+  { value: "yellow", label: "イエロー", color: "#d6a000" },
+  { value: "green", label: "グリーン", color: "#16a34a" },
+  { value: "blue", label: "ブルー", color: "#2563eb" },
+  { value: "purple", label: "パープル", color: "#9333ea" },
+  { value: "pink", label: "ピンク", color: "#db2777" },
+];
+
+export function ThemeSelector() {
+  const { theme, accent, setTheme, setAccent } = useThemePreference();
+
+  return (
+    <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
+      <h2 className="text-lg font-semibold">表示</h2>
+      <div className="mt-3 grid grid-cols-3 gap-1 rounded-[8px] bg-[var(--surface-soft)] p-1">
+        {choices.map((choice) => (
+          <button
+            key={choice.value}
+            type="button"
+            onClick={() => setTheme(choice.value)}
+            aria-pressed={theme === choice.value}
+            className={[
+              "flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-[8px] px-1 text-[13px] font-medium sm:text-sm",
+              theme === choice.value
+                ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
+                : "text-[var(--muted)]",
+            ].join(" ")}
+          >
+            {choice.icon}
+            <span className="whitespace-nowrap">{choice.label}</span>
+          </button>
+        ))}
+      </div>
+      <h3 className="mt-5 text-sm font-semibold text-[var(--muted)]">アクセントカラー</h3>
+      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+        {accentChoices.map((choice) => (
+          <button
+            key={choice.value}
+            type="button"
+            onClick={() => setAccent(choice.value)}
+            aria-pressed={accent === choice.value}
+            className={[
+              "flex min-h-11 items-center gap-2 rounded-[8px] border px-3 text-sm font-medium",
+              accent === choice.value
+                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)]"
+                : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)]",
+            ].join(" ")}
+          >
+            <span
+              aria-hidden="true"
+              className="color-orb h-4 w-4 rounded-full"
+              style={{ "--color-orb": choice.color } as CSSProperties}
+            />
+            <span>{choice.label}</span>
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
