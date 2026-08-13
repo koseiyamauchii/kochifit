@@ -909,17 +909,16 @@ export function WorkoutCalendar({
     >
       {showCalendar ? (
         <>
-          <div className="relative mb-4 pr-12">
-            <div className="grid grid-cols-[44px_1fr_44px] items-center gap-3">
+          <div className="relative mb-4 min-h-11">
             <button
               type="button"
               onClick={() => moveMonth(-1)}
               aria-label="前月"
-              className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]"
+              className="absolute left-0 top-0 flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]"
             >
               <ChevronLeft size={22} />
             </button>
-            <label className="relative flex min-h-11 cursor-pointer items-center justify-center rounded-[8px] px-2 text-lg font-semibold">
+            <label className="absolute left-1/2 top-0 flex min-h-11 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[8px] px-2 text-lg font-semibold">
               <span>
                 {month.getFullYear()}年{month.getMonth() + 1}月
               </span>
@@ -931,22 +930,21 @@ export function WorkoutCalendar({
                 className="absolute inset-0 cursor-pointer opacity-0"
               />
             </label>
-              <button
-                type="button"
-                onClick={() => moveMonth(1)}
-                aria-label="翌月"
-                className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]"
-              >
-                <ChevronRight size={22} />
-              </button>
-            </div>
             <button
               type="button"
               onClick={jumpToToday}
               aria-label="今日へ戻る"
-              className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] text-sm font-semibold"
+              className="absolute left-[calc(50%+4.5rem)] top-0 flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] text-sm font-semibold"
             >
               {todayDay}
+            </button>
+            <button
+              type="button"
+              onClick={() => moveMonth(1)}
+              aria-label="翌月"
+              className="absolute right-0 top-0 flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]"
+            >
+              <ChevronRight size={22} />
             </button>
           </div>
 

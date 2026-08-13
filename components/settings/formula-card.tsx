@@ -1,11 +1,24 @@
 "use client";
 
-function Fraction({ numerator, denominator }: { numerator: React.ReactNode; denominator: React.ReactNode }) {
+import katex from "katex";
+import { useMemo } from "react";
+
+function MathBlock({ tex }: { tex: string }) {
+  const html = useMemo(
+    () =>
+      katex.renderToString(tex, {
+        displayMode: true,
+        throwOnError: false,
+        strict: "warn",
+      }),
+    [tex],
+  );
+
   return (
-    <span className="inline-flex translate-y-[0.15em] flex-col items-center px-1 align-middle text-[0.9em] leading-none">
-      <span className="border-b border-current px-1 pb-0.5">{numerator}</span>
-      <span className="px-1 pt-0.5">{denominator}</span>
-    </span>
+    <div
+      className="overflow-x-auto rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3 text-[var(--text)]"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 }
 
@@ -21,11 +34,7 @@ export function FormulaCard() {
 
       <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">推定消費カロリー</h3>
-        <div className="overflow-x-auto rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3 text-center text-[15px] font-semibold leading-8 text-[var(--text)]">
-          <span>kcal = </span>
-          <Fraction numerator="MET x 3.5 x W" denominator="200" />
-          <span> x T x A</span>
-        </div>
+        <MathBlock tex={String.raw`\mathrm{kcal} = \frac{\mathrm{MET} \times 3.5 \times W}{200} \times T \times A`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
           <p>W はプロフィールの体重kgです．</p>
           <p>T はセット数，ウォームアップ，重量と回数から推定した運動時間です．</p>
@@ -36,14 +45,7 @@ export function FormulaCard() {
 
       <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">推定1RM</h3>
-        <div className="overflow-x-auto rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3 text-center text-[15px] font-semibold leading-8 text-[var(--text)]">
-          <span>1RM = w x </span>
-          <span className="inline-flex items-center gap-1">
-            <span>(1 + </span>
-            <Fraction numerator="r" denominator="30" />
-            <span>)</span>
-          </span>
-        </div>
+        <MathBlock tex={String.raw`\mathrm{1RM} = w \left(1 + \frac{r}{30}\right)`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
           <p>w はセット重量kgです．</p>
           <p>r は回数です．</p>

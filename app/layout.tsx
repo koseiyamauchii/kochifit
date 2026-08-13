@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Noto_Sans, Noto_Sans_JP } from "next/font/google";
 import { ClientProviders } from "@/components/client-providers";
+import "katex/dist/katex.min.css";
 import "./globals.css";
 
 const notoSans = Noto_Sans({
@@ -16,7 +17,7 @@ const notoSansJp = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "Work Out",
+  title: "KochiFit",
   description: "トレーニング記録Webアプリ",
 };
 

@@ -44,7 +44,7 @@ export function AppShell({
             <Settings size={22} />
           </button>
           <Link href="/" className="truncate text-center text-lg font-semibold">
-            筋トレ記録アプリ
+            KochiFit
           </Link>
           <AccountAvatarButton onClick={() => openSettings("account", false)} />
         </header>

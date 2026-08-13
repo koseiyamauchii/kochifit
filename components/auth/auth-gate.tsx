@@ -37,7 +37,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return (
       <main className="flex min-h-[70dvh] items-center justify-center px-4">
         <div className="w-full max-w-sm rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
-          <p className="text-sm text-[var(--muted)]">Work Out</p>
+          <p className="text-sm text-[var(--muted)]">KochiFit</p>
           <h1 className="mt-1 text-2xl font-semibold">トレーニング記録</h1>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
             アプリの認証設定が完了していません．
@@ -51,7 +51,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     return (
       <main className="flex min-h-[70dvh] items-center justify-center px-4">
         <div className="w-full max-w-sm rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
-          <p className="text-sm text-[var(--muted)]">Work Out</p>
+          <p className="text-sm text-[var(--muted)]">KochiFit</p>
           <h1 className="mt-1 text-2xl font-semibold">トレーニング記録</h1>
           <button
             type="button"
