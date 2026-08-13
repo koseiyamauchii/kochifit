@@ -67,12 +67,12 @@ export function AppShell({
                 showModalTitle ? "mb-4" : "mb-2",
               ].join(" ")}
             >
-              {showModalTitle ? <h1 className="text-2xl font-semibold">設定</h1> : <div />}
+              {showModalTitle ? <h1 className="text-base font-semibold">設定</h1> : <div />}
               <button
                 type="button"
                 onClick={() => setIsSettingsOpen(false)}
                 aria-label="設定を閉じる"
-                className="flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border)]"
+                className="mt-2 flex h-10 w-10 items-center justify-center rounded-[8px] border border-[var(--border)]"
               >
                 <X size={19} />
               </button>

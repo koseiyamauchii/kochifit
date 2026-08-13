@@ -93,7 +93,7 @@ export function BodyPartMasterCard() {
   return (
     <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">部位マスタ</h2>
+        <h2 className="text-base font-semibold">部位マスタ</h2>
         <button
           type="button"
           onClick={() => void saveOrder()}

@@ -107,7 +107,7 @@ export function ProfileSettingsCard() {
 
   return (
     <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
-      <h2 className="text-lg font-semibold">プロフィール設定</h2>
+      <h2 className="text-base font-semibold">プロフィール設定</h2>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <label className="block space-y-1">
           <span className="text-sm font-medium text-[var(--muted)]">身長 cm</span>
@@ -221,7 +221,7 @@ export function ProfileSettingsCard() {
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">1か月目標の日付</span>
+          <span className="text-sm font-medium text-[var(--muted)]">1か月目標の期限</span>
           <input
             type="date"
             value={oneMonthGoalDate}
@@ -241,7 +241,7 @@ export function ProfileSettingsCard() {
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">3か月目標の日付</span>
+          <span className="text-sm font-medium text-[var(--muted)]">3か月目標の期限</span>
           <input
             type="date"
             value={threeMonthGoalDate}
@@ -261,7 +261,7 @@ export function ProfileSettingsCard() {
           />
         </label>
         <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">1年目標の日付</span>
+          <span className="text-sm font-medium text-[var(--muted)]">1年目標の期限</span>
           <input
             type="date"
             value={oneYearGoalDate}

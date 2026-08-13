@@ -79,6 +79,14 @@ function createInitialSetDraft(): SetDraft {
   return { weightKg: "", reps: "", isWarmup: false };
 }
 
+function parseDateKey(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  if (!year || !month || !day) {
+    return null;
+  }
+  return new Date(year, month - 1, day);
+}
+
 function createSetDrafts(count: number) {
   return Array.from({ length: count }, () => createInitialSetDraft());
 }
@@ -321,7 +329,7 @@ function WorkoutEntryForm({
         <h3 className="min-w-0 truncate text-base font-semibold">
           {mode === "add" ? "記録を追加" : selectedExercise?.name ?? "記録"}
         </h3>
-        <div className="shrink-0 whitespace-nowrap rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-strong)]">
+        <div className="shrink-0 whitespace-nowrap rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 text-xs font-semibold text-[var(--muted)]">
           約{estimatedCalories}kcal
         </div>
       </div>
@@ -531,12 +539,37 @@ function WorkoutEntryForm({
         <textarea
           value={draft.note}
           onChange={(event) => onDraftChange({ ...draft, note: event.target.value })}
+          onFocus={(event) => {
+            const target = event.currentTarget;
+            window.setTimeout(() => target.scrollIntoView({ block: "end", inline: "nearest" }), 180);
+          }}
           rows={3}
           className="w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
         />
       </label>
 
-      <div className="grid gap-2 sm:grid-cols-2">
+      {onDelete ? (
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isSaving}
+            className="flex min-h-12 w-full items-center justify-center gap-1 rounded-[8px] border border-[var(--border)] px-3 py-3 text-sm font-semibold text-[var(--muted)] disabled:opacity-40"
+          >
+            <Trash2 size={17} />
+            削除
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            disabled={!canSave || isSaving}
+            className="flex min-h-12 w-full items-center justify-center gap-1 rounded-[8px] bg-[var(--accent)] px-3 py-3 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            <Save size={17} />
+            {isSaving ? "保存中" : "更新"}
+          </button>
+        </div>
+      ) : (
         <button
           type="button"
           onClick={onSave}
@@ -544,20 +577,9 @@ function WorkoutEntryForm({
           className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[8px] bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-50"
         >
           <Save size={18} />
-          {isSaving ? "保存中" : mode === "add" ? "追加" : "更新"}
+          {isSaving ? "保存中" : "追加"}
         </button>
-        {onDelete ? (
-          <button
-            type="button"
-            onClick={onDelete}
-            disabled={isSaving}
-            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[8px] border border-[var(--border)] px-4 py-3 font-semibold text-[var(--muted)] disabled:opacity-40"
-          >
-            <Trash2 size={18} />
-            削除
-          </button>
-        ) : null}
-      </div>
+      )}
     </section>
   );
 }
@@ -571,12 +593,13 @@ export function WorkoutCalendar({
 }: WorkoutCalendarProps) {
   const { user, authStatus, profile, profileStatus } = useAuth();
   const todayKey = toDateKey(new Date());
+  const todayDay = Number(todayKey.slice(-2));
   const defaultSetCount = clampDefaultSetCount(profile?.default_set_count);
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [selectedDate, setSelectedDate] = useState(() => selectedDateOverride ?? todayKey);
   const effectiveSelectedDate = selectedDateOverride ?? selectedDate;
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [monthSlideDirection, setMonthSlideDirection] = useState<"left" | "right" | null>(null);
+  const [touchDeltaX, setTouchDeltaX] = useState(0);
   const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [exerciseRecords, setExerciseRecords] = useState<ExerciseRecord[]>([]);
@@ -735,11 +758,17 @@ export function WorkoutCalendar({
     }
   }, [addDraft.exerciseId, exercises, selectedBodyPartId]);
 
-  const moveMonth = (delta: number) => {
-    setMonthSlideDirection(delta > 0 ? "left" : "right");
-    setMonth((current) => addMonths(current, delta));
-    window.setTimeout(() => setMonthSlideDirection(null), 220);
+  const moveMonth = (delta: number) => setMonth((current) => addMonths(current, delta));
+  const monthPickerDateKey = toDateKey(month);
+  const jumpCalendarToDate = (dateKey: string) => {
+    const nextDate = parseDateKey(dateKey);
+    if (!nextDate) {
+      return;
+    }
+    setMonth(startOfMonth(nextDate));
+    setSelectedDate(dateKey);
   };
+  const jumpToToday = () => jumpCalendarToDate(todayKey);
   const handleDateClick = (dateKey: string) => {
     setSelectedDate(dateKey);
     if (!showWorkoutDetails) {
@@ -832,25 +861,43 @@ export function WorkoutCalendar({
       setSavingKey(null);
     }
   };
+  const dragOffset = touchStartX === null ? 0 : Math.max(-44, Math.min(44, touchDeltaX * 0.32));
 
   return (
     <div
-      onTouchStart={(event) => setTouchStartX(event.changedTouches[0]?.clientX ?? null)}
+      onTouchStart={(event) => {
+        if (!showCalendar) {
+          return;
+        }
+        setTouchStartX(event.touches[0]?.clientX ?? null);
+        setTouchDeltaX(0);
+      }}
+      onTouchMove={(event) => {
+        if (touchStartX === null || !showCalendar) {
+          return;
+        }
+        const currentX = event.touches[0]?.clientX ?? touchStartX;
+        setTouchDeltaX(currentX - touchStartX);
+      }}
       onTouchEnd={(event) => {
         if (touchStartX === null || !showCalendar) {
           return;
         }
-        const endX = event.changedTouches[0]?.clientX ?? touchStartX;
-        const delta = endX - touchStartX;
+        const delta = touchDeltaX || (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
         if (Math.abs(delta) > 50) {
           moveMonth(delta > 0 ? -1 : 1);
         }
         setTouchStartX(null);
+        setTouchDeltaX(0);
+      }}
+      onTouchCancel={() => {
+        setTouchStartX(null);
+        setTouchDeltaX(0);
       }}
     >
       {showCalendar ? (
         <>
-          <div className="mb-4 flex items-center justify-between gap-3">
+          <div className="mb-4 grid grid-cols-[44px_1fr_auto] items-center gap-3">
             <button
               type="button"
               onClick={() => moveMonth(-1)}
@@ -859,25 +906,44 @@ export function WorkoutCalendar({
             >
               <ChevronLeft size={22} />
             </button>
-            <h2 className="text-lg font-semibold">
-              {month.getFullYear()}年{month.getMonth() + 1}月
-            </h2>
-            <button
-              type="button"
-              onClick={() => moveMonth(1)}
-              aria-label="翌月"
-              className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]"
-            >
-              <ChevronRight size={22} />
-            </button>
+            <label className="relative flex min-h-11 cursor-pointer items-center justify-center rounded-[8px] px-2 text-lg font-semibold">
+              <span>
+                {month.getFullYear()}年{month.getMonth() + 1}月
+              </span>
+              <input
+                type="date"
+                value={monthPickerDateKey}
+                onChange={(event) => jumpCalendarToDate(event.target.value)}
+                aria-label="表示する日付を選択"
+                className="absolute inset-0 cursor-pointer opacity-0"
+              />
+            </label>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={jumpToToday}
+                aria-label="今日へ戻る"
+                className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] text-sm font-semibold"
+              >
+                {todayDay}
+              </button>
+              <button
+                type="button"
+                onClick={() => moveMonth(1)}
+                aria-label="翌月"
+                className="flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]"
+              >
+                <ChevronRight size={22} />
+              </button>
+            </div>
           </div>
 
           <div
             className={[
-              "grid grid-cols-7 justify-items-center gap-y-1 text-center transition-transform duration-200 ease-out",
-              monthSlideDirection === "left" ? "translate-x-1 opacity-90" : "",
-              monthSlideDirection === "right" ? "-translate-x-1 opacity-90" : "",
+              "grid grid-cols-7 justify-items-center gap-y-1 text-center will-change-transform",
+              touchStartX === null ? "transition-transform duration-150 ease-out" : "transition-none",
             ].join(" ")}
+            style={{ transform: `translateX(${dragOffset}px)` }}
           >
             {weekdays.map((weekday) => (
               <div key={weekday} className="py-1 text-xs font-medium text-[var(--muted)]">
@@ -972,14 +1038,14 @@ export function WorkoutCalendar({
                 {detailsHeading}
               </h1>
             </div>
-            <div className="shrink-0 whitespace-nowrap rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-strong)]">
+            <div className="shrink-0 whitespace-nowrap rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--muted)]">
               合計 約{totalCalories}kcal
             </div>
           </div>
         ) : (
         <div className="flex items-start justify-end gap-3">
           <div className="flex flex-col items-end gap-2">
-            <div className="whitespace-nowrap rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--accent-strong)]">
+            <div className="whitespace-nowrap rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--muted)]">
               合計 約{totalCalories}kcal
             </div>
           </div>
@@ -992,9 +1058,9 @@ export function WorkoutCalendar({
             type="button"
             onClick={() => setIsAddFormOpen(true)}
             aria-label="記録を追加"
-            className="fixed bottom-5 right-4 z-20 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
+            className="fixed bottom-8 right-7 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
           >
-            <Plus size={18} />
+            <Plus size={20} />
           </button>
         ) : null}
 

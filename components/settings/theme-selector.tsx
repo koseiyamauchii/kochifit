@@ -63,7 +63,7 @@ export function ThemeSelector() {
 
   return (
     <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
-      <h2 className="text-lg font-semibold">表示</h2>
+      <h2 className="text-base font-semibold">表示</h2>
       <div className="mt-3 grid grid-cols-3 gap-1 rounded-[8px] bg-[var(--surface-soft)] p-1">
         {choices.map((choice) => (
           <button

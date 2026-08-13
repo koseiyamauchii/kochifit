@@ -1,14 +1,21 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, Dumbbell, Palette, User, UserCircle } from "lucide-react";
+import { Calculator, ChevronLeft, ChevronRight, Dumbbell, Palette, User, UserCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { BodyPartMasterCard } from "@/components/settings/body-part-master-card";
 import { ExerciseMasterCard } from "@/components/settings/exercise-master-card";
+import { FormulaSupportCard } from "@/components/settings/formula-support-card";
 import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
 import { SupabaseAccountCard } from "@/components/settings/supabase-account-card";
 import { ThemeSelector } from "@/components/settings/theme-selector";
 
-export type SettingsSection = "profile" | "accessibility" | "bodyParts" | "exercises" | "account";
+export type SettingsSection =
+  | "profile"
+  | "accessibility"
+  | "bodyParts"
+  | "exercises"
+  | "formulaSupport"
+  | "account";
 
 const sectionItems: Array<{
   id: SettingsSection;
@@ -19,6 +26,7 @@ const sectionItems: Array<{
   { id: "accessibility", title: "アクセシビリティ", icon: <Palette size={21} /> },
   { id: "bodyParts", title: "部位マスタ", icon: <Dumbbell size={21} /> },
   { id: "exercises", title: "種目マスタ", icon: <Dumbbell size={21} /> },
+  { id: "formulaSupport", title: "計算式・問い合わせ", icon: <Calculator size={21} /> },
   { id: "account", title: "アカウント", icon: <UserCircle size={21} /> },
 ];
 
@@ -32,6 +40,8 @@ function renderSection(section: SettingsSection) {
       return <BodyPartMasterCard />;
     case "exercises":
       return <ExerciseMasterCard />;
+    case "formulaSupport":
+      return <FormulaSupportCard />;
     case "account":
       return <SupabaseAccountCard />;
   }
@@ -78,7 +88,7 @@ export function SettingsSections({
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)]">
                   {item.icon}
                 </span>
-                <span className="min-w-0 flex-1 text-lg font-semibold">{item.title}</span>
+                <span className="min-w-0 flex-1 text-base font-semibold">{item.title}</span>
                 <ChevronRight size={19} className="shrink-0 text-[var(--muted)]" />
               </button>
             ))}
@@ -87,7 +97,7 @@ export function SettingsSections({
       ) : (
         <div>
           {activeItem && showBackToList && activeSection !== "account" ? (
-            <h2 className="mb-3 text-xl font-semibold">{activeItem.title}</h2>
+            <h2 className="mb-3 text-base font-semibold">{activeItem.title}</h2>
           ) : null}
           {renderSection(activeSection)}
         </div>

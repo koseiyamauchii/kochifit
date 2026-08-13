@@ -327,7 +327,7 @@ export function ExerciseMasterCard() {
   return (
     <section className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-lg font-semibold">種目マスタ</h2>
+        <h2 className="text-base font-semibold">種目マスタ</h2>
         <button
           type="button"
           onClick={() => startNew()}
@@ -423,7 +423,7 @@ export function ExerciseMasterCard() {
                 <AlertTriangle size={20} />
               </div>
               <div className="min-w-0">
-                <h3 className="text-lg font-semibold">種目を削除しますか？</h3>
+                <h3 className="text-base font-semibold">種目を削除しますか？</h3>
                 <p className="mt-1 text-sm text-[var(--muted)]">
                   {archiveTarget.name} を種目マスタから非表示にします．過去のトレーニング記録は残ります．
                 </p>
