@@ -155,17 +155,22 @@ export function AccountMenu({
                 <ChevronRight size={18} className="shrink-0 text-[var(--muted)]" />
               </button>
             ))}
+
+          </div>
+        </section>
+
+        <section className="space-y-1">
+          <h2 className="px-1 text-xs font-semibold text-[var(--muted)]">アカウント</h2>
+          <div className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)]">
             <button
               type="button"
               onClick={() => void logout()}
-              className="flex min-h-12 w-full items-center justify-between gap-3 border-t border-[var(--hairline)] px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]"
+              className="flex min-h-12 w-full items-center gap-2 px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]"
             >
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
-                  <LogOut size={18} />
-                </span>
-                <span className="min-w-0 truncate">ログアウト</span>
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
+                <LogOut size={18} />
               </span>
+              <span className="min-w-0 truncate">ログアウト</span>
             </button>
           </div>
         </section>

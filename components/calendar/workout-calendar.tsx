@@ -130,6 +130,21 @@ function formatSetLine(weightKg: number | null, reps: number | null) {
   return `${formatWeightNumber(weightKg)}kg x ${reps ?? "-"}`;
 }
 
+function formatWorkoutCreatedTime(createdAt: string | null | undefined) {
+  if (!createdAt) {
+    return null;
+  }
+  const date = new Date(createdAt);
+  if (Number.isNaN(date.getTime())) {
+    return null;
+  }
+  return date.toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
 function estimateOneRepMax(weightKg: number | null, reps: number | null) {
   if (weightKg === null || reps === null || weightKg <= 0 || reps <= 0) {
     return null;
@@ -278,6 +293,7 @@ function WorkoutReadOnlyCard({
   }
   const masterExercise = findExercise(exercises, exercise.exerciseId);
   const bodyPartColor = getExerciseBodyPartColor(bodyParts, masterExercise);
+  const createdTime = formatWorkoutCreatedTime(workout.createdAt);
 
   return (
     <button
@@ -294,9 +310,14 @@ function WorkoutReadOnlyCard({
           />
           <span className="min-w-0 truncate">{exercise.exerciseName}</span>
         </h3>
-        <span className="shrink-0 rounded-[12px] bg-[var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--muted)]">
-          {exercise.sets.length}セット
-        </span>
+        <div className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold text-[var(--muted)]">
+          {createdTime ? (
+            <span className="rounded-[12px] bg-[var(--surface-soft)] px-2 py-1">追加 {createdTime}</span>
+          ) : null}
+          <span className="rounded-[12px] bg-[var(--surface-soft)] px-2 py-1">
+            {exercise.sets.length}セット
+          </span>
+        </div>
       </div>
       <div className="grid grid-cols-[2.4rem_1fr_1fr_1fr] gap-2 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]">
         <span>セット</span>
@@ -570,20 +591,20 @@ function WorkoutEntryForm({
         {draft.sets.map((set, index) => (
           <div
             key={index}
-            className="rounded-[12px] bg-[var(--surface-soft)] p-2"
+            className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)] p-2"
           >
-            <div className="mb-2 flex items-center justify-between gap-2">
-              <span className="rounded-[12px] bg-[var(--accent-tint-strong)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-strong)]">
+            <div className="-mx-2 -mt-2 mb-2 flex items-center justify-between gap-2 bg-[var(--accent)] px-2.5 py-1.5 text-white">
+              <span className="text-xs font-semibold">
                 セット {index + 1}
               </span>
               {index === firstHighestWeightSetIndex ? (
-                <span className="flex min-h-7 items-center gap-1 rounded-[12px] bg-[#fff2b8] px-2.5 text-[11px] font-semibold text-amber-900">
+                <span className="flex min-h-6 items-center gap-1 rounded-[12px] bg-white/20 px-2 text-[11px] font-semibold text-white">
                   <Trophy size={14} />
                   最高重量
                 </span>
               ) : null}
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
                   <span className="min-w-0 flex-1">重量 kg</span>
@@ -639,7 +660,7 @@ function WorkoutEntryForm({
                   className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
                 />
               </div>
-              <div className="col-span-2 min-w-0 space-y-1">
+              <div className="min-w-0 space-y-1">
                 <span className="text-xs font-medium text-[var(--muted)]">推定1RM</span>
                 <div className="flex min-h-10 items-center rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold">
                   {formatRm(toWeightNumberOrNull(set.weightKg, profile), toNumberOrNull(set.reps))}
@@ -811,7 +832,6 @@ export function WorkoutCalendar({
     (Boolean(addDraft.exerciseId) ||
       addDraft.note.trim() !== "" ||
       addDraft.sets.some((set) => !isBlankSetDraft(set)));
-  const canSaveAddDraft = Boolean(addDraft.exerciseId && hasAnySetInput(addDraft, profile));
 
   const loadMonth = useCallback(async () => {
     if (!user) {
@@ -1005,14 +1025,8 @@ export function WorkoutCalendar({
     if (!isAddDraftDirty || savingKey) {
       return true;
     }
-    if (canSaveAddDraft) {
-      if (window.confirm("保存していない内容があります。保存して戻りますか？")) {
-        void handleAddSave();
-      }
-      return false;
-    }
-    return window.confirm("保存していない内容があります。保存せずに戻りますか？");
-  }, [canSaveAddDraft, handleAddSave, isAddDraftDirty, savingKey]);
+    return window.confirm("保存していない内容があります。保存せず戻りますか？");
+  }, [isAddDraftDirty, savingKey]);
 
   useEffect(() => {
     confirmUnsavedAddNavigationRef.current = confirmUnsavedAddNavigation;
@@ -1038,6 +1052,19 @@ export function WorkoutCalendar({
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isAddDraftDirty]);
+
+  useEffect(() => {
+    if (!showAddForm) {
+      return;
+    }
+    const handleNavigationConfirm = (event: Event) => {
+      if (!confirmUnsavedAddNavigation()) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("kochifit:confirm-navigation", handleNavigationConfirm);
+    return () => window.removeEventListener("kochifit:confirm-navigation", handleNavigationConfirm);
+  }, [confirmUnsavedAddNavigation, showAddForm]);
 
   useEffect(() => {
     if (!showAddForm || !backHref) {
@@ -1156,7 +1183,7 @@ export function WorkoutCalendar({
             >
               <ChevronLeft size={19} />
             </button>
-            <label className="absolute left-1/2 top-0 flex min-h-9 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[12px] px-2 text-sm font-semibold">
+            <label className="absolute left-1/2 top-0 flex min-h-9 -translate-x-1/2 cursor-pointer items-center justify-center rounded-[12px] px-2 text-base font-semibold">
               <span>
                 {month.getFullYear()}年{month.getMonth() + 1}月
               </span>
@@ -1204,27 +1231,19 @@ export function WorkoutCalendar({
                       {weekday}
                     </div>
                   ))}
-                  {page.cells.map((day, index) => {
-                    const dateKey = day
-                      ? toDateKey(new Date(page.month.getFullYear(), page.month.getMonth(), day))
-                      : null;
-                    const summary = dateKey ? summariesByDate.get(dateKey) : null;
-                    const isToday = dateKey === todayKey;
-                    const isSelected = dateKey === effectiveSelectedDate;
+                  {page.cells.map((cell) => {
+                    const summary = summariesByDate.get(cell.dateKey);
+                    const isToday = cell.dateKey === todayKey;
+                    const isSelected = cell.dateKey === effectiveSelectedDate;
                     const summaryBodyParts = summary?.bodyParts.slice(0, 7) ?? [];
                     return (
                       <button
-                        key={`${page.key}-${day ?? "blank"}-${index}`}
+                        key={`${page.key}-${cell.dateKey}`}
                         type="button"
-                        disabled={!dateKey}
-                        onClick={() => {
-                          if (dateKey) {
-                            handleDateClick(dateKey);
-                          }
-                        }}
+                        onClick={() => handleDateClick(cell.dateKey)}
                         className={[
                           "relative flex h-9 w-8 flex-col items-center justify-start rounded-[12px] pt-0.5 text-sm font-medium",
-                          dateKey ? "bg-transparent" : "invisible",
+                          cell.isCurrentMonth ? "bg-transparent" : "bg-transparent opacity-40",
                           isSelected && !isToday ? "bg-[var(--surface-soft)]" : "",
                         ].join(" ")}
                       >
@@ -1234,10 +1253,15 @@ export function WorkoutCalendar({
                             isToday ? "accent-orb text-white" : "",
                           ].join(" ")}
                         >
-                          {day}
+                          {cell.day}
                         </span>
                         {summaryBodyParts.length > 0 ? (
-                          <span className="mt-0.5 flex max-w-8 flex-wrap justify-center gap-0.5">
+                          <span
+                            className={[
+                              "mt-0.5 flex max-w-8 flex-wrap justify-center gap-0.5",
+                              cell.isCurrentMonth ? "" : "opacity-60",
+                            ].join(" ")}
+                          >
                             {summaryBodyParts.map((bodyPart) => {
                               const color = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
                               return (

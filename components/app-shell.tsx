@@ -34,12 +34,19 @@ export function AppShell({
     setIsSettingsOpen(false);
   };
 
+  const handleHomeClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    const navigationEvent = new Event("kochifit:confirm-navigation", { cancelable: true });
+    if (!window.dispatchEvent(navigationEvent)) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <div className={["mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-3 pb-6 sm:px-6", active === "home" ? "pt-[7px] sm:pt-[19px]" : "pt-3 sm:pt-6"].join(" ")}>
       {user ? (
         <header className="mb-3 grid grid-cols-[36px_1fr_36px] items-center gap-2">
           <div />
-          <Link href="/" className="truncate text-center text-lg font-semibold">
+          <Link href="/" onClick={handleHomeClick} className="truncate text-center text-lg font-semibold">
             KochiFit
           </Link>
           <AccountAvatarButton onClick={() => openSettings("account", false)} />

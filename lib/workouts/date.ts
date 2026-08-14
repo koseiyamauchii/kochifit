@@ -22,23 +22,28 @@ export function addMonths(date: Date, months: number) {
   return new Date(date.getFullYear(), date.getMonth() + months, 1);
 }
 
-export function getCalendarCells(month: Date) {
+export interface CalendarCell {
+  dateKey: string;
+  day: number;
+  isCurrentMonth: boolean;
+}
+
+export function getCalendarCells(month: Date): CalendarCell[] {
   const year = month.getFullYear();
   const monthIndex = month.getMonth();
   const first = new Date(year, monthIndex, 1);
   const last = new Date(year, monthIndex + 1, 0);
   const leading = (first.getDay() + 6) % 7;
   const daysInMonth = last.getDate();
-  const cells: Array<number | null> = [];
+  const cellCount = Math.ceil((leading + daysInMonth) / 7) * 7;
+  const start = new Date(year, monthIndex, 1 - leading);
 
-  for (let index = 0; index < leading; index += 1) {
-    cells.push(null);
-  }
-  for (let day = 1; day <= daysInMonth; day += 1) {
-    cells.push(day);
-  }
-  while (cells.length % 7 !== 0) {
-    cells.push(null);
-  }
-  return cells;
+  return Array.from({ length: cellCount }, (_, index) => {
+    const date = new Date(start.getFullYear(), start.getMonth(), start.getDate() + index);
+    return {
+      dateKey: toDateKey(date),
+      day: date.getDate(),
+      isCurrentMonth: date.getMonth() === monthIndex,
+    };
+  });
 }
