@@ -85,7 +85,7 @@ export function SettingsSections({
   const handleBack = () => setActiveSection(showBackToList ? null : "account");
 
   return (
-    <div className="space-y-4">
+    <div className={activeSection === "account" ? "space-y-4" : "mx-2 space-y-4"}>
       {!activeSection ? (
         <>
           <h1 className="text-base font-semibold">設定</h1>
@@ -109,7 +109,7 @@ export function SettingsSections({
           </section>
         </>
       ) : (
-        <div className="space-y-4">
+        <div className={activeSection === "account" ? "space-y-4" : "mx-2 space-y-4"}>
           {showDetailHeader && activeItem ? (
             <div className="flex items-center gap-3">
               {activeSection !== "account" ? (

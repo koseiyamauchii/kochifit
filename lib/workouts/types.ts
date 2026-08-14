@@ -55,6 +55,7 @@ export interface WorkoutExercise {
   id: string;
   exerciseId: string;
   exerciseName: string;
+  workoutDate: string;
   displayOrder: number;
   note: string | null;
   sets: WorkoutSet[];

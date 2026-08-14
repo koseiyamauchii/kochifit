@@ -59,6 +59,7 @@ interface WorkoutCalendarProps {
   showCalendar?: boolean;
   showWorkoutDetails?: boolean;
   selectedDateOverride?: string;
+  showAddForm?: boolean;
 }
 
 function toNumberOrNull(value: string) {
@@ -88,6 +89,15 @@ function parseDateKey(value: string) {
   return new Date(year, month - 1, day);
 }
 
+function shiftDateKey(dateKey: string, days: number) {
+  const date = parseDateKey(dateKey);
+  if (!date) {
+    return dateKey;
+  }
+  date.setDate(date.getDate() + days);
+  return toDateKey(date);
+}
+
 function createSetDrafts(count: number) {
   return Array.from({ length: count }, () => createInitialSetDraft());
 }
@@ -103,8 +113,21 @@ function clampDefaultSetCount(value: number | null | undefined) {
   return Math.min(10, Math.max(1, Math.trunc(value)));
 }
 
+function formatWeightNumber(weightKg: number | null) {
+  return weightKg === null ? "-" : weightKg.toFixed(1);
+}
+
+function formatWeightInput(value: string) {
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === bodyWeightInputLabel) {
+    return value;
+  }
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed.toFixed(1) : value;
+}
+
 function formatSetLine(weightKg: number | null, reps: number | null) {
-  return `${weightKg ?? "-"}kg x ${reps ?? "-"}`;
+  return `${formatWeightNumber(weightKg)}kg x ${reps ?? "-"}`;
 }
 
 function estimateOneRepMax(weightKg: number | null, reps: number | null) {
@@ -139,7 +162,7 @@ function createDraftFromWorkout(exercise: WorkoutExercise): EntryDraft {
     exerciseId: exercise.exerciseId,
     note: exercise.note ?? "",
     sets: exercise.sets.map((set) => ({
-      weightKg: set.weightKg !== null ? String(set.weightKg) : "",
+      weightKg: set.weightKg !== null ? set.weightKg.toFixed(1) : "",
       reps: set.reps !== null ? String(set.reps) : "",
       isWarmup: set.isWarmup,
       note: set.note ?? "",
@@ -194,15 +217,25 @@ function PreviousWorkoutBlock({
     <div className="rounded-[12px] bg-[var(--surface-soft)] p-3">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h4 className="font-semibold">前回の記録</h4>
-        <button
-          type="button"
-          onClick={onCopyAll}
-          disabled={!previousWorkout}
-          className="flex min-h-9 items-center gap-1.5 rounded-[12px] bg-[var(--accent)] px-3 text-sm font-medium text-white disabled:opacity-40"
-        >
-          <Copy size={15} />
-          まとめてコピー
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          {previousWorkout ? (
+            <Link
+              href={`/today?date=${previousWorkout.workoutDate}`}
+              className="rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5 text-xs font-semibold text-[var(--muted)]"
+            >
+              詳細
+            </Link>
+          ) : null}
+          <button
+            type="button"
+            onClick={onCopyAll}
+            disabled={!previousWorkout}
+            className="flex min-h-9 items-center gap-1.5 rounded-[12px] bg-[var(--accent)] px-3 text-sm font-medium text-white disabled:opacity-40"
+          >
+            <Copy size={15} />
+            コピー
+          </button>
+        </div>
       </div>
       {previousWorkout ? (
         <div className="space-y-2">
@@ -223,6 +256,71 @@ function PreviousWorkoutBlock({
         <p className="text-sm text-[var(--muted)]">この種目の前回記録はまだありません。</p>
       )}
     </div>
+  );
+}
+
+function WorkoutReadOnlyCard({
+  bodyParts,
+  exercises,
+  onEdit,
+  workout,
+}: {
+  bodyParts: BodyPart[];
+  exercises: Exercise[];
+  onEdit: () => void;
+  workout: Workout;
+}) {
+  const exercise = workout.exercises[0];
+  if (!exercise) {
+    return null;
+  }
+  const masterExercise = findExercise(exercises, exercise.exerciseId);
+  const bodyPartColor = getExerciseBodyPartColor(bodyParts, masterExercise);
+
+  return (
+    <button
+      type="button"
+      onClick={onEdit}
+      className="block w-full overflow-hidden rounded-[12px] bg-[var(--surface)] text-left shadow-[var(--shadow)]"
+    >
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2">
+        <h3 className="flex min-w-0 items-center gap-2 text-sm font-semibold">
+          <span
+            aria-hidden="true"
+            className="color-orb h-3 w-3 shrink-0 rounded-full"
+            style={{ "--color-orb": bodyPartColor } as CSSProperties}
+          />
+          <span className="min-w-0 truncate">{exercise.exerciseName}</span>
+        </h3>
+        <span className="shrink-0 rounded-[12px] bg-[var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--muted)]">
+          {exercise.sets.length}セット
+        </span>
+      </div>
+      <div className="grid grid-cols-[2.4rem_1fr_1fr_1fr] gap-2 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]">
+        <span>Set</span>
+        <span>重量</span>
+        <span>回数</span>
+        <span>RM</span>
+      </div>
+      <div className="divide-y divide-[var(--hairline)] px-3">
+        {exercise.sets.map((set, index) => (
+          <div key={set.id} className="py-1.5">
+            <div className="grid min-h-7 grid-cols-[2.4rem_1fr_1fr_1fr] items-center gap-2 text-xs">
+              <span className="font-semibold text-[var(--muted)]">{set.isWarmup ? "W" : index + 1}</span>
+              <span className="font-medium">{formatWeightNumber(set.weightKg)}kg</span>
+              <span className="font-medium">{set.reps ?? "-"}回</span>
+              <span className="font-semibold text-[var(--muted)]">{formatRm(set.weightKg, set.reps)}</span>
+            </div>
+            {set.note ? <p className="mt-1 text-xs text-[var(--muted)]">メモ：{set.note}</p> : null}
+          </div>
+        ))}
+      </div>
+      {exercise.note ? (
+        <div className="border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
+          メモ：{exercise.note}
+        </div>
+      ) : null}
+    </button>
   );
 }
 
@@ -323,7 +421,7 @@ function WorkoutEntryForm({
       return;
     }
     updateSet(index, {
-      weightKg: source.weightKg !== null ? String(source.weightKg) : "",
+      weightKg: source.weightKg !== null ? source.weightKg.toFixed(1) : "",
       reps: source.reps !== null ? String(source.reps) : "",
       isWarmup: source.isWarmup,
       note: source.note ?? "",
@@ -335,7 +433,7 @@ function WorkoutEntryForm({
       return;
     }
     const copied = previousWorkout.sets.map((set) => ({
-      weightKg: set.weightKg !== null ? String(set.weightKg) : "",
+      weightKg: set.weightKg !== null ? set.weightKg.toFixed(1) : "",
       reps: set.reps !== null ? String(set.reps) : "",
       isWarmup: set.isWarmup,
       note: set.note ?? "",
@@ -411,6 +509,7 @@ function WorkoutEntryForm({
             onChange={(event) => onDraftChange({ ...draft, exerciseId: event.target.value })}
             className="min-h-11 w-full rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text)] ring-1 ring-[var(--border)]"
           >
+            <option value="">種目を追加してください</option>
             {filteredExercises.map((exercise) => (
               <option key={exercise.id} value={exercise.id}>
                 {exercise.name}
@@ -501,6 +600,7 @@ function WorkoutEntryForm({
                   inputMode="decimal"
                   value={set.weightKg}
                   onChange={(event) => updateSet(index, { weightKg: event.target.value })}
+                  onBlur={(event) => updateSet(index, { weightKg: formatWeightInput(event.target.value) })}
                   className="min-h-11 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
                 />
               </div>
@@ -621,7 +721,7 @@ function WorkoutEntryForm({
           className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
         >
           <Save size={18} />
-          {isSaving ? "保存中" : "追加"}
+          {isSaving ? "保存中" : "保存"}
         </button>
       )}
       </div>
@@ -635,6 +735,7 @@ export function WorkoutCalendar({
   showCalendar = true,
   showWorkoutDetails = true,
   selectedDateOverride,
+  showAddForm = false,
 }: WorkoutCalendarProps) {
   const { user, authStatus, profile, profileStatus } = useAuth();
   const todayKey = toDateKey(new Date());
@@ -658,11 +759,10 @@ export function WorkoutCalendar({
     sets: createSetDrafts(5),
   }));
   const [editDrafts, setEditDrafts] = useState<Record<string, EntryDraft>>({});
-  const [isAddFormOpen, setIsAddFormOpen] = useState(false);
+  const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [keyboardInset, setKeyboardInset] = useState(0);
 
   const router = useRouter();
   const client = useMemo(() => createClient(), []);
@@ -682,14 +782,15 @@ export function WorkoutCalendar({
     () => new Map(summaries.map((summary) => [summary.workoutDate, summary])),
     [summaries],
   );
+  const isAddFormActive = showAddForm;
   const totalCalories = useMemo(() => {
-    const addCalories = isAddFormOpen ? estimateDraftCalories(addDraft, exercises, profile) : 0;
+    const addCalories = isAddFormActive ? estimateDraftCalories(addDraft, exercises, profile) : 0;
     const savedCalories = Object.values(editDrafts).reduce(
       (total, draft) => total + estimateDraftCalories(draft, exercises, profile),
       0,
     );
     return addCalories + savedCalories;
-  }, [addDraft, editDrafts, exercises, isAddFormOpen, profile]);
+  }, [addDraft, editDrafts, exercises, isAddFormActive, profile]);
 
   const loadMonth = useCallback(async () => {
     if (!user) {
@@ -743,10 +844,6 @@ export function WorkoutCalendar({
       setBodyParts(nextBodyParts);
       setExercises(nextExercises);
       setExerciseRecords(nextExerciseRecords);
-      setAddDraft((current) => ({
-        ...current,
-        exerciseId: current.exerciseId || nextExercises[0]?.id || "",
-      }));
     } catch (loadError) {
       console.error("Workout data load error", loadError);
       setError("トレーニングデータの読み込みに失敗しました。");
@@ -754,25 +851,6 @@ export function WorkoutCalendar({
       setIsLoading(false);
     }
   }, [client, user]);
-
-  useEffect(() => {
-    const viewport = window.visualViewport;
-    if (!viewport) {
-      return;
-    }
-
-    const updateKeyboardInset = () => {
-      setKeyboardInset(Math.max(0, window.innerHeight - viewport.height - viewport.offsetTop));
-    };
-
-    updateKeyboardInset();
-    viewport.addEventListener("resize", updateKeyboardInset);
-    viewport.addEventListener("scroll", updateKeyboardInset);
-    return () => {
-      viewport.removeEventListener("resize", updateKeyboardInset);
-      viewport.removeEventListener("scroll", updateKeyboardInset);
-    };
-  }, []);
 
   useEffect(() => {
     if (selectedDateOverride) {
@@ -827,10 +905,10 @@ export function WorkoutCalendar({
       selectedBodyPartId === "all"
         ? exercises
         : exercises.filter((exercise) => exercise.bodyPartId === selectedBodyPartId);
-    if (!filteredExercises.some((exercise) => exercise.id === addDraft.exerciseId)) {
+    if (addDraft.exerciseId && !filteredExercises.some((exercise) => exercise.id === addDraft.exerciseId)) {
       setAddDraft((current) => ({
         ...current,
-        exerciseId: filteredExercises[0]?.id ?? "",
+        exerciseId: "",
       }));
     }
   }, [addDraft.exerciseId, exercises, selectedBodyPartId]);
@@ -858,7 +936,6 @@ export function WorkoutCalendar({
       return;
     }
     if (!hasAnySetInput(addDraft, profile)) {
-      setIsAddFormOpen(false);
       return;
     }
 
@@ -878,7 +955,9 @@ export function WorkoutCalendar({
         sets: createSetDrafts(defaultSetCount),
       }));
       await Promise.all([loadMonth(), loadSelectedDate(), loadPreviousWorkout()]);
-      setIsAddFormOpen(false);
+      if (showAddForm && backHref) {
+        router.push(backHref);
+      }
     } catch (saveError) {
       console.error("Workout save error", saveError);
       setError("トレーニングの保存に失敗しました。入力値を確認してください。");
@@ -914,6 +993,7 @@ export function WorkoutCalendar({
         sets: toSetInputs(draft.sets, profile),
       });
       await Promise.all([loadMonth(), loadSelectedDate(), loadPreviousWorkout()]);
+      setEditingWorkoutId(null);
     } catch (saveError) {
       console.error("Workout update error", saveError);
       setError("トレーニングの更新に失敗しました。");
@@ -943,26 +1023,30 @@ export function WorkoutCalendar({
   return (
     <div
       onTouchStart={(event) => {
-        if (!showCalendar) {
+        if (!showCalendar && showAddForm) {
           return;
         }
         setTouchStartX(event.touches[0]?.clientX ?? null);
         setTouchDeltaX(0);
       }}
       onTouchMove={(event) => {
-        if (touchStartX === null || !showCalendar) {
+        if (touchStartX === null || (!showCalendar && showAddForm)) {
           return;
         }
         const currentX = event.touches[0]?.clientX ?? touchStartX;
         setTouchDeltaX(currentX - touchStartX);
       }}
       onTouchEnd={(event) => {
-        if (touchStartX === null || !showCalendar) {
+        if (touchStartX === null || (!showCalendar && showAddForm)) {
           return;
         }
         const delta = touchDeltaX || (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
         if (Math.abs(delta) > 50) {
-          moveMonth(delta > 0 ? -1 : 1);
+          if (showCalendar) {
+            moveMonth(delta > 0 ? -1 : 1);
+          } else if (!showAddForm) {
+            router.push(`/today?date=${shiftDateKey(effectiveSelectedDate, delta > 0 ? -1 : 1)}`);
+          }
         }
         setTouchStartX(null);
         setTouchDeltaX(0);
@@ -1088,10 +1172,10 @@ export function WorkoutCalendar({
 
           <Link
             href="/today"
-            className="fixed bottom-5 right-4 z-20 flex min-h-10 items-center justify-center gap-1.5 rounded-full bg-[var(--accent)] px-3.5 py-2 text-xs font-semibold !text-white shadow-[var(--shadow)]"
+            aria-label="今日のトレーニングを追加"
+            className="fixed bottom-12 right-10 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] !text-white shadow-[var(--shadow)]"
           >
-            <Plus size={15} />
-            今日のトレーニングを追加
+            <Plus size={22} />
           </Link>
         </>
       ) : null}
@@ -1135,78 +1219,79 @@ export function WorkoutCalendar({
         </div>
         )}
 
-        {!isAddFormOpen ? (
-          <button
-            type="button"
-            onClick={() => setIsAddFormOpen(true)}
+        {showCalendar ? (
+          <Link
+            href={`/today/add?date=${effectiveSelectedDate}`}
             aria-label="記録を追加"
             className="fixed bottom-12 right-10 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
           >
             <Plus size={20} />
-          </button>
+          </Link>
         ) : null}
 
-        {workouts.map((workout) => {
-          const draft = editDrafts[workout.id];
-          if (!draft || workout.exercises.length === 0) {
-            return null;
-          }
-          return (
-            <WorkoutEntryForm
+        {!showCalendar && !showAddForm ? (
+          <Link
+            href={`/today/add?date=${effectiveSelectedDate}`}
+            aria-label="記録を追加"
+            className="fixed bottom-12 right-10 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
+          >
+            <Plus size={22} />
+          </Link>
+        ) : null}
+
+        {showAddForm ? (
+          <WorkoutEntryForm
+            bodyParts={bodyParts}
+            defaultSetCount={defaultSetCount}
+            draft={addDraft}
+            exerciseRecords={exerciseRecords}
+            exercises={exercises}
+            isSaving={savingKey === "add"}
+            mode="add"
+            onDraftChange={setAddDraft}
+            onSave={() => void handleAddSave()}
+            previousWorkout={previousWorkout}
+            profile={profile}
+            selectedBodyPartId={selectedBodyPartId}
+            setSelectedBodyPartId={setSelectedBodyPartId}
+          />
+        ) : null}
+
+        {!showAddForm ? workouts.map((workout) => (
+          !showCalendar && editingWorkoutId !== workout.id ? (
+            <WorkoutReadOnlyCard
               key={workout.id}
               bodyParts={bodyParts}
-              defaultSetCount={defaultSetCount}
-              draft={draft}
-              exerciseRecords={exerciseRecords}
               exercises={exercises}
-              isSaving={savingKey === workout.id}
-              mode="edit"
-              onDelete={() => void handleDelete(workout.id)}
-              onDraftChange={(nextDraft) =>
-                setEditDrafts((current) => ({ ...current, [workout.id]: nextDraft }))
-              }
-              onSave={() => void handleEditSave(workout)}
-              profile={profile}
+              onEdit={() => setEditingWorkoutId(workout.id)}
+              workout={workout}
             />
-          );
-        })}
-
-        {isAddFormOpen ? (
-          <div
-            className="fixed inset-0 z-30 flex items-end bg-black/45 px-3 pt-3"
-            style={{ paddingBottom: `calc(0.75rem + ${keyboardInset}px)` }}
-            onClick={() => setIsAddFormOpen(false)}
-          >
-            <section
-              className="safe-bottom max-h-[88dvh] w-full overflow-y-auto rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <button
-                type="button"
-                onClick={() => setIsAddFormOpen(false)}
-                aria-label="戻る"
-                className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
-              >
-                <ChevronLeft size={22} />
-              </button>
+          ) : (() => {
+            const draft = editDrafts[workout.id];
+            if (!draft || workout.exercises.length === 0) {
+              return null;
+            }
+            return (
               <WorkoutEntryForm
+                key={workout.id}
                 bodyParts={bodyParts}
                 defaultSetCount={defaultSetCount}
-                draft={addDraft}
+                draft={draft}
                 exerciseRecords={exerciseRecords}
                 exercises={exercises}
-                isSaving={savingKey === "add"}
-                mode="add"
-                onDraftChange={setAddDraft}
-                onSave={() => void handleAddSave()}
-                previousWorkout={previousWorkout}
+                isSaving={savingKey === workout.id}
+                mode="edit"
+                onDelete={() => void handleDelete(workout.id)}
+                onDraftChange={(nextDraft) =>
+                  setEditDrafts((current) => ({ ...current, [workout.id]: nextDraft }))
+                }
+                onSave={() => void handleEditSave(workout)}
                 profile={profile}
-                selectedBodyPartId={selectedBodyPartId}
-                setSelectedBodyPartId={setSelectedBodyPartId}
               />
-            </section>
-          </div>
-        ) : null}
+            );
+          })()
+        )) : null}
+
       </section>
       ) : null}
     </div>

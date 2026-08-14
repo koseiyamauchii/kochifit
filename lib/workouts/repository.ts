@@ -729,6 +729,7 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
     }
   }
 
+  const workoutDateById = new Map(workouts.map((workout) => [workout.id, workout.workout_date]));
   const exercisesByWorkout = new Map<string, WorkoutExercise[]>();
   for (const workoutExercise of workoutExercises) {
     const current = exercisesByWorkout.get(workoutExercise.workout_id) ?? [];
@@ -736,6 +737,7 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
       id: workoutExercise.id,
       exerciseId: workoutExercise.exercise_id,
       exerciseName: exerciseNames.get(workoutExercise.exercise_id) ?? "未設定の種目",
+      workoutDate: workoutDateById.get(workoutExercise.workout_id) ?? workoutDate,
       displayOrder: workoutExercise.display_order,
       note: workoutExercise.note,
       sets: setsByWorkoutExercise.get(workoutExercise.id) ?? [],
@@ -805,6 +807,7 @@ export async function getLatestWorkoutForExerciseBeforeDate(
     id: latest.id,
     exerciseId,
     exerciseName: exercise.name,
+    workoutDate: workoutDateById.get(latest.workout_id) ?? beforeDate,
     displayOrder: latest.display_order,
     note: latest.note,
     sets: sets.map(mapSet),

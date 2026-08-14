@@ -44,7 +44,6 @@ function DraftPanel({
   onClose,
   onDraftChange,
   onSave,
-  showNameField = true,
 }: {
   bodyParts: BodyPart[];
   draft: Draft;
@@ -53,12 +52,11 @@ function DraftPanel({
   onClose: () => void;
   onDraftChange: (draft: Draft) => void;
   onSave: () => void;
-  showNameField?: boolean;
 }) {
   return (
     <div className="mt-2 rounded-[12px] border border-[var(--accent)] bg-[var(--accent-soft)] p-3">
-      <div className={["flex items-center gap-3", showNameField ? "justify-between" : "justify-end"].join(" ")}>
-        {showNameField ? <h4 className="font-semibold">種目を追加</h4> : null}
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="font-semibold">{draft.id ? "種目を編集" : "種目を追加"}</h4>
         <button
           type="button"
           onClick={onClose}
@@ -69,16 +67,14 @@ function DraftPanel({
         </button>
       </div>
       <div className="mt-3 space-y-3">
-        {showNameField ? (
-          <label className="block space-y-1">
-            <span className="text-sm font-medium text-[var(--muted)]">種目名</span>
-            <input
-              value={draft.name}
-              onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
-              className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
-            />
-          </label>
-        ) : null}
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-[var(--muted)]">種目名</span>
+          <input
+            value={draft.name}
+            onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
+            className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
+          />
+        </label>
         <label className="block space-y-1">
           <span className="text-sm font-medium text-[var(--muted)]">部位</span>
           <select
@@ -153,6 +149,7 @@ export function ExerciseMasterCard() {
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [draft, setDraft] = useState<Draft | null>(null);
   const [newDraftBodyPartId, setNewDraftBodyPartId] = useState<string | null>(null);
+  const [expandedBodyPartIds, setExpandedBodyPartIds] = useState<Set<string>>(() => new Set());
   const [archiveTarget, setArchiveTarget] = useState<Draft | null>(null);
   const [draggingExerciseId, setDraggingExerciseId] = useState<string | null>(null);
   const [touchDraggingExerciseId, setTouchDraggingExerciseId] = useState<string | null>(null);
@@ -210,6 +207,18 @@ export function ExerciseMasterCard() {
     setNewDraftBodyPartId(null);
     setMessage(null);
     setError(null);
+  };
+
+  const toggleExpandedBodyPart = (bodyPartId: string) => {
+    setExpandedBodyPartIds((current) => {
+      const next = new Set(current);
+      if (next.has(bodyPartId)) {
+        next.delete(bodyPartId);
+      } else {
+        next.add(bodyPartId);
+      }
+      return next;
+    });
   };
 
   const startNew = (bodyPartId = bodyParts[0]?.id ?? "") => {
@@ -424,6 +433,8 @@ export function ExerciseMasterCard() {
       <div className="space-y-4">
         {groupedExercises.map(({ bodyPart, exercises: bodyPartExercises }) => {
           const headerColor = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
+          const isExpanded = expandedBodyPartIds.has(bodyPart.id);
+          const visibleExercises = isExpanded ? bodyPartExercises : bodyPartExercises.slice(0, 3);
           return (
             <section key={bodyPart.id} className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
               <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2.5">
@@ -459,7 +470,7 @@ export function ExerciseMasterCard() {
                   />
                 ) : null}
                 <div className="grid gap-2">
-                  {bodyPartExercises.map((exercise) => (
+                  {visibleExercises.map((exercise) => (
                     <div
                       key={exercise.id}
                       data-exercise-id={exercise.id}
@@ -511,12 +522,20 @@ export function ExerciseMasterCard() {
                           onClose={() => setDraft(null)}
                           onDraftChange={setDraft}
                           onSave={() => void save()}
-                          showNameField={false}
                         />
                       ) : null}
                     </div>
                   ))}
                 </div>
+                {bodyPartExercises.length > 3 ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleExpandedBodyPart(bodyPart.id)}
+                    className="mt-2 flex min-h-10 w-full items-center justify-center rounded-[12px] bg-[var(--surface-soft)] text-sm font-semibold text-[var(--muted)]"
+                  >
+                    {isExpanded ? "閉じる" : "すべて表示（" + bodyPartExercises.length + "件）"}
+                  </button>
+                ) : null}
               </div>
             </section>
           );

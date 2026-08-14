@@ -103,7 +103,7 @@ export function AccountMenu({
         <p className="mt-1 max-w-full truncate text-sm text-[var(--muted)]">{mail}</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 px-2">
+      <div className="mx-2 grid grid-cols-2 gap-2">
         <button
           type="button"
           onClick={() => void logout()}
@@ -130,10 +130,10 @@ export function AccountMenu({
         </button>
       </div>
 
-      <div className="space-y-4">
+      <div className="mx-2 space-y-4">
         {settingsGroups.map((group) => (
           <section key={group.label} className="space-y-1">
-            <h2 className="px-3 text-xs font-semibold text-[var(--muted)]">{group.label}</h2>
+            <h2 className="px-1 text-xs font-semibold text-[var(--muted)]">{group.label}</h2>
             <div className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)]">
               {group.items.map((item, index) => (
                 <button
@@ -141,7 +141,7 @@ export function AccountMenu({
                   type="button"
                   onClick={() => onNavigateSettings?.(item.section)}
                   className={[
-                    "flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]",
+                    "flex min-h-12 w-full items-center justify-between gap-3 px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]",
                     index > 0 ? "border-t border-[var(--hairline)]" : "",
                   ].join(" ")}
                 >
@@ -159,7 +159,7 @@ export function AccountMenu({
         ))}
 
         <section className="space-y-1">
-          <h2 className="flex items-center gap-2 px-3 text-xs font-semibold text-[var(--muted)]">
+          <h2 className="flex items-center gap-2 px-1 text-xs font-semibold text-[var(--muted)]">
             <Sun size={15} />
             テーマ
           </h2>
