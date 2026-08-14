@@ -102,6 +102,7 @@ export interface ExerciseRecord {
   exerciseId: string;
   bodyPartId: string;
   exerciseName: string;
+  displayOrder: number;
   maxWeightKg: number | null;
   maxVolumeKg: number | null;
   lastWorkoutDate: string | null;

@@ -181,6 +181,23 @@ function findExercise(exercises: Exercise[], exerciseId: string) {
   return exercises.find((exercise) => exercise.id === exerciseId) ?? null;
 }
 
+function sortExercisesByMasterOrder(exercises: Exercise[], bodyParts: BodyPart[]) {
+  const bodyPartOrder = new Map(bodyParts.map((bodyPart) => [bodyPart.id, bodyPart.displayOrder]));
+  return [...exercises].sort((a, b) => {
+    const bodyPartDelta =
+      (bodyPartOrder.get(a.bodyPartId) ?? Number.MAX_SAFE_INTEGER) -
+      (bodyPartOrder.get(b.bodyPartId) ?? Number.MAX_SAFE_INTEGER);
+    if (bodyPartDelta !== 0) {
+      return bodyPartDelta;
+    }
+    const exerciseDelta = a.displayOrder - b.displayOrder;
+    if (exerciseDelta !== 0) {
+      return exerciseDelta;
+    }
+    return a.name.localeCompare(b.name, "ja");
+  });
+}
+
 function estimateDraftCalories(
   draft: EntryDraft,
   exercises: Exercise[],
@@ -374,10 +391,14 @@ function WorkoutEntryForm({
 }) {
   const selectedExercise = findExercise(exercises, draft.exerciseId);
   const headerTitle = selectedExercise?.name ?? "種目を追加してください";
+  const sortedExercises = useMemo(
+    () => sortExercisesByMasterOrder(exercises, bodyParts),
+    [bodyParts, exercises],
+  );
   const filteredExercises =
     mode === "add" && selectedBodyPartId && selectedBodyPartId !== "all"
-      ? exercises.filter((exercise) => exercise.bodyPartId === selectedBodyPartId)
-      : exercises;
+      ? sortedExercises.filter((exercise) => exercise.bodyPartId === selectedBodyPartId)
+      : sortedExercises;
   const estimatedCalories = estimateDraftCalories(draft, exercises, profile);
   const exerciseBodyPartColor = getExerciseBodyPartColor(bodyParts, selectedExercise);
   const exerciseRecord = exerciseRecords.find((record) => record.exerciseId === draft.exerciseId);
@@ -1409,6 +1430,15 @@ export function WorkoutCalendar({
             selectedBodyPartId={selectedBodyPartId}
             setSelectedBodyPartId={setSelectedBodyPartId}
           />
+        ) : null}
+
+        {!showCalendar && !showAddForm && !isLoading && workouts.length === 0 ? (
+          <Link
+            href={`/today/add?date=${effectiveSelectedDate}`}
+            className="flex min-h-[48vh] items-center justify-center rounded-[14px] text-center text-sm font-medium text-[var(--muted)]"
+          >
+            タップして種目を追加
+          </Link>
         ) : null}
 
         {!showAddForm ? workouts.map((workout) => (

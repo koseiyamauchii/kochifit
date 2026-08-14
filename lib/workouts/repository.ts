@@ -837,6 +837,7 @@ export async function getExerciseRecords(client: Client): Promise<ExerciseRecord
         exerciseId: exercise.id,
         bodyPartId: exercise.bodyPartId,
         exerciseName: exercise.name,
+        displayOrder: exercise.displayOrder,
         maxWeightKg: null,
         maxVolumeKg: null,
         lastWorkoutDate: null,
@@ -908,7 +909,7 @@ export async function getExerciseRecords(client: Client): Promise<ExerciseRecord
     }
   }
 
-  return [...records.values()].sort((a, b) => a.exerciseName.localeCompare(b.exerciseName, "ja"));
+  return [...records.values()].sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
 async function insertSets(

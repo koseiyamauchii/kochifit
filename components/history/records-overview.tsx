@@ -42,7 +42,7 @@ export function RecordsOverview() {
         bodyPart,
         records: records
           .filter((record) => record.bodyPartId === bodyPart.id)
-          .sort((a, b) => a.exerciseName.localeCompare(b.exerciseName, "ja")),
+          .sort((a, b) => a.displayOrder - b.displayOrder),
       })),
     [bodyParts, records],
   );

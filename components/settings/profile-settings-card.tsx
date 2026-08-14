@@ -227,9 +227,13 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
               placeholder="例：ベンチプレス100kg、体脂肪率を下げる"
             />
           </label>
-          <div className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3">
+          <div className="space-y-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] pb-2">
+              <h3 className="text-sm font-semibold">1か月目標</h3>
+              <span className="text-xs font-medium text-[var(--muted)]">期限つき</span>
+            </div>
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-[var(--muted)]">1か月目標の内容</span>
+              <span className="text-sm font-medium text-[var(--muted)]">内容</span>
               <textarea
                 value={oneMonthGoalText}
                 onChange={(event) => setOneMonthGoalText(event.target.value)}
@@ -249,9 +253,13 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
               />
             </label>
           </div>
-          <div className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3">
+          <div className="space-y-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] pb-2">
+              <h3 className="text-sm font-semibold">3か月目標</h3>
+              <span className="text-xs font-medium text-[var(--muted)]">期限つき</span>
+            </div>
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-[var(--muted)]">3か月目標の内容</span>
+              <span className="text-sm font-medium text-[var(--muted)]">内容</span>
               <textarea
                 value={threeMonthGoalText}
                 onChange={(event) => setThreeMonthGoalText(event.target.value)}
@@ -271,9 +279,13 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
               />
             </label>
           </div>
-          <div className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3">
+          <div className="space-y-3 rounded-[14px] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] pb-2">
+              <h3 className="text-sm font-semibold">1年目標</h3>
+              <span className="text-xs font-medium text-[var(--muted)]">期限つき</span>
+            </div>
             <label className="block space-y-1">
-              <span className="text-sm font-medium text-[var(--muted)]">1年目標の内容</span>
+              <span className="text-sm font-medium text-[var(--muted)]">内容</span>
               <textarea
                 value={oneYearGoalText}
                 onChange={(event) => setOneYearGoalText(event.target.value)}
