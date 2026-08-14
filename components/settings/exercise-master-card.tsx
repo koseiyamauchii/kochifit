@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, Menu, Plus, Save, Trash2, X } from "lucide-react";
+import { AlertTriangle, Menu, Save, Trash2, X } from "lucide-react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -422,17 +422,6 @@ export function ExerciseMasterCard() {
 
   return (
     <section className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => startNew()}
-          className="flex min-h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] px-3 text-sm font-medium"
-        >
-          <Plus size={16} />
-          新規
-        </button>
-      </div>
-
       <p className="text-sm text-[var(--muted)]">三本線を長押しして並べ替えます。</p>
 
       <div className="space-y-4">

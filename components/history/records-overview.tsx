@@ -1,6 +1,5 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -86,21 +85,9 @@ export function RecordsOverview() {
     });
   };
   return (
-    <section className="rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
-      <div className="flex items-center justify-end gap-3">
-        <button
-          type="button"
-          onClick={() => void loadRecords()}
-          className="flex min-h-9 items-center gap-2 rounded-[12px] bg-[var(--surface-soft)] px-3 text-sm font-medium"
-        >
-          <RefreshCw size={16} />
-          更新
-        </button>
-      </div>
+    <div className="space-y-5">
+      {error ? <p className="text-sm text-[var(--warning)]">{error}</p> : null}
 
-      {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
-
-      <div className="mt-4 space-y-5">
         {groupedRecords.map(({ bodyPart, records: bodyPartRecords }) => {
           const headerColor = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
           const isExpanded = expandedBodyPartIds.has(bodyPart.id);
@@ -161,7 +148,6 @@ export function RecordsOverview() {
             </section>
           );
         })}
-      </div>
-    </section>
+    </div>
   );
 }

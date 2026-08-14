@@ -37,7 +37,7 @@ const sectionItems: Array<{
   icon: React.ReactNode;
 }> = [
   { id: "profile", title: "プロフィール", detailTitle: "プロフィール設定", icon: <User size={21} /> },
-  { id: "goals", title: "目標", detailTitle: "目標", icon: <Target size={21} /> },
+  { id: "goals", title: "目的・目標", detailTitle: "目的・目標", icon: <Target size={21} /> },
   { id: "bodyParts", title: "部位マスタ", detailTitle: "部位マスタ設定", icon: <Dumbbell size={21} /> },
   { id: "exercises", title: "種目マスタ", detailTitle: "種目マスタ設定", icon: <Dumbbell size={21} /> },
   { id: "formula", title: "計算式", detailTitle: "計算式", icon: <Calculator size={21} /> },

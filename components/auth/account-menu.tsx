@@ -22,7 +22,7 @@ const settingsGroups: Array<{
     label: "プロフィール",
     items: [
       { label: "プロフィール設定", section: "profile", icon: <UserRound size={18} /> },
-      { label: "目標", section: "goals", icon: <Flag size={18} /> },
+      { label: "目的・目標", section: "goals", icon: <Flag size={18} /> },
     ],
   },
   {
