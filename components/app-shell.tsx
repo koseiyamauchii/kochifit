@@ -52,7 +52,7 @@ export function AppShell({
       {user ? (
         <header className="mb-3 grid grid-cols-[36px_1fr_36px] items-center gap-2">
           <div />
-          <Link href="/" onClick={handleHomeClick} className="truncate text-center text-lg font-semibold">
+          <Link href="/" onClick={handleHomeClick} className="truncate text-center text-lg font-bold">
             KochiFit
           </Link>
           <AccountAvatarButton onClick={() => openSettings("account", false)} />

@@ -1,14 +1,8 @@
 import type { Metadata, Viewport } from "next";
-import { Noto_Sans, Noto_Sans_JP } from "next/font/google";
+import { Noto_Sans_JP } from "next/font/google";
 import { ClientProviders } from "@/components/client-providers";
 import "katex/dist/katex.min.css";
 import "./globals.css";
-
-const notoSans = Noto_Sans({
-  subsets: ["latin"],
-  variable: "--font-noto-sans",
-  display: "swap",
-});
 
 const notoSansJp = Noto_Sans_JP({
   subsets: ["latin"],
@@ -44,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja" suppressHydrationWarning>
-      <body className={`${notoSans.variable} ${notoSansJp.variable}`}>
+      <body className={notoSansJp.variable}>
         <ClientProviders>{children}</ClientProviders>
       </body>
     </html>

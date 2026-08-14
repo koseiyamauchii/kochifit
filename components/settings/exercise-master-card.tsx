@@ -158,6 +158,7 @@ export function ExerciseMasterCard() {
   const [error, setError] = useState<string | null>(null);
   const touchDragExerciseIdRef = useRef<string | null>(null);
   const touchDragTimerRef = useRef<number | null>(null);
+  const exercisesRef = useRef<Exercise[]>([]);
   const pendingExerciseOrderRef = useRef<{ bodyPartId: string; exerciseIds: string[] } | null>(null);
 
   const groupedExercises = useMemo(
@@ -188,6 +189,10 @@ export function ExerciseMasterCard() {
       setError("種目マスタの読み込みに失敗しました。");
     }
   }, [client, user]);
+
+  useEffect(() => {
+    exercisesRef.current = exercises;
+  }, [exercises]);
 
   useEffect(() => {
     if (authStatus === "authenticated" && profileStatus === "ready") {
@@ -317,44 +322,40 @@ export function ExerciseMasterCard() {
     if (sourceExerciseId === targetExerciseId) {
       return;
     }
-    let nextOrder: { bodyPartId: string; exerciseIds: string[] } | null = null;
-
-    setExercises((current) => {
-      const sourceExercise = current.find((exercise) => exercise.id === sourceExerciseId);
-      const targetExercise = current.find((exercise) => exercise.id === targetExerciseId);
-      if (!sourceExercise || !targetExercise || sourceExercise.bodyPartId !== targetExercise.bodyPartId) {
-        return current;
-      }
-
-      const currentGroup = current
-        .filter((exercise) => exercise.bodyPartId === targetExercise.bodyPartId)
-        .sort((a, b) => a.displayOrder - b.displayOrder);
-      const sourceIndex = currentGroup.findIndex((exercise) => exercise.id === sourceExerciseId);
-      if (sourceIndex < 0) {
-        return current;
-      }
-
-      const nextGroup = [...currentGroup];
-      const [moved] = nextGroup.splice(sourceIndex, 1);
-      const targetIndex = nextGroup.findIndex((exercise) => exercise.id === targetExerciseId);
-      if (targetIndex < 0) {
-        return current;
-      }
-      const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
-      nextGroup.splice(insertIndex, 0, moved);
-      nextOrder = {
-        bodyPartId: targetExercise.bodyPartId,
-        exerciseIds: nextGroup.map((exercise) => exercise.id),
-      };
-      return current.map((exercise) => {
-        const nextIndex = nextGroup.findIndex((item) => item.id === exercise.id);
-        return nextIndex >= 0 ? { ...exercise, displayOrder: nextIndex + 1 } : exercise;
-      });
-    });
-
-    if (nextOrder) {
-      pendingExerciseOrderRef.current = nextOrder;
+    const currentExercises = exercisesRef.current;
+    const sourceExercise = currentExercises.find((exercise) => exercise.id === sourceExerciseId);
+    const targetExercise = currentExercises.find((exercise) => exercise.id === targetExerciseId);
+    if (!sourceExercise || !targetExercise || sourceExercise.bodyPartId !== targetExercise.bodyPartId) {
+      return;
     }
+
+    const currentGroup = currentExercises
+      .filter((exercise) => exercise.bodyPartId === targetExercise.bodyPartId)
+      .sort((a, b) => a.displayOrder - b.displayOrder);
+    const sourceIndex = currentGroup.findIndex((exercise) => exercise.id === sourceExerciseId);
+    if (sourceIndex < 0) {
+      return;
+    }
+
+    const nextGroup = [...currentGroup];
+    const [moved] = nextGroup.splice(sourceIndex, 1);
+    const targetIndex = nextGroup.findIndex((exercise) => exercise.id === targetExerciseId);
+    if (targetIndex < 0) {
+      return;
+    }
+    const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
+    nextGroup.splice(insertIndex, 0, moved);
+    const nextExercises = currentExercises.map((exercise) => {
+      const nextIndex = nextGroup.findIndex((item) => item.id === exercise.id);
+      return nextIndex >= 0 ? { ...exercise, displayOrder: nextIndex + 1 } : exercise;
+    });
+    const nextOrder = {
+      bodyPartId: targetExercise.bodyPartId,
+      exerciseIds: nextGroup.map((exercise) => exercise.id),
+    };
+    exercisesRef.current = nextExercises;
+    setExercises(nextExercises);
+    pendingExerciseOrderRef.current = nextOrder;
   };
 
   const moveExercise = async (targetExercise: Exercise) => {

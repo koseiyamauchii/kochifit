@@ -1416,7 +1416,7 @@ export function WorkoutCalendar({
           <Link
             href={`/today/add?date=${effectiveSelectedDate}`}
             aria-label="記録を追加"
-            className="fixed bottom-12 right-10 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
+            className="fixed bottom-12 right-10 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--accent)] !text-white shadow-[var(--shadow)]"
           >
             <Plus size={20} />
           </Link>
@@ -1426,7 +1426,7 @@ export function WorkoutCalendar({
           <Link
             href={`/today/add?date=${effectiveSelectedDate}`}
             aria-label="記録を追加"
-            className="fixed bottom-12 right-10 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-[var(--shadow)]"
+            className="fixed bottom-12 right-10 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-[var(--accent)] !text-white shadow-[var(--shadow)]"
           >
             <Plus size={22} />
           </Link>

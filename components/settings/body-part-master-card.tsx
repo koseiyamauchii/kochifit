@@ -20,6 +20,7 @@ export function BodyPartMasterCard() {
   const [error, setError] = useState<string | null>(null);
   const touchDragBodyPartIdRef = useRef<string | null>(null);
   const touchDragTimerRef = useRef<number | null>(null);
+  const bodyPartsRef = useRef<BodyPart[]>([]);
   const pendingBodyPartsRef = useRef<BodyPart[] | null>(null);
 
   const load = useCallback(async () => {
@@ -34,6 +35,10 @@ export function BodyPartMasterCard() {
       setError("部位マスタの読み込みに失敗しました。");
     }
   }, [client, user]);
+
+  useEffect(() => {
+    bodyPartsRef.current = bodyParts;
+  }, [bodyParts]);
 
   useEffect(() => {
     if (authStatus === "authenticated" && profileStatus === "ready") {
@@ -71,11 +76,12 @@ export function BodyPartMasterCard() {
     if (sourceBodyPartId === targetBodyPartId) {
       return;
     }
-    const sourceIndex = bodyParts.findIndex((bodyPart) => bodyPart.id === sourceBodyPartId);
+    const currentBodyParts = bodyPartsRef.current;
+    const sourceIndex = currentBodyParts.findIndex((bodyPart) => bodyPart.id === sourceBodyPartId);
     if (sourceIndex < 0) {
       return;
     }
-    const next = [...bodyParts];
+    const next = [...currentBodyParts];
     const [moved] = next.splice(sourceIndex, 1);
     const targetIndex = next.findIndex((bodyPart) => bodyPart.id === targetBodyPartId);
     if (targetIndex < 0) {
@@ -84,6 +90,7 @@ export function BodyPartMasterCard() {
     const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
     next.splice(insertIndex, 0, moved);
     const nextBodyParts = next.map((bodyPart, index) => ({ ...bodyPart, displayOrder: index + 1 }));
+    bodyPartsRef.current = nextBodyParts;
     setBodyParts(nextBodyParts);
     pendingBodyPartsRef.current = nextBodyParts;
   };
@@ -104,7 +111,8 @@ export function BodyPartMasterCard() {
   };
 
   const updateBodyPartColor = (bodyPartId: string, colorKey: string) => {
-    const nextBodyParts = bodyParts.map((item) => (item.id === bodyPartId ? { ...item, colorKey } : item));
+    const nextBodyParts = bodyPartsRef.current.map((item) => (item.id === bodyPartId ? { ...item, colorKey } : item));
+    bodyPartsRef.current = nextBodyParts;
     setBodyParts(nextBodyParts);
     void persistBodyParts(nextBodyParts);
   };
