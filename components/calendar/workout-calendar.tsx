@@ -89,14 +89,6 @@ function parseDateKey(value: string) {
   return new Date(year, month - 1, day);
 }
 
-function shiftDateKey(dateKey: string, days: number) {
-  const date = parseDateKey(dateKey);
-  if (!date) {
-    return dateKey;
-  }
-  date.setDate(date.getDate() + days);
-  return toDateKey(date);
-}
 
 function createSetDrafts(count: number) {
   return Array.from({ length: count }, () => createInitialSetDraft());
@@ -661,8 +653,10 @@ function WorkoutEntryForm({
                 />
               </div>
               <div className="min-w-0 space-y-1">
-                <span className="text-xs font-medium text-[var(--muted)]">推定1RM</span>
-                <div className="flex min-h-10 items-center rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold">
+                <div className="flex h-8 items-center text-xs font-medium text-[var(--muted)]">
+                  <span className="min-w-0 flex-1">推定1RM</span>
+                </div>
+                <div className="flex min-h-10 w-full min-w-0 items-center rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold">
                   {formatRm(toWeightNumberOrNull(set.weightKg, profile), toNumberOrNull(set.reps))}
                 </div>
               </div>
@@ -1161,7 +1155,7 @@ export function WorkoutCalendar({
       setSavingKey(null);
     }
   };
-  const isSwipeNavigationEnabled = !showAddForm;
+  const isSwipeNavigationEnabled = showCalendar;
   const dragOffset = touchStartX === null || !isSwipeNavigationEnabled ? 0 : Math.max(-280, Math.min(280, touchDeltaX));
 
   const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
@@ -1186,11 +1180,7 @@ export function WorkoutCalendar({
     }
     const delta = touchDeltaX || (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
     if (Math.abs(delta) > 50) {
-      if (showCalendar) {
-        moveMonth(delta > 0 ? -1 : 1);
-      } else {
-        router.push(`/today?date=${shiftDateKey(effectiveSelectedDate, delta > 0 ? -1 : 1)}`);
-      }
+      moveMonth(delta > 0 ? -1 : 1);
     }
     setTouchStartX(null);
     setTouchDeltaX(0);

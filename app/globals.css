@@ -157,6 +157,18 @@ select option {
   background: #111113;
   color: var(--text);
 }
+.form-field-muted,
+select.form-field-muted,
+select.form-field-muted option {
+  background-color: var(--surface-soft);
+  color: var(--text);
+}
+
+:root[data-theme="dark"] select.form-field-muted,
+:root[data-theme="dark"] select.form-field-muted option {
+  background-color: var(--surface-soft);
+  color: var(--text);
+}
 
 button {
   -webkit-tap-highlight-color: transparent;

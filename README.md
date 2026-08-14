@@ -1,8 +1,18 @@
 # KochiFit
 
-スマートフォンで使いやすい，Web完結型のトレーニング記録アプリです．
+KochiFitは，スマートフォンで日々の筋力トレーニングを記録するためのWebアプリです．
 
 公開URL: https://kochifit.vercel.app/
+
+## アプリ概要
+
+KochiFitでは，カレンダーから日付を選び，種目，重量，回数，セット，メモを記録できます．
+
+前回の記録を見ながら入力できるため，同じ種目の重量や回数を確認しながらトレーニング内容を更新できます．
+
+履歴画面では，種目ごとの最高重量，最大ボリューム，最終実施日を確認できます．
+
+プロフィール，目標，種目マスタ，部位マスタ，テーマ，アクセントカラーはアプリ内の設定から変更できます．
 
 ## 使い方
 
@@ -10,28 +20,22 @@
 2. Googleアカウントでログインする．
 3. ホームでカレンダーとトレーニング状況を確認する．
 4. 日付または追加ボタンからトレーニングを記録する．
-5. 履歴，種目マスタ，部位マスタ，プロフィールを必要に応じて編集する．
+5. 履歴や設定を必要に応じて確認，編集する．
 
 ## 主な機能
 
 - カレンダーによるトレーニング日の確認
 - 日付ごとのトレーニング記録と編集
 - 種目，重量，回数，セット，メモの記録
+- セットごとのメモ記録
 - 前セットや前回記録からのコピー
 - 自重トレーニングの記録
 - 推定消費カロリーの表示
-- 推定RMと最高重量の表示
+- 推定1RMと最高重量の表示
 - 部位別トレーニング日数とグラフ表示
-- 種目マスタと部位マスタの編集
-- テーマとアクセントカラーの変更
-
-## データ管理
-
-認証にはGoogle OAuthとSupabase Authを使用しています．
-
-トレーニング記録，プロフィール，種目マスタ，部位マスタはSupabase PostgreSQLで管理します．
-
-ユーザーごとのデータはSupabaseのRow Level Securityで分離します．
+- 種目マスタと部位マスタの編集，並べ替え
+- プロフィールと目標の管理
+- ライトモード，ダークモード，アクセントカラーの変更
 
 ## 推奨環境
 
@@ -41,21 +45,25 @@
 
 スマートフォンからローカル開発環境へ接続する場合は，PCとスマートフォンが同じネットワークに接続されている必要があります．
 
-## 公開URLの設定
+## データ管理
 
-現在の公開URLは以下です．
+認証にはGoogle OAuthとSupabase Authを使用しています．
+
+トレーニング記録，プロフィール，種目マスタ，部位マスタはSupabase PostgreSQLで管理します．
+
+ユーザーごとのデータはSupabaseのRow Level Securityで分離します．
+
+Microsoft認証，Microsoft Graph，OneDrive，Excel正本方式は現行仕様では使用していません．
+
+## 設定情報
+
+公開URLは以下です．
 
 ```text
 https://kochifit.vercel.app/
 ```
 
-VercelのProject名やCustom Domainを変更すると，利用するURLを変更できます．
-
-独自ドメインを使う場合は，VercelのProject SettingsからDomainsを開き，使用したいドメインを追加します．
-
-## Vercel環境変数
-
-公開URLでアプリを動かすには，VercelのProject SettingsからEnvironment Variablesを開き，Production環境へ以下を設定します．
+VercelのProduction環境には以下の環境変数を設定します．
 
 ```text
 NEXT_PUBLIC_SUPABASE_URL
@@ -64,13 +72,7 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 
 これらはGitHubリポジトリには書きません．
 
-環境変数を追加または変更した後は，再デプロイが必要です．
-
-## ログイン設定
-
-公開URLでGoogleログインを使うには，SupabaseのAuthentication設定に公開URLを登録します．
-
-Supabase Dashboardで以下を設定します．
+Googleログインを使うには，Supabase Authenticationに以下を登録します．
 
 ```text
 Site URL:
@@ -78,31 +80,32 @@ https://kochifit.vercel.app
 
 Redirect URLs:
 https://kochifit.vercel.app/auth/callback
-```
-
-ローカル開発も行う場合は，Redirect URLsに以下も追加します．
-
-```text
 http://localhost:3000/auth/callback
+http://192.168.11.3:3000/auth/callback
 ```
 
 Google Cloud側のOAuth redirect URIには，Supabase DashboardのGoogle Provider画面に表示されるcallback URLを登録します．
 
-## 開発
+## 開発者向け
 
-ローカルで開発する場合は，依存関係をインストールして開発サーバーを起動します．
+通常のローカル起動は以下です．
 
 ```bash
 pnpm install
 pnpm run dev
 ```
 
+LAN内のスマートフォンから確認する場合は以下で起動します．
 
-### Windowsでpnpmが見つからない場合
+```bash
+pnpm run dev:lan -- --port 3000
+```
 
-このPCでは，通常のPowerShellから `pnpm` や `corepack` が見つからない場合があります．
+PCでは `http://localhost:3000/` を開きます．
 
-Node.jsを入れている場合は，まずNode.jsを最新版またはLTS版へ更新し，新しいPowerShellを開き直してから以下を確認します．
+スマートフォンでは `http://192.168.11.3:3000/` のようにPCのLAN IPアドレスを使います．
+
+Windows PowerShellで `pnpm` や `corepack` が見つからない場合は，Node.jsのLTS版をインストールし，新しいPowerShellを開き直してから以下を確認します．
 
 ```powershell
 node -v
@@ -118,18 +121,6 @@ corepack prepare pnpm@10.14.0 --activate
 pnpm install
 pnpm run dev:lan -- --port 3000
 ```
-
-Codexの同梱ランタイムを使う場合は，以下のようにPATHを一時的に追加して起動します．
-
-```powershell
-$env:PATH = "C:\Users\kosei\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\kosei\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback;" + $env:PATH
-pnpm install
-pnpm run dev:lan -- --port 3000
-```
-
-PCで開く場合は `http://localhost:3000/` を使います．
-
-スマートフォンで開く場合は，PCと同じWi-Fiに接続したうえで `http://192.168.11.3:3000/` のようにPCのLAN IPアドレスを使います．
 
 ローカル開発用の環境変数は `.env.local` に設定します．
 
