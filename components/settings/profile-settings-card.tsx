@@ -9,11 +9,11 @@ const heightOptions = Array.from({ length: 91 }, (_, index) => String(130 + inde
 const weightOptions = Array.from({ length: 131 }, (_, index) => String(35 + index));
 const ageOptions = Array.from({ length: 83 }, (_, index) => String(12 + index));
 const setCountOptions = Array.from({ length: 10 }, (_, index) => String(index + 1));
-const baseSelectClass = "h-10 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm";
-const profileSelectClass = "h-11 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm";
-const blockSelectClass = "h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm";
-const dateInputClass = "h-11 w-full min-w-0 max-w-full appearance-none rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-2 text-sm";
-const textareaClass = "min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2";
+const baseSelectClass = "h-10 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm";
+const profileSelectClass = "h-11 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm";
+const blockSelectClass = "h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm";
+const dateInputClass = "h-11 w-full min-w-0 max-w-full appearance-none rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-2 text-sm";
+const textareaClass = "min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2";
 
 function toNumberOrNull(value: string) {
   if (value.trim() === "") {
@@ -227,7 +227,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
               placeholder="例：ベンチプレス100kg、体脂肪率を下げる"
             />
           </label>
-          <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
+          <div className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3">
             <label className="block space-y-1">
               <span className="text-sm font-medium text-[var(--muted)]">1か月目標の内容</span>
               <textarea
@@ -249,7 +249,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
               />
             </label>
           </div>
-          <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
+          <div className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3">
             <label className="block space-y-1">
               <span className="text-sm font-medium text-[var(--muted)]">3か月目標の内容</span>
               <textarea
@@ -271,7 +271,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
               />
             </label>
           </div>
-          <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
+          <div className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3">
             <label className="block space-y-1">
               <span className="text-sm font-medium text-[var(--muted)]">1年目標の内容</span>
               <textarea

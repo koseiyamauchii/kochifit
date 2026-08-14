@@ -32,6 +32,7 @@ export function RecordsOverview() {
   const client = useMemo(() => createClient(), []);
   const [bodyParts, setBodyParts] = useState<BodyPart[]>([]);
   const [records, setRecords] = useState<ExerciseRecord[]>([]);
+  const [expandedBodyPartIds, setExpandedBodyPartIds] = useState<Set<string>>(() => new Set());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -73,6 +74,17 @@ export function RecordsOverview() {
     }
   }, [authStatus, loadRecords, profileStatus]);
 
+  const toggleExpandedBodyPart = (bodyPartId: string) => {
+    setExpandedBodyPartIds((current) => {
+      const next = new Set(current);
+      if (next.has(bodyPartId)) {
+        next.delete(bodyPartId);
+      } else {
+        next.add(bodyPartId);
+      }
+      return next;
+    });
+  };
   return (
     <section className="rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between gap-3">
@@ -92,6 +104,8 @@ export function RecordsOverview() {
       <div className="mt-4 space-y-5">
         {groupedRecords.map(({ bodyPart, records: bodyPartRecords }) => {
           const headerColor = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
+          const isExpanded = expandedBodyPartIds.has(bodyPart.id);
+          const visibleRecords = isExpanded ? bodyPartRecords : bodyPartRecords.slice(0, 3);
           return (
             <section key={bodyPart.id} className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
               <h2 className="flex items-center gap-2 border-b border-[var(--hairline)] px-3 py-2.5 text-sm font-semibold">
@@ -104,7 +118,7 @@ export function RecordsOverview() {
               </h2>
               {bodyPartRecords.length > 0 ? (
                 <div className="space-y-2 p-2">
-                  {bodyPartRecords.map((record) => (
+                  {visibleRecords.map((record) => (
                     <article
                       key={record.exerciseId}
                       className="rounded-[12px] bg-[var(--surface-soft)] p-3"
@@ -130,6 +144,15 @@ export function RecordsOverview() {
                       </dl>
                     </article>
                   ))}
+                  {bodyPartRecords.length > 3 ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleExpandedBodyPart(bodyPart.id)}
+                      className="flex min-h-10 w-full items-center justify-center rounded-[12px] bg-[var(--surface-soft)] text-sm font-semibold text-[var(--muted)]"
+                    >
+                      {isExpanded ? "閉じる" : "すべて表示（" + bodyPartRecords.length + "件）"}
+                    </button>
+                  ) : null}
                 </div>
               ) : (
                 <p className="m-2 rounded-[12px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">

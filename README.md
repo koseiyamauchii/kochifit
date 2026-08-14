@@ -97,6 +97,40 @@ pnpm install
 pnpm run dev
 ```
 
+
+### Windowsでpnpmが見つからない場合
+
+このPCでは，通常のPowerShellから `pnpm` や `corepack` が見つからない場合があります．
+
+Node.jsを入れている場合は，まずNode.jsを最新版またはLTS版へ更新し，新しいPowerShellを開き直してから以下を確認します．
+
+```powershell
+node -v
+corepack -v
+pnpm -v
+```
+
+`corepack` が使える場合は，以下でpnpmを有効化します．
+
+```powershell
+corepack enable
+corepack prepare pnpm@10.14.0 --activate
+pnpm install
+pnpm run dev:lan -- --port 3000
+```
+
+Codexの同梱ランタイムを使う場合は，以下のようにPATHを一時的に追加して起動します．
+
+```powershell
+$env:PATH = "C:\Users\kosei\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\kosei\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\fallback;" + $env:PATH
+pnpm install
+pnpm run dev:lan -- --port 3000
+```
+
+PCで開く場合は `http://localhost:3000/` を使います．
+
+スマートフォンで開く場合は，PCと同じWi-Fiに接続したうえで `http://192.168.11.3:3000/` のようにPCのLAN IPアドレスを使います．
+
 ローカル開発用の環境変数は `.env.local` に設定します．
 
 `.env.local` はGit管理しません．

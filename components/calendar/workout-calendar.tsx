@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, Copy, History, Plus, Save, Scale, Trash2, Trophy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { CSSProperties } from "react";
+import type { CSSProperties, TouchEvent as ReactTouchEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
@@ -583,7 +583,7 @@ function WorkoutEntryForm({
         </div>
       ) : null}
 
-      {mode === "add" ? (
+      {previousWorkout !== undefined ? (
         <PreviousWorkoutBlock previousWorkout={previousWorkout ?? null} onCopyAll={copyPreviousHistory} />
       ) : null}
 
@@ -787,6 +787,7 @@ export function WorkoutCalendar({
   const [summaries, setSummaries] = useState<WorkoutSummary[]>([]);
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [previousWorkout, setPreviousWorkout] = useState<WorkoutExercise | null>(null);
+  const [editPreviousWorkouts, setEditPreviousWorkouts] = useState<Record<string, WorkoutExercise | null>>({});
   const [selectedBodyPartId, setSelectedBodyPartId] = useState<string>("all");
   const [addDraft, setAddDraft] = useState<EntryDraft>(() => ({
     exerciseId: "",
@@ -832,6 +833,7 @@ export function WorkoutCalendar({
     (Boolean(addDraft.exerciseId) ||
       addDraft.note.trim() !== "" ||
       addDraft.sets.some((set) => !isBlankSetDraft(set)));
+  const editingExerciseId = editingWorkoutId ? (editDrafts[editingWorkoutId]?.exerciseId ?? "") : "";
 
   const loadMonth = useCallback(async () => {
     if (!user) {
@@ -870,6 +872,17 @@ export function WorkoutCalendar({
     );
   }, [addDraft.exerciseId, client, effectiveSelectedDate, user]);
 
+  const loadEditPreviousWorkout = useCallback(
+    async (workoutId: string, exerciseId: string) => {
+      if (!user || !exerciseId) {
+        setEditPreviousWorkouts((current) => ({ ...current, [workoutId]: null }));
+        return;
+      }
+      const latest = await getLatestWorkoutForExerciseBeforeDate(client, exerciseId, effectiveSelectedDate);
+      setEditPreviousWorkouts((current) => ({ ...current, [workoutId]: latest }));
+    },
+    [client, effectiveSelectedDate, user],
+  );
   const loadBaseData = useCallback(async () => {
     if (!user) {
       return;
@@ -932,6 +945,20 @@ export function WorkoutCalendar({
     }
   }, [authStatus, loadPreviousWorkout, profileStatus]);
 
+  useEffect(() => {
+    if (
+      authStatus !== "authenticated" ||
+      profileStatus !== "ready" ||
+      !editingWorkoutId ||
+      !editingExerciseId
+    ) {
+      return;
+    }
+    void loadEditPreviousWorkout(editingWorkoutId, editingExerciseId).catch((loadError) => {
+      console.error("Previous edit workout load error", loadError);
+      setEditPreviousWorkouts((current) => ({ ...current, [editingWorkoutId]: null }));
+    });
+  }, [authStatus, editingExerciseId, editingWorkoutId, loadEditPreviousWorkout, profileStatus]);
   useEffect(() => {
     setAddDraft((current) => {
       if (current.sets.every(isBlankSetDraft)) {
@@ -1134,44 +1161,57 @@ export function WorkoutCalendar({
       setSavingKey(null);
     }
   };
-  const dragOffset = touchStartX === null ? 0 : Math.max(-280, Math.min(280, touchDeltaX));
+  const isSwipeNavigationEnabled = !showAddForm;
+  const dragOffset = touchStartX === null || !isSwipeNavigationEnabled ? 0 : Math.max(-280, Math.min(280, touchDeltaX));
+
+  const handleTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (!isSwipeNavigationEnabled) {
+      return;
+    }
+    setTouchStartX(event.touches[0]?.clientX ?? null);
+    setTouchDeltaX(0);
+  };
+
+  const handleTouchMove = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (touchStartX === null || !isSwipeNavigationEnabled) {
+      return;
+    }
+    const currentX = event.touches[0]?.clientX ?? touchStartX;
+    setTouchDeltaX(currentX - touchStartX);
+  };
+
+  const handleTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (touchStartX === null || !isSwipeNavigationEnabled) {
+      return;
+    }
+    const delta = touchDeltaX || (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
+    if (Math.abs(delta) > 50) {
+      if (showCalendar) {
+        moveMonth(delta > 0 ? -1 : 1);
+      } else {
+        router.push(`/today?date=${shiftDateKey(effectiveSelectedDate, delta > 0 ? -1 : 1)}`);
+      }
+    }
+    setTouchStartX(null);
+    setTouchDeltaX(0);
+  };
+
+  const handleTouchCancel = () => {
+    setTouchStartX(null);
+    setTouchDeltaX(0);
+  };
+
+  const swipeHandlers = isSwipeNavigationEnabled
+    ? {
+        onTouchStart: handleTouchStart,
+        onTouchMove: handleTouchMove,
+        onTouchEnd: handleTouchEnd,
+        onTouchCancel: handleTouchCancel,
+      }
+    : {};
 
   return (
-    <div
-      onTouchStart={(event) => {
-        if (!showCalendar && showAddForm) {
-          return;
-        }
-        setTouchStartX(event.touches[0]?.clientX ?? null);
-        setTouchDeltaX(0);
-      }}
-      onTouchMove={(event) => {
-        if (touchStartX === null || (!showCalendar && showAddForm)) {
-          return;
-        }
-        const currentX = event.touches[0]?.clientX ?? touchStartX;
-        setTouchDeltaX(currentX - touchStartX);
-      }}
-      onTouchEnd={(event) => {
-        if (touchStartX === null || (!showCalendar && showAddForm)) {
-          return;
-        }
-        const delta = touchDeltaX || (event.changedTouches[0]?.clientX ?? touchStartX) - touchStartX;
-        if (Math.abs(delta) > 50) {
-          if (showCalendar) {
-            moveMonth(delta > 0 ? -1 : 1);
-          } else if (!showAddForm) {
-            router.push(`/today?date=${shiftDateKey(effectiveSelectedDate, delta > 0 ? -1 : 1)}`);
-          }
-        }
-        setTouchStartX(null);
-        setTouchDeltaX(0);
-      }}
-      onTouchCancel={() => {
-        setTouchStartX(null);
-        setTouchDeltaX(0);
-      }}
-    >
+    <div {...swipeHandlers}>
       {showCalendar ? (
         <>
           <div className="relative mb-3 min-h-9">
@@ -1411,6 +1451,7 @@ export function WorkoutCalendar({
                 }
                 onHeaderClick={() => setEditingWorkoutId(null)}
                 onSave={() => void handleEditSave(workout)}
+                previousWorkout={editPreviousWorkouts[workout.id] ?? null}
                 profile={profile}
               />
             );
