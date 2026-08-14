@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Menu, Save } from "lucide-react";
+import { Check, Menu } from "lucide-react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -16,11 +16,12 @@ export function BodyPartMasterCard() {
   const [activeColorBodyPartId, setActiveColorBodyPartId] = useState<string | null>(null);
   const [draggingBodyPartId, setDraggingBodyPartId] = useState<string | null>(null);
   const [touchDraggingBodyPartId, setTouchDraggingBodyPartId] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+  const [, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const touchDragBodyPartIdRef = useRef<string | null>(null);
   const touchDragTimerRef = useRef<number | null>(null);
+  const pendingBodyPartsRef = useRef<BodyPart[] | null>(null);
 
   const load = useCallback(async () => {
     if (!user) {
@@ -41,67 +42,74 @@ export function BodyPartMasterCard() {
     }
   }, [authStatus, load, profileStatus]);
 
+  const persistBodyParts = useCallback(
+    async (nextBodyParts: BodyPart[], successMessage: string) => {
+      if (!user) {
+        return;
+      }
+      setIsSaving(true);
+      setMessage(null);
+      setError(null);
+      try {
+        await reorderBodyParts(client, {
+          userId: user.id,
+          bodyParts: nextBodyParts.map((bodyPart) => ({
+            id: bodyPart.id,
+            colorKey: bodyPart.colorKey,
+          })),
+        });
+        setMessage(successMessage);
+      } catch (saveError) {
+        console.error("Body part preference save error", saveError);
+        setError("部位設定の保存に失敗しました。");
+        await load();
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [client, load, user],
+  );
+
   const moveBodyPartById = (sourceBodyPartId: string, targetBodyPartId: string, placeAfter = false) => {
     if (sourceBodyPartId === targetBodyPartId) {
       return;
     }
-    setBodyParts((current) => {
-      const sourceIndex = current.findIndex((bodyPart) => bodyPart.id === sourceBodyPartId);
-      if (sourceIndex < 0) {
-        return current;
-      }
-      const next = [...current];
-      const [moved] = next.splice(sourceIndex, 1);
-      const targetIndex = next.findIndex((bodyPart) => bodyPart.id === targetBodyPartId);
-      if (targetIndex < 0) {
-        return current;
-      }
-      const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
-      next.splice(insertIndex, 0, moved);
-      return next.map((bodyPart, index) => ({ ...bodyPart, displayOrder: index + 1 }));
-    });
+    const sourceIndex = bodyParts.findIndex((bodyPart) => bodyPart.id === sourceBodyPartId);
+    if (sourceIndex < 0) {
+      return;
+    }
+    const next = [...bodyParts];
+    const [moved] = next.splice(sourceIndex, 1);
+    const targetIndex = next.findIndex((bodyPart) => bodyPart.id === targetBodyPartId);
+    if (targetIndex < 0) {
+      return;
+    }
+    const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
+    next.splice(insertIndex, 0, moved);
+    const nextBodyParts = next.map((bodyPart, index) => ({ ...bodyPart, displayOrder: index + 1 }));
+    setBodyParts(nextBodyParts);
+    pendingBodyPartsRef.current = nextBodyParts;
   };
 
-  const moveBodyPart = (targetBodyPart: BodyPart) => {
+  const moveBodyPart = async (targetBodyPart: BodyPart) => {
     if (!draggingBodyPartId || draggingBodyPartId === targetBodyPart.id) {
       setDraggingBodyPartId(null);
       return;
     }
 
     moveBodyPartById(draggingBodyPartId, targetBodyPart.id);
+    const pendingBodyParts = pendingBodyPartsRef.current;
+    pendingBodyPartsRef.current = null;
+    if (pendingBodyParts) {
+      await persistBodyParts(pendingBodyParts, "部位の順番を保存しました。");
+    }
     setDraggingBodyPartId(null);
   };
 
-  const saveOrder = async () => {
-    if (!user) {
-      return;
-    }
-    setIsSaving(true);
-    setMessage(null);
-    setError(null);
-    try {
-      await reorderBodyParts(client, {
-        userId: user.id,
-        bodyParts: bodyParts.map((bodyPart) => ({
-          id: bodyPart.id,
-          colorKey: bodyPart.colorKey,
-        })),
-      });
-      await load();
-      setActiveColorBodyPartId(null);
-      setMessage("部位の順番を保存しました。");
-    } catch (saveError) {
-      console.error("Body part order save error", saveError);
-      setError("部位の順番保存に失敗しました。");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const updateBodyPartColor = (bodyPartId: string, colorKey: string) => {
-    setBodyParts((current) =>
-      current.map((item) => (item.id === bodyPartId ? { ...item, colorKey } : item)),
-    );
+    const nextBodyParts = bodyParts.map((item) => (item.id === bodyPartId ? { ...item, colorKey } : item));
+    setBodyParts(nextBodyParts);
+    void persistBodyParts(nextBodyParts, "部位カラーを保存しました。");
   };
 
   const clearTouchDrag = () => {
@@ -121,6 +129,7 @@ export function BodyPartMasterCard() {
       window.clearTimeout(touchDragTimerRef.current);
     }
     event.currentTarget.setPointerCapture(event.pointerId);
+    pendingBodyPartsRef.current = null;
     touchDragTimerRef.current = window.setTimeout(() => {
       touchDragBodyPartIdRef.current = bodyPartId;
       setTouchDraggingBodyPartId(bodyPartId);
@@ -143,19 +152,17 @@ export function BodyPartMasterCard() {
     }
   };
 
+  const finishTouchDrag = () => {
+    const pendingBodyParts = pendingBodyPartsRef.current;
+    clearTouchDrag();
+    pendingBodyPartsRef.current = null;
+    if (pendingBodyParts) {
+      void persistBodyParts(pendingBodyParts, "部位の順番を保存しました。");
+    }
+  };
+
   return (
     <section className="space-y-4">
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => void saveOrder()}
-          disabled={isSaving}
-          className="flex min-h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] px-3 text-sm font-medium disabled:opacity-50"
-        >
-          <Save size={16} />
-          {isSaving ? "保存中" : "保存"}
-        </button>
-      </div>
       <p className="text-sm text-[var(--muted)]">
         三本線を長押しして並べ替えます。ここで変更した順番は、種目マスタ、トレーニング記録、履歴の部位順に反映されます。
       </p>
@@ -196,8 +203,8 @@ export function BodyPartMasterCard() {
                 onDragStart={() => setDraggingBodyPartId(bodyPart.id)}
                 onPointerDown={(event) => startTouchDrag(bodyPart.id, event)}
                 onPointerMove={moveTouchDrag}
-                onPointerUp={clearTouchDrag}
-                onPointerCancel={clearTouchDrag}
+                onPointerUp={finishTouchDrag}
+                onPointerCancel={finishTouchDrag}
                 aria-label={`${bodyPart.displayName}を並べ替え`}
                 className="flex h-10 w-10 shrink-0 touch-none select-none items-center justify-center rounded-[14px] bg-[var(--surface)] text-[var(--muted)] active:bg-[var(--accent-soft)] active:text-[var(--accent-strong)]"
               >
