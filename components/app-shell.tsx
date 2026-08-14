@@ -30,13 +30,19 @@ export function AppShell({
     setIsSettingsOpen(true);
   };
 
+  const confirmNavigation = () => {
+    const navigationEvent = new Event("kochifit:confirm-navigation", { cancelable: true });
+    return window.dispatchEvent(navigationEvent);
+  };
+
   const closeSettings = () => {
-    setIsSettingsOpen(false);
+    if (confirmNavigation()) {
+      setIsSettingsOpen(false);
+    }
   };
 
   const handleHomeClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    const navigationEvent = new Event("kochifit:confirm-navigation", { cancelable: true });
-    if (!window.dispatchEvent(navigationEvent)) {
+    if (!confirmNavigation()) {
       event.preventDefault();
     }
   };

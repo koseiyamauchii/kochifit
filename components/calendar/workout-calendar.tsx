@@ -147,9 +147,14 @@ function estimateOneRepMax(weightKg: number | null, reps: number | null) {
   return weightKg * (1 + reps / 30);
 }
 
-function formatRm(weightKg: number | null, reps: number | null) {
+function formatRmValue(weightKg: number | null, reps: number | null) {
   const rm = estimateOneRepMax(weightKg, reps);
-  return rm === null ? "-" : `${rm.toFixed(1)}kg`;
+  return rm === null ? "-" : rm.toFixed(1);
+}
+
+function formatRm(weightKg: number | null, reps: number | null) {
+  const value = formatRmValue(weightKg, reps);
+  return value === "-" ? value : `${value}kg`;
 }
 
 function toSetInputs(
@@ -267,9 +272,9 @@ function PreviousWorkoutBlock({
             {previousWorkout.sets.map((set, index) => (
               <div key={set.id} className="grid grid-cols-[3.5rem_1fr] items-start gap-2 rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5">
                 <span className="font-semibold">{set.isWarmup ? "W" : "セット " + (index + 1)}</span>
-                <span className="min-w-0">
-                  {formatSetLine(set.weightKg, set.reps)}
-                  {set.note ? ` / ${set.note}` : ""}
+                <span className="min-w-0 space-y-1">
+                  <span className="block">{formatSetLine(set.weightKg, set.reps)}</span>
+                  {set.note ? <span className="block text-[var(--muted)]">メモ：{set.note}</span> : null}
                 </span>
               </div>
             ))}
@@ -611,7 +616,7 @@ function WorkoutEntryForm({
                 セット {index + 1}
               </span>
               {index === firstHighestWeightSetIndex ? (
-                <span className="flex min-h-6 items-center gap-1 rounded-[12px] bg-white/20 px-2 text-[11px] font-semibold text-white">
+                <span className="flex min-h-6 items-center gap-1 rounded-[12px] bg-amber-100 px-2 text-[11px] font-semibold text-amber-800 shadow-[inset_0_0_0_1px_rgba(217,119,6,0.25)]">
                   <Trophy size={14} />
                   最高重量
                 </span>
@@ -620,7 +625,7 @@ function WorkoutEntryForm({
             <div className="grid grid-cols-3 gap-2">
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
-                  <span className="min-w-0 flex-1">重量 kg</span>
+                  <span className="min-w-0 flex-1">重量</span>
                   <div className="flex shrink-0 items-center gap-0.5">
                     <button
                       type="button"
@@ -644,13 +649,18 @@ function WorkoutEntryForm({
                     </button>
                   </div>
                 </div>
-                <input
-                  inputMode="decimal"
-                  value={set.weightKg}
-                  onChange={(event) => updateSet(index, { weightKg: event.target.value })}
-                  onBlur={(event) => updateSet(index, { weightKg: formatWeightInput(event.target.value) })}
-                  className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    inputMode="decimal"
+                    value={set.weightKg}
+                    onChange={(event) => updateSet(index, { weightKg: event.target.value })}
+                    onBlur={(event) => updateSet(index, { weightKg: formatWeightInput(event.target.value) })}
+                    className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 pr-9 text-sm"
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs font-medium text-[var(--muted)]">
+                    kg
+                  </span>
+                </div>
               </div>
               <div className="min-w-0 space-y-1">
                 <div className="flex items-center gap-1 text-xs font-medium text-[var(--muted)]">
@@ -666,19 +676,27 @@ function WorkoutEntryForm({
                     <Copy size={18} />
                   </button>
                 </div>
-                <input
-                  inputMode="numeric"
-                  value={set.reps}
-                  onChange={(event) => updateSet(index, { reps: event.target.value })}
-                  className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
-                />
+                <div className="relative">
+                  <input
+                    inputMode="numeric"
+                    value={set.reps}
+                    onChange={(event) => updateSet(index, { reps: event.target.value })}
+                    className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 pr-8 text-sm"
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs font-medium text-[var(--muted)]">
+                    回
+                  </span>
+                </div>
               </div>
               <div className="min-w-0 space-y-1">
                 <div className="flex h-8 items-center text-xs font-medium text-[var(--muted)]">
                   <span className="min-w-0 flex-1">推定1RM</span>
                 </div>
-                <div className="flex min-h-10 w-full min-w-0 items-center rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold">
-                  {formatRm(toWeightNumberOrNull(set.weightKg, profile), toNumberOrNull(set.reps))}
+                <div className="flex min-h-10 w-full min-w-0 items-center gap-1 rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold">
+                  <span className="min-w-0 flex-1 truncate">
+                    {formatRmValue(toWeightNumberOrNull(set.weightKg, profile), toNumberOrNull(set.reps))}
+                  </span>
+                  <span className="text-xs font-medium text-[var(--muted)]">kg</span>
                 </div>
               </div>
             </div>

@@ -17,7 +17,6 @@ export function BodyPartMasterCard() {
   const [draggingBodyPartId, setDraggingBodyPartId] = useState<string | null>(null);
   const [touchDraggingBodyPartId, setTouchDraggingBodyPartId] = useState<string | null>(null);
   const [, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const touchDragBodyPartIdRef = useRef<string | null>(null);
   const touchDragTimerRef = useRef<number | null>(null);
@@ -43,12 +42,11 @@ export function BodyPartMasterCard() {
   }, [authStatus, load, profileStatus]);
 
   const persistBodyParts = useCallback(
-    async (nextBodyParts: BodyPart[], successMessage: string) => {
+    async (nextBodyParts: BodyPart[]) => {
       if (!user) {
         return;
       }
       setIsSaving(true);
-      setMessage(null);
       setError(null);
       try {
         await reorderBodyParts(client, {
@@ -58,7 +56,6 @@ export function BodyPartMasterCard() {
             colorKey: bodyPart.colorKey,
           })),
         });
-        setMessage(successMessage);
       } catch (saveError) {
         console.error("Body part preference save error", saveError);
         setError("部位設定の保存に失敗しました。");
@@ -101,7 +98,7 @@ export function BodyPartMasterCard() {
     const pendingBodyParts = pendingBodyPartsRef.current;
     pendingBodyPartsRef.current = null;
     if (pendingBodyParts) {
-      await persistBodyParts(pendingBodyParts, "部位の順番を保存しました。");
+      await persistBodyParts(pendingBodyParts);
     }
     setDraggingBodyPartId(null);
   };
@@ -109,7 +106,7 @@ export function BodyPartMasterCard() {
   const updateBodyPartColor = (bodyPartId: string, colorKey: string) => {
     const nextBodyParts = bodyParts.map((item) => (item.id === bodyPartId ? { ...item, colorKey } : item));
     setBodyParts(nextBodyParts);
-    void persistBodyParts(nextBodyParts, "部位カラーを保存しました。");
+    void persistBodyParts(nextBodyParts);
   };
 
   const clearTouchDrag = () => {
@@ -157,7 +154,7 @@ export function BodyPartMasterCard() {
     clearTouchDrag();
     pendingBodyPartsRef.current = null;
     if (pendingBodyParts) {
-      void persistBodyParts(pendingBodyParts, "部位の順番を保存しました。");
+      void persistBodyParts(pendingBodyParts);
     }
   };
 
@@ -244,7 +241,6 @@ export function BodyPartMasterCard() {
           </div>
         ))}
       </div>
-      {message ? <p className="mt-3 text-sm text-emerald-500">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
     </section>
   );

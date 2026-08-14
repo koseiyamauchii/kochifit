@@ -1,7 +1,6 @@
 "use client";
 
-import { Save } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -9,11 +8,29 @@ const heightOptions = Array.from({ length: 91 }, (_, index) => String(130 + inde
 const weightOptions = Array.from({ length: 131 }, (_, index) => String(35 + index));
 const ageOptions = Array.from({ length: 83 }, (_, index) => String(12 + index));
 const setCountOptions = Array.from({ length: 10 }, (_, index) => String(index + 1));
+const autosaveDelayMs = 700;
 const baseSelectClass = "h-10 w-full min-w-0 rounded-[12px] border border-[var(--border)] form-field-muted bg-[var(--surface-soft)] px-3 text-sm";
 const profileSelectClass = "h-11 w-full min-w-0 rounded-[12px] border border-[var(--border)] form-field-muted bg-[var(--surface-soft)] px-3 text-sm";
 const blockSelectClass = "h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] form-field-muted bg-[var(--surface-soft)] px-3 text-sm";
 const dateInputClass = "h-11 w-full min-w-0 max-w-full appearance-none rounded-[12px] border border-[var(--border)] form-field-muted bg-[var(--surface-soft)] px-2 text-sm";
 const textareaClass = "min-h-20 w-full rounded-[12px] border border-[var(--border)] form-field-muted bg-[var(--surface-soft)] px-3 py-2";
+
+interface ProfileSettingsSnapshot {
+  heightCm: string;
+  bodyWeightKg: string;
+  age: string;
+  sex: string;
+  trainingSplit: string;
+  defaultSetCount: string;
+  trainingPurpose: string;
+  finalGoal: string;
+  oneMonthGoalDate: string;
+  oneMonthGoalText: string;
+  threeMonthGoalDate: string;
+  threeMonthGoalText: string;
+  oneYearGoalDate: string;
+  oneYearGoalText: string;
+}
 
 function toNumberOrNull(value: string) {
   if (value.trim() === "") {
@@ -21,6 +38,14 @@ function toNumberOrNull(value: string) {
   }
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeSetCount(value: string) {
+  return String(Math.min(10, Math.max(1, Math.trunc(Number(value) || 5))));
+}
+
+function serializeSnapshot(snapshot: ProfileSettingsSnapshot) {
+  return JSON.stringify(snapshot);
 }
 
 export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "goals" }) {
@@ -40,168 +65,334 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
   const [threeMonthGoalText, setThreeMonthGoalText] = useState("");
   const [oneYearGoalDate, setOneYearGoalDate] = useState("");
   const [oneYearGoalText, setOneYearGoalText] = useState("");
-  const [isSaving, setIsSaving] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const lastSavedSnapshotRef = useRef("");
+  const currentSnapshotKeyRef = useRef("");
+  const saveTimerRef = useRef<number | null>(null);
+  const hasPendingSaveRef = useRef(false);
+  const hasLoadedProfileRef = useRef(false);
+  const pendingProfileSnapshotRef = useRef<string | null>(null);
+  const isSavingRef = useRef(false);
+  const allowBrowserBackRef = useRef(false);
+
+  const currentSnapshot = useMemo<ProfileSettingsSnapshot>(
+    () => ({
+      heightCm,
+      bodyWeightKg,
+      age,
+      sex,
+      trainingSplit,
+      defaultSetCount,
+      trainingPurpose,
+      finalGoal,
+      oneMonthGoalDate,
+      oneMonthGoalText,
+      threeMonthGoalDate,
+      threeMonthGoalText,
+      oneYearGoalDate,
+      oneYearGoalText,
+    }),
+    [
+      age,
+      bodyWeightKg,
+      defaultSetCount,
+      finalGoal,
+      heightCm,
+      oneMonthGoalDate,
+      oneMonthGoalText,
+      oneYearGoalDate,
+      oneYearGoalText,
+      sex,
+      threeMonthGoalDate,
+      threeMonthGoalText,
+      trainingPurpose,
+      trainingSplit,
+    ],
+  );
+  const currentSnapshotKey = useMemo(() => serializeSnapshot(currentSnapshot), [currentSnapshot]);
+
+  useEffect(() => {
+    currentSnapshotKeyRef.current = currentSnapshotKey;
+  }, [currentSnapshotKey]);
 
   useEffect(() => {
     if (!profile) {
       return;
     }
-    setHeightCm(profile.height_cm !== null ? String(Math.round(profile.height_cm)) : "");
-    setBodyWeightKg(
-      profile.body_weight_kg !== null ? String(Math.round(profile.body_weight_kg)) : "",
-    );
-    setAge(profile.age !== null ? String(profile.age) : "");
-    setSex(profile.sex ?? "unspecified");
-    setTrainingSplit(profile.training_split ?? "");
-    setDefaultSetCount(String(profile.default_set_count ?? 5));
-    setTrainingPurpose(profile.training_purpose ?? "");
-    setFinalGoal(profile.final_goal ?? "");
-    setOneMonthGoalDate(profile.one_month_goal_date ?? "");
-    setOneMonthGoalText(profile.one_month_goal_text ?? "");
-    setThreeMonthGoalDate(profile.three_month_goal_date ?? "");
-    setThreeMonthGoalText(profile.three_month_goal_text ?? "");
-    setOneYearGoalDate(profile.one_year_goal_date ?? "");
-    setOneYearGoalText(profile.one_year_goal_text ?? "");
+    const nextSnapshot: ProfileSettingsSnapshot = {
+      heightCm: profile.height_cm !== null ? String(Math.round(profile.height_cm)) : "",
+      bodyWeightKg: profile.body_weight_kg !== null ? String(Math.round(profile.body_weight_kg)) : "",
+      age: profile.age !== null ? String(profile.age) : "",
+      sex: profile.sex ?? "unspecified",
+      trainingSplit: profile.training_split ?? "",
+      defaultSetCount: String(profile.default_set_count ?? 5),
+      trainingPurpose: profile.training_purpose ?? "",
+      finalGoal: profile.final_goal ?? "",
+      oneMonthGoalDate: profile.one_month_goal_date ?? "",
+      oneMonthGoalText: profile.one_month_goal_text ?? "",
+      threeMonthGoalDate: profile.three_month_goal_date ?? "",
+      threeMonthGoalText: profile.three_month_goal_text ?? "",
+      oneYearGoalDate: profile.one_year_goal_date ?? "",
+      oneYearGoalText: profile.one_year_goal_text ?? "",
+    };
+    setHeightCm(nextSnapshot.heightCm);
+    setBodyWeightKg(nextSnapshot.bodyWeightKg);
+    setAge(nextSnapshot.age);
+    setSex(nextSnapshot.sex);
+    setTrainingSplit(nextSnapshot.trainingSplit);
+    setDefaultSetCount(nextSnapshot.defaultSetCount);
+    setTrainingPurpose(nextSnapshot.trainingPurpose);
+    setFinalGoal(nextSnapshot.finalGoal);
+    setOneMonthGoalDate(nextSnapshot.oneMonthGoalDate);
+    setOneMonthGoalText(nextSnapshot.oneMonthGoalText);
+    setThreeMonthGoalDate(nextSnapshot.threeMonthGoalDate);
+    setThreeMonthGoalText(nextSnapshot.threeMonthGoalText);
+    setOneYearGoalDate(nextSnapshot.oneYearGoalDate);
+    setOneYearGoalText(nextSnapshot.oneYearGoalText);
+    const nextSnapshotKey = serializeSnapshot(nextSnapshot);
+    lastSavedSnapshotRef.current = nextSnapshotKey;
+    pendingProfileSnapshotRef.current = nextSnapshotKey;
+    hasPendingSaveRef.current = false;
+    hasLoadedProfileRef.current = true;
+    setError(null);
   }, [profile]);
 
-  const save = async () => {
-    if (!user) {
+  const save = useCallback(
+    async (snapshot: ProfileSettingsSnapshot = currentSnapshot) => {
+      if (!user) {
+        return;
+      }
+      const parsedSetCount = normalizeSetCount(snapshot.defaultSetCount);
+      const savedSnapshot = { ...snapshot, defaultSetCount: parsedSetCount };
+      isSavingRef.current = true;
+      setError(null);
+      try {
+        const { error: updateError } = await client
+          .from("profiles")
+          .update({
+            height_cm: toNumberOrNull(snapshot.heightCm),
+            body_weight_kg: toNumberOrNull(snapshot.bodyWeightKg),
+            age: toNumberOrNull(snapshot.age),
+            sex: snapshot.sex,
+            training_split: snapshot.trainingSplit.trim() || null,
+            default_set_count: Number(parsedSetCount),
+            training_purpose: snapshot.trainingPurpose.trim() || null,
+            final_goal: snapshot.finalGoal.trim() || null,
+            one_month_goal_date: snapshot.oneMonthGoalDate || null,
+            one_month_goal_text: snapshot.oneMonthGoalText.trim() || null,
+            three_month_goal_date: snapshot.threeMonthGoalDate || null,
+            three_month_goal_text: snapshot.threeMonthGoalText.trim() || null,
+            one_year_goal_date: snapshot.oneYearGoalDate || null,
+            one_year_goal_text: snapshot.oneYearGoalText.trim() || null,
+          })
+          .eq("id", user.id);
+
+        if (updateError) {
+          throw updateError;
+        }
+
+        const savedSnapshotKey = serializeSnapshot(savedSnapshot);
+        lastSavedSnapshotRef.current = savedSnapshotKey;
+        hasPendingSaveRef.current = false;
+        if (currentSnapshotKeyRef.current === serializeSnapshot(snapshot) || currentSnapshotKeyRef.current === savedSnapshotKey) {
+          if (snapshot.defaultSetCount !== parsedSetCount) {
+            setDefaultSetCount(parsedSetCount);
+          }
+          await refreshProfile();
+        }
+      } catch (saveError) {
+        console.error("Profile settings save error", saveError);
+        setError("プロフィール設定の保存に失敗しました。");
+      } finally {
+        isSavingRef.current = false;
+      }
+    },
+    [client, currentSnapshot, refreshProfile, user],
+  );
+
+  const hasUnsavedChanges = useCallback(() => {
+    if (!hasLoadedProfileRef.current) {
+      return false;
+    }
+    if (pendingProfileSnapshotRef.current) {
+      return false;
+    }
+    return currentSnapshotKey !== lastSavedSnapshotRef.current || hasPendingSaveRef.current || isSavingRef.current;
+  }, [currentSnapshotKey]);
+
+  const confirmUnsavedNavigation = useCallback(() => {
+    if (!hasUnsavedChanges()) {
+      return true;
+    }
+    return window.confirm("保存していない内容があります。保存せず戻りますか？");
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!user || !hasLoadedProfileRef.current) {
       return;
     }
-    setIsSaving(true);
-    setMessage(null);
-    setError(null);
-    try {
-      const parsedSetCount = Math.min(10, Math.max(1, Math.trunc(Number(defaultSetCount) || 5)));
-      const { error: updateError } = await client
-        .from("profiles")
-        .update({
-          height_cm: toNumberOrNull(heightCm),
-          body_weight_kg: toNumberOrNull(bodyWeightKg),
-          age: toNumberOrNull(age),
-          sex,
-          training_split: trainingSplit.trim() || null,
-          default_set_count: parsedSetCount,
-          training_purpose: trainingPurpose.trim() || null,
-          final_goal: finalGoal.trim() || null,
-          one_month_goal_date: oneMonthGoalDate || null,
-          one_month_goal_text: oneMonthGoalText.trim() || null,
-          three_month_goal_date: threeMonthGoalDate || null,
-          three_month_goal_text: threeMonthGoalText.trim() || null,
-          one_year_goal_date: oneYearGoalDate || null,
-          one_year_goal_text: oneYearGoalText.trim() || null,
-        })
-        .eq("id", user.id);
-
-      if (updateError) {
-        throw updateError;
+    if (pendingProfileSnapshotRef.current) {
+      if (currentSnapshotKey === pendingProfileSnapshotRef.current) {
+        pendingProfileSnapshotRef.current = null;
+        hasPendingSaveRef.current = false;
       }
-
-      setDefaultSetCount(String(parsedSetCount));
-      await refreshProfile();
-      setMessage("保存しました。");
-    } catch (saveError) {
-      console.error("Profile settings save error", saveError);
-      setError("プロフィール設定の保存に失敗しました。");
-    } finally {
-      setIsSaving(false);
+      return;
     }
-  };
+    if (currentSnapshotKey === lastSavedSnapshotRef.current) {
+      hasPendingSaveRef.current = false;
+      return;
+    }
+    hasPendingSaveRef.current = true;
+    if (saveTimerRef.current !== null) {
+      window.clearTimeout(saveTimerRef.current);
+    }
+    saveTimerRef.current = window.setTimeout(() => {
+      hasPendingSaveRef.current = false;
+      void save(currentSnapshot);
+    }, autosaveDelayMs);
+
+    return () => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [currentSnapshot, currentSnapshotKey, save, user]);
+
+  useEffect(() => {
+    const handleNavigationConfirm = (event: Event) => {
+      if (!confirmUnsavedNavigation()) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("kochifit:confirm-navigation", handleNavigationConfirm);
+    return () => window.removeEventListener("kochifit:confirm-navigation", handleNavigationConfirm);
+  }, [confirmUnsavedNavigation]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges()) {
+      return;
+    }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [currentSnapshotKey, hasUnsavedChanges]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges()) {
+      return;
+    }
+    window.history.pushState({ kochifitSettingsUnsavedGuard: true }, "", window.location.href);
+    const handlePopState = () => {
+      if (allowBrowserBackRef.current) {
+        return;
+      }
+      if (confirmUnsavedNavigation()) {
+        allowBrowserBackRef.current = true;
+        window.history.back();
+        return;
+      }
+      window.history.pushState({ kochifitSettingsUnsavedGuard: true }, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [confirmUnsavedNavigation, currentSnapshotKey, hasUnsavedChanges]);
 
   return (
     <section className="space-y-4">
       {mode === "profile" ? (
         <>
           <div className="grid grid-cols-2 gap-3">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">身長 cm</span>
-          <select
-            value={heightCm}
-            onChange={(event) => setHeightCm(event.target.value)}
-            className={baseSelectClass}
-          >
-            <option value="">未設定</option>
-            {heightOptions.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">体重 kg</span>
-          <select
-            value={bodyWeightKg}
-            onChange={(event) => setBodyWeightKg(event.target.value)}
-            className={baseSelectClass}
-          >
-            <option value="">未設定</option>
-            {weightOptions.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">年齢</span>
-          <select
-            value={age}
-            onChange={(event) => setAge(event.target.value)}
-            className={profileSelectClass}
-          >
-            <option value="">未設定</option>
-            {ageOptions.map((value) => (
-              <option key={value} value={value}>
-                {value}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">性別</span>
-          <select
-            value={sex}
-            onChange={(event) => setSex(event.target.value)}
-            className={profileSelectClass}
-          >
-            <option value="unspecified">未設定</option>
-            <option value="male">男性</option>
-            <option value="female">女性</option>
-            <option value="other">その他</option>
-          </select>
-        </label>
-      </div>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-[var(--muted)]">分割法</span>
-        <select
-          value={trainingSplit}
-          onChange={(event) => setTrainingSplit(event.target.value)}
-          className={blockSelectClass}
-        >
-          <option value="">未設定</option>
-          <option value="full_body">全身</option>
-          <option value="upper_lower">上半身・下半身</option>
-          <option value="push_pull_legs">Push・Pull・Legs</option>
-          <option value="body_part_split">部位別</option>
-        </select>
-      </label>
-      <label className="block space-y-1">
-        <span className="text-sm font-medium text-[var(--muted)]">デフォルトセット数</span>
-        <select
-          value={defaultSetCount}
-          onChange={(event) => setDefaultSetCount(event.target.value)}
-          className={blockSelectClass}
-        >
-          {setCountOptions.map((value) => (
-            <option key={value} value={value}>
-              {value}
-            </option>
-          ))}
-        </select>
-      </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">身長 cm</span>
+              <select
+                value={heightCm}
+                onChange={(event) => setHeightCm(event.target.value)}
+                className={baseSelectClass}
+              >
+                <option value="">未設定</option>
+                {heightOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">体重 kg</span>
+              <select
+                value={bodyWeightKg}
+                onChange={(event) => setBodyWeightKg(event.target.value)}
+                className={baseSelectClass}
+              >
+                <option value="">未設定</option>
+                {weightOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">年齢</span>
+              <select
+                value={age}
+                onChange={(event) => setAge(event.target.value)}
+                className={profileSelectClass}
+              >
+                <option value="">未設定</option>
+                {ageOptions.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">性別</span>
+              <select
+                value={sex}
+                onChange={(event) => setSex(event.target.value)}
+                className={profileSelectClass}
+              >
+                <option value="unspecified">未設定</option>
+                <option value="male">男性</option>
+                <option value="female">女性</option>
+                <option value="other">その他</option>
+              </select>
+            </label>
+          </div>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">分割法</span>
+            <select
+              value={trainingSplit}
+              onChange={(event) => setTrainingSplit(event.target.value)}
+              className={blockSelectClass}
+            >
+              <option value="">未設定</option>
+              <option value="full_body">全身</option>
+              <option value="upper_lower">上半身・下半身</option>
+              <option value="push_pull_legs">Push・Pull・Legs</option>
+              <option value="body_part_split">部位別</option>
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">デフォルトセット数</span>
+            <select
+              value={defaultSetCount}
+              onChange={(event) => setDefaultSetCount(event.target.value)}
+              className={blockSelectClass}
+            >
+              {setCountOptions.map((value) => (
+                <option key={value} value={value}>
+                  {value}
+                </option>
+              ))}
+            </select>
+          </label>
         </>
       ) : (
         <div className="space-y-3">
@@ -307,16 +498,6 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
           </div>
         </div>
       )}
-      <button
-        type="button"
-        onClick={() => void save()}
-        disabled={isSaving}
-        className="flex min-h-12 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-50"
-      >
-        <Save size={18} />
-        {isSaving ? "保存中" : "保存"}
-      </button>
-      {message ? <p className="mt-3 text-sm text-emerald-500">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
     </section>
   );

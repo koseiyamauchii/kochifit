@@ -82,7 +82,15 @@ export function SettingsSections({
 
   const activeItem = sectionItems.find((item) => item.id === activeSection);
   const showDetailHeader = Boolean(activeItem && activeSection !== "account");
-  const handleBack = () => setActiveSection(showBackToList ? null : "account");
+  const confirmNavigation = () => {
+    const navigationEvent = new Event("kochifit:confirm-navigation", { cancelable: true });
+    return window.dispatchEvent(navigationEvent);
+  };
+  const handleBack = () => {
+    if (confirmNavigation()) {
+      setActiveSection(showBackToList ? null : "account");
+    }
+  };
 
   return (
     <div className={activeSection === "account" ? "space-y-4" : "mx-2 space-y-4"}>
