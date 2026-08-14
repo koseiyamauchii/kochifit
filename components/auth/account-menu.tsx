@@ -7,8 +7,6 @@ import {
   Flag,
   LogOut,
   Mail,
-  RefreshCw,
-  Repeat2,
   UserRound,
 } from "lucide-react";
 import Image from "next/image";
@@ -79,7 +77,7 @@ export function AccountMenu({
 }: {
   onNavigateSettings?: (section: SettingsSection) => void;
 }) {
-  const { profile, refreshProfile, logout, switchAccount, user } = useAuth();
+  const { profile, logout, user } = useAuth();
   const displayName =
     profile?.display_name ??
     user?.user_metadata.full_name ??
@@ -100,33 +98,6 @@ export function AccountMenu({
         </div>
         <p className="mt-3 max-w-full truncate text-lg font-semibold">{displayName}</p>
         <p className="mt-1 max-w-full truncate text-sm text-[var(--muted)]">{mail}</p>
-      </div>
-
-      <div className="mx-2 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => void logout()}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[var(--surface-soft)] px-3 py-2 text-sm font-medium"
-        >
-          <LogOut size={17} />
-          ログアウト
-        </button>
-        <button
-          type="button"
-          onClick={() => void refreshProfile()}
-          className="flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-[var(--border)] px-3 py-2 text-sm font-medium"
-        >
-          <RefreshCw size={17} />
-          プロフィール更新
-        </button>
-        <button
-          type="button"
-          onClick={() => void switchAccount()}
-          className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
-        >
-          <Repeat2 size={17} />
-          アカウント切り替え
-        </button>
       </div>
 
       <div className="mx-2 space-y-4">
@@ -184,6 +155,18 @@ export function AccountMenu({
                 <ChevronRight size={18} className="shrink-0 text-[var(--muted)]" />
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => void logout()}
+              className="flex min-h-12 w-full items-center justify-between gap-3 border-t border-[var(--hairline)] px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
+                  <LogOut size={18} />
+                </span>
+                <span className="min-w-0 truncate">ログアウト</span>
+              </span>
+            </button>
           </div>
         </section>
       </div>

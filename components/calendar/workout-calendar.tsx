@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight, Copy, History, Plus, Save, Scale, Trash2, Tr
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CSSProperties } from "react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
@@ -239,13 +239,15 @@ function PreviousWorkoutBlock({
       </div>
       {previousWorkout ? (
         <div className="space-y-2">
-          <div className="flex flex-wrap gap-1.5 text-xs text-[var(--muted)]">
-            {previousWorkout.sets.map((set) => (
-              <span key={set.id} className="rounded-[12px] bg-[var(--surface)] px-2 py-1">
-                {set.isWarmup ? "W " : ""}
-                {formatSetLine(set.weightKg, set.reps)}
-                {set.note ? ` / ${set.note}` : ""}
-              </span>
+          <div className="space-y-1.5 text-xs text-[var(--muted)]">
+            {previousWorkout.sets.map((set, index) => (
+              <div key={set.id} className="grid grid-cols-[3.5rem_1fr] items-start gap-2 rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5">
+                <span className="font-semibold">{set.isWarmup ? "W" : "セット " + (index + 1)}</span>
+                <span className="min-w-0">
+                  {formatSetLine(set.weightKg, set.reps)}
+                  {set.note ? ` / ${set.note}` : ""}
+                </span>
+              </div>
             ))}
           </div>
           {previousWorkout.note ? (
@@ -297,7 +299,7 @@ function WorkoutReadOnlyCard({
         </span>
       </div>
       <div className="grid grid-cols-[2.4rem_1fr_1fr_1fr] gap-2 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]">
-        <span>Set</span>
+        <span>セット</span>
         <span>重量</span>
         <span>回数</span>
         <span>RM</span>
@@ -449,7 +451,7 @@ function WorkoutEntryForm({
 
   return (
     <section className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2">
         <div className="flex min-w-0 items-center gap-2">
           <span
             aria-hidden="true"
@@ -464,10 +466,10 @@ function WorkoutEntryForm({
                 className="min-w-0 text-left"
                 aria-label={headerTitle + "を閉じる"}
               >
-                <h3 className="min-w-0 truncate text-base font-semibold">{headerTitle}</h3>
+                <h3 className="min-w-0 truncate text-sm font-semibold">{headerTitle}</h3>
               </button>
             ) : (
-              <h3 className="min-w-0 truncate text-base font-semibold">{headerTitle}</h3>
+              <h3 className="min-w-0 truncate text-sm font-semibold">{headerTitle}</h3>
             )}
           </div>
         </div>
@@ -475,7 +477,7 @@ function WorkoutEntryForm({
           約{estimatedCalories}kcal
         </div>
       </div>
-      <div className="space-y-3 p-3">
+      <div className="space-y-2.5 p-2.5">
 
       {mode === "add" && selectedBodyPartId && setSelectedBodyPartId ? (
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
@@ -568,7 +570,7 @@ function WorkoutEntryForm({
         {draft.sets.map((set, index) => (
           <div
             key={index}
-            className="rounded-[12px] bg-[var(--surface-soft)] p-2.5"
+            className="rounded-[12px] bg-[var(--surface-soft)] p-2"
           >
             <div className="mb-2 flex items-center justify-between gap-2">
               <span className="rounded-[12px] bg-[var(--accent-tint-strong)] px-2.5 py-1 text-xs font-semibold text-[var(--accent-strong)]">
@@ -592,9 +594,9 @@ function WorkoutEntryForm({
                       disabled={typeof profile?.body_weight_kg !== "number"}
                       aria-label="自重を入力"
                       title="自重を入力"
-                      className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
+                      className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
                     >
-                      <Scale size={20} />
+                      <Scale size={18} />
                     </button>
                     <button
                       type="button"
@@ -602,9 +604,9 @@ function WorkoutEntryForm({
                       disabled={index === 0}
                       aria-label="前セットの重量をコピー"
                       title="前セットの重量をコピー"
-                      className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
+                      className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
                     >
-                      <Copy size={20} />
+                      <Copy size={18} />
                     </button>
                   </div>
                 </div>
@@ -613,7 +615,7 @@ function WorkoutEntryForm({
                   value={set.weightKg}
                   onChange={(event) => updateSet(index, { weightKg: event.target.value })}
                   onBlur={(event) => updateSet(index, { weightKg: formatWeightInput(event.target.value) })}
-                  className="min-h-11 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
+                  className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
                 />
               </div>
               <div className="min-w-0 space-y-1">
@@ -625,21 +627,21 @@ function WorkoutEntryForm({
                     disabled={index === 0}
                     aria-label="前セットの回数をコピー"
                     title="前セットの回数をコピー"
-                    className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
+                    className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-35"
                   >
-                    <Copy size={20} />
+                    <Copy size={18} />
                   </button>
                 </div>
                 <input
                   inputMode="numeric"
                   value={set.reps}
                   onChange={(event) => updateSet(index, { reps: event.target.value })}
-                  className="min-h-11 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
+                  className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
                 />
               </div>
               <div className="col-span-2 min-w-0 space-y-1">
                 <span className="text-xs font-medium text-[var(--muted)]">推定1RM</span>
-                <div className="flex min-h-11 items-center rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold">
+                <div className="flex min-h-10 items-center rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold">
                   {formatRm(toWeightNumberOrNull(set.weightKg, profile), toNumberOrNull(set.reps))}
                 </div>
               </div>
@@ -664,7 +666,7 @@ function WorkoutEntryForm({
                 disabled={index === 0}
                 aria-label="前セットからコピー"
                 title="前セットからコピー"
-                className="flex h-10 flex-1 items-center justify-center gap-1 rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-40"
+                className="flex h-9 flex-1 items-center justify-center gap-1 rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-40"
               >
                 <Copy size={17} />
                 <span className="text-xs">前セット</span>
@@ -676,7 +678,7 @@ function WorkoutEntryForm({
                   disabled={!previousWorkout}
                   aria-label="前回履歴からコピー"
                   title="前回履歴からコピー"
-                  className="flex h-10 flex-1 items-center justify-center gap-1 rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-40"
+                  className="flex h-9 flex-1 items-center justify-center gap-1 rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-40"
                 >
                   <History size={17} />
                   <span className="text-xs">前回</span>
@@ -687,7 +689,7 @@ function WorkoutEntryForm({
                 onClick={() => removeSet(index)}
                 disabled={draft.sets.length === 1}
                 aria-label="セットを削除"
-                className="flex h-10 w-10 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-40"
+                className="flex h-9 w-9 items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-40"
               >
                 <Trash2 size={17} />
               </button>
@@ -697,7 +699,7 @@ function WorkoutEntryForm({
         <button
           type="button"
           onClick={addSet}
-          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--surface-soft)] text-sm font-medium"
+          className="flex min-h-9 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--surface-soft)] text-sm font-medium"
         >
           <Plus size={17} />
           セット追加
@@ -710,7 +712,7 @@ function WorkoutEntryForm({
             type="button"
             onClick={onDelete}
             disabled={isSaving}
-            className="flex min-h-11 w-full items-center justify-center gap-1 rounded-[12px] bg-[var(--surface-soft)] px-3 py-2.5 text-sm font-semibold text-[var(--muted)] disabled:opacity-40"
+            className="flex min-h-10 w-full items-center justify-center gap-1 rounded-[12px] bg-[var(--surface-soft)] px-3 py-2.5 text-sm font-semibold text-[var(--muted)] disabled:opacity-40"
           >
             <Trash2 size={17} />
             削除
@@ -719,7 +721,7 @@ function WorkoutEntryForm({
             type="button"
             onClick={onSave}
             disabled={!canSave || isSaving}
-            className="flex min-h-11 w-full items-center justify-center gap-1 rounded-[12px] bg-[var(--accent)] px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+            className="flex min-h-10 w-full items-center justify-center gap-1 rounded-[12px] bg-[var(--accent)] px-3 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
           >
             <Save size={17} />
             {isSaving ? "保存中" : "保存"}
@@ -730,7 +732,7 @@ function WorkoutEntryForm({
           type="button"
           onClick={onSave}
           disabled={!canSave || isSaving}
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+          className="flex min-h-10 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           <Save size={18} />
           {isSaving ? "保存中" : "保存"}
@@ -773,6 +775,7 @@ export function WorkoutCalendar({
   const [editDrafts, setEditDrafts] = useState<Record<string, EntryDraft>>({});
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const confirmUnsavedAddNavigationRef = useRef<(() => boolean) | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -803,6 +806,12 @@ export function WorkoutCalendar({
     );
     return addCalories + savedCalories;
   }, [addDraft, editDrafts, exercises, isAddFormActive, profile]);
+  const isAddDraftDirty =
+    showAddForm &&
+    (Boolean(addDraft.exerciseId) ||
+      addDraft.note.trim() !== "" ||
+      addDraft.sets.some((set) => !isBlankSetDraft(set)));
+  const canSaveAddDraft = Boolean(addDraft.exerciseId && hasAnySetInput(addDraft, profile));
 
   const loadMonth = useCallback(async () => {
     if (!user) {
@@ -943,7 +952,7 @@ export function WorkoutCalendar({
     }
   };
 
-  const handleAddSave = async () => {
+  const handleAddSave = useCallback(async () => {
     if (!user || !addDraft.exerciseId || savingKey) {
       return;
     }
@@ -976,7 +985,75 @@ export function WorkoutCalendar({
     } finally {
       setSavingKey(null);
     }
-  };
+  }, [
+    addDraft,
+    backHref,
+    client,
+    defaultSetCount,
+    effectiveSelectedDate,
+    loadMonth,
+    loadPreviousWorkout,
+    loadSelectedDate,
+    profile,
+    router,
+    savingKey,
+    showAddForm,
+    user,
+  ]);
+
+  const confirmUnsavedAddNavigation = useCallback(() => {
+    if (!isAddDraftDirty || savingKey) {
+      return true;
+    }
+    if (canSaveAddDraft) {
+      if (window.confirm("保存していない内容があります。保存して戻りますか？")) {
+        void handleAddSave();
+      }
+      return false;
+    }
+    return window.confirm("保存していない内容があります。保存せずに戻りますか？");
+  }, [canSaveAddDraft, handleAddSave, isAddDraftDirty, savingKey]);
+
+  useEffect(() => {
+    confirmUnsavedAddNavigationRef.current = confirmUnsavedAddNavigation;
+  }, [confirmUnsavedAddNavigation]);
+
+  const handleBackNavigation = useCallback(() => {
+    if (!backHref) {
+      return;
+    }
+    if ((confirmUnsavedAddNavigationRef.current ?? confirmUnsavedAddNavigation)()) {
+      router.push(backHref);
+    }
+  }, [backHref, confirmUnsavedAddNavigation, router]);
+
+  useEffect(() => {
+    if (!isAddDraftDirty) {
+      return;
+    }
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [isAddDraftDirty]);
+
+  useEffect(() => {
+    if (!showAddForm || !backHref) {
+      return;
+    }
+    window.history.pushState({ kochifitUnsavedGuard: true }, "", window.location.href);
+    const handlePopState = () => {
+      if ((confirmUnsavedAddNavigationRef.current ?? confirmUnsavedAddNavigation)()) {
+        router.push(backHref);
+        return;
+      }
+      window.history.pushState({ kochifitUnsavedGuard: true }, "", window.location.href);
+    };
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [backHref, confirmUnsavedAddNavigation, router, showAddForm]);
 
   const handleEditSave = async (workout: Workout) => {
     if (!user || savingKey) {
@@ -1204,13 +1281,24 @@ export function WorkoutCalendar({
           <div className="flex items-center justify-between gap-2">
             <div className="flex min-w-0 items-center gap-2">
               {backHref ? (
-                <Link
-                  href={backHref}
-                  aria-label="戻る"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
-                >
-                  <ChevronLeft size={22} />
-                </Link>
+                showAddForm ? (
+                  <button
+                    type="button"
+                    onClick={handleBackNavigation}
+                    aria-label="戻る"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+                ) : (
+                  <Link
+                    href={backHref}
+                    aria-label="戻る"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
+                  >
+                    <ChevronLeft size={22} />
+                  </Link>
+                )
               ) : null}
               <h1 className="min-w-0 whitespace-nowrap text-base font-semibold leading-tight sm:text-lg">
                 {detailsHeading}
