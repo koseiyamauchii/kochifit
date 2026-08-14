@@ -16,7 +16,7 @@ function MathBlock({ tex }: { tex: string }) {
 
   return (
     <div
-      className="overflow-x-auto rounded-[8px] bg-[var(--surface-soft)] p-3 text-[var(--text)]"
+      className="overflow-x-auto rounded-[12px] bg-[var(--surface-soft)] p-3 text-[var(--text)]"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );
@@ -29,7 +29,7 @@ export function FormulaCard() {
         消費カロリーと推定1RMは、トレーニング中の目安として使う概算値です。
       </p>
 
-      <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
+      <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">推定消費カロリー</h3>
         <MathBlock tex={String.raw`\mathrm{kcal} = \frac{\mathrm{MET} \times 3.5 \times W}{200} \times T \times A`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
@@ -40,7 +40,7 @@ export function FormulaCard() {
         </div>
       </div>
 
-      <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
+      <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">運動時間 T</h3>
         <MathBlock tex={String.raw`T = \sum_i \tau_i + \min\left(8, \frac{\sum_i w_i r_i}{1200}\right)`} />
         <MathBlock tex={String.raw`\tau_i = \begin{cases}1.5 & \text{ウォームアップ}\\2.5 & \text{通常セット}\end{cases}`} />
@@ -50,7 +50,7 @@ export function FormulaCard() {
         </div>
       </div>
 
-      <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
+      <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">体格補正 A</h3>
         <MathBlock tex={String.raw`A = \mathrm{clip}\left(\frac{10W + 6.25H - 5Y + S}{1580}, 0.8, 1.25\right)`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
@@ -60,7 +60,7 @@ export function FormulaCard() {
         </div>
       </div>
 
-      <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
+      <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">MET</h3>
         <MathBlock tex={String.raw`\mathrm{MET} = \mathrm{MET}_{\mathrm{part}} + B_{\mathrm{compound}}`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
@@ -69,7 +69,7 @@ export function FormulaCard() {
         </div>
       </div>
 
-      <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
+      <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">推定1RM</h3>
         <MathBlock tex={String.raw`\mathrm{1RM} = w \left(1 + \frac{r}{30}\right)`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
@@ -79,7 +79,7 @@ export function FormulaCard() {
         </div>
       </div>
 
-      <div className="space-y-2 rounded-[8px] bg-[var(--surface-soft)] p-3">
+      <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">参考文献</h3>
         <ul className="list-disc space-y-2 pl-5 text-sm leading-6 text-[var(--muted)]">
           <li>Ainsworth BE et al. 2011 Compendium of Physical Activities: a second update of codes and MET values. Medicine &amp; Science in Sports &amp; Exercise, 2011.</li>

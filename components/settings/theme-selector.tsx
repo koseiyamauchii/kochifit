@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Palette, Sun } from "lucide-react";
 import type { CSSProperties } from "react";
 import {
   useThemePreference,
@@ -28,7 +28,7 @@ const accentChoices: Array<{ value: AccentPreference; label: string; color: stri
   { value: "pink", label: "ピンク", color: "#db2777" },
 ];
 
-export function ThemeSelector() {
+export function ThemeSelector({ compact = false }: { compact?: boolean }) {
   const { theme, accent, setTheme, setAccent } = useThemePreference();
   const { refreshProfile, user } = useAuth();
   const client = useMemo(() => createClient(), []);
@@ -62,8 +62,9 @@ export function ThemeSelector() {
   };
 
   return (
-    <section className="space-y-5">
-      <div className="grid grid-cols-3 gap-1 rounded-[8px] bg-[var(--surface-soft)] p-1">
+    <section className={compact ? "space-y-4" : "space-y-5"}>
+      {!compact ? <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]"><Sun size={15} />外観</h3> : null}
+      <div className="grid grid-cols-3 gap-1 rounded-[12px] bg-[var(--surface)] p-1">
         {choices.map((choice) => (
           <button
             key={choice.value}
@@ -71,7 +72,7 @@ export function ThemeSelector() {
             onClick={() => handleThemeChange(choice.value)}
             aria-pressed={theme === choice.value}
             className={[
-              "flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-[8px] px-1 text-[13px] font-medium sm:text-sm",
+              "flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-[12px] px-1 text-[13px] font-medium sm:text-sm",
               theme === choice.value
                 ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
                 : "text-[var(--muted)]",
@@ -82,7 +83,7 @@ export function ThemeSelector() {
           </button>
         ))}
       </div>
-      <h3 className="text-sm font-semibold text-[var(--muted)]">アクセントカラー</h3>
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]"><Palette size={15} />アクセントカラー</h3>
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
         {accentChoices.map((choice) => (
           <button
@@ -91,10 +92,10 @@ export function ThemeSelector() {
             onClick={() => handleAccentChange(choice.value)}
             aria-pressed={accent === choice.value}
             className={[
-              "flex min-h-11 items-center gap-2 rounded-[8px] border px-3 text-sm font-medium",
+              "flex min-h-11 items-center gap-2 rounded-[12px] border px-3 text-sm font-medium",
               accent === choice.value
                 ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)]",
+                : "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]",
             ].join(" ")}
           >
             <span

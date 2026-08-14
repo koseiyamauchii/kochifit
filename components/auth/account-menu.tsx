@@ -1,8 +1,49 @@
 "use client";
 
-import { LogOut, RefreshCw, Repeat2, UserRound } from "lucide-react";
+import {
+  Calculator,
+  ChevronRight,
+  Dumbbell,
+  Flag,
+  LogOut,
+  Mail,
+  RefreshCw,
+  Repeat2,
+  Sun,
+  UserRound,
+} from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/components/auth/auth-provider";
+import { ThemeSelector } from "@/components/settings/theme-selector";
+import type { SettingsSection } from "@/components/settings/settings-sections";
+
+const settingsGroups: Array<{
+  label: string;
+  items: Array<{ label: string; section: SettingsSection; icon: React.ReactNode }>;
+}> = [
+  {
+    label: "プロフィール",
+    items: [
+      { label: "プロフィール設定", section: "profile", icon: <UserRound size={18} /> },
+      { label: "目標", section: "goals", icon: <Flag size={18} /> },
+    ],
+  },
+  {
+    label: "マスタ",
+    items: [
+      { label: "部位マスタ", section: "bodyParts", icon: <Dumbbell size={18} /> },
+      { label: "種目マスタ", section: "exercises", icon: <Dumbbell size={18} /> },
+    ],
+  },
+  {
+    label: "記録",
+    items: [{ label: "計算式", section: "formula", icon: <Calculator size={18} /> }],
+  },
+  {
+    label: "サポート",
+    items: [{ label: "問い合わせ", section: "support", icon: <Mail size={18} /> }],
+  },
+];
 
 export function AccountAvatarButton({
   onClick,
@@ -34,7 +75,11 @@ export function AccountAvatarButton({
   );
 }
 
-export function AccountMenu() {
+export function AccountMenu({
+  onNavigateSettings,
+}: {
+  onNavigateSettings?: (section: SettingsSection) => void;
+}) {
   const { profile, refreshProfile, logout, switchAccount, user } = useAuth();
   const displayName =
     profile?.display_name ??
@@ -45,46 +90,83 @@ export function AccountMenu() {
   const mail = user?.email ?? "";
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center gap-3">
-        <div className="relative flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)]">
+    <div className="space-y-5 pt-5">
+      <div className="flex flex-col items-center text-center">
+        <div className="relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[var(--accent-soft)] text-[var(--accent-strong)] shadow-[var(--shadow)]">
           {typeof avatarUrl === "string" && avatarUrl ? (
-            <Image src={avatarUrl} alt="" fill sizes="48px" className="object-cover" />
+            <Image src={avatarUrl} alt="" fill sizes="80px" className="object-cover" />
           ) : (
-            <UserRound size={22} />
+            <UserRound size={34} />
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{displayName}</p>
-          <p className="truncate text-sm text-[var(--muted)]">{mail}</p>
-        </div>
+        <p className="mt-3 max-w-full truncate text-lg font-semibold">{displayName}</p>
+        <p className="mt-1 max-w-full truncate text-sm text-[var(--muted)]">{mail}</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-        <button
-          type="button"
-          onClick={() => void refreshProfile()}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-[8px] border border-[var(--border)] px-3 py-2 text-sm font-medium"
-        >
-          <RefreshCw size={17} />
-          プロフィール更新
-        </button>
+      <div className="grid grid-cols-2 gap-2 px-2">
         <button
           type="button"
           onClick={() => void logout()}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-[8px] bg-[var(--surface-soft)] px-3 py-2 text-sm font-medium"
+          className="flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[var(--surface-soft)] px-3 py-2 text-sm font-medium"
         >
           <LogOut size={17} />
           ログアウト
         </button>
         <button
           type="button"
+          onClick={() => void refreshProfile()}
+          className="flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-[var(--border)] px-3 py-2 text-sm font-medium"
+        >
+          <RefreshCw size={17} />
+          プロフィール更新
+        </button>
+        <button
+          type="button"
           onClick={() => void switchAccount()}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-[8px] bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white sm:col-span-2"
+          className="col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-3 py-2 text-sm font-semibold text-white"
         >
           <Repeat2 size={17} />
           アカウント切り替え
         </button>
+      </div>
+
+      <div className="space-y-4">
+        {settingsGroups.map((group) => (
+          <section key={group.label} className="space-y-1">
+            <h2 className="px-3 text-xs font-semibold text-[var(--muted)]">{group.label}</h2>
+            <div className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)]">
+              {group.items.map((item, index) => (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={() => onNavigateSettings?.(item.section)}
+                  className={[
+                    "flex min-h-12 w-full items-center justify-between gap-3 px-3 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]",
+                    index > 0 ? "border-t border-[var(--hairline)]" : "",
+                  ].join(" ")}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
+                      {item.icon}
+                    </span>
+                    <span className="min-w-0 truncate">{item.label}</span>
+                  </span>
+                  <ChevronRight size={18} className="shrink-0 text-[var(--muted)]" />
+                </button>
+              ))}
+            </div>
+          </section>
+        ))}
+
+        <section className="space-y-1">
+          <h2 className="flex items-center gap-2 px-3 text-xs font-semibold text-[var(--muted)]">
+            <Sun size={15} />
+            テーマ
+          </h2>
+          <div className="rounded-[12px] bg-[var(--surface-soft)] p-2">
+            <ThemeSelector compact />
+          </div>
+        </section>
       </div>
     </div>
   );

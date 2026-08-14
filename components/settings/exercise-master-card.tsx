@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertTriangle, GripVertical, Plus, Save, Trash2, X } from "lucide-react";
+import { AlertTriangle, Menu, Plus, Save, Trash2, X } from "lucide-react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -13,7 +13,7 @@ import {
   reorderExercises,
   updateExercise,
 } from "@/lib/workouts/repository";
-import { getBodyPartColor, getTextColorForBodyPartColor } from "@/lib/workouts/body-part-colors";
+import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
 import type { BodyPart, Exercise } from "@/lib/workouts/types";
 
 interface Draft {
@@ -44,6 +44,7 @@ function DraftPanel({
   onClose,
   onDraftChange,
   onSave,
+  showNameField = true,
 }: {
   bodyParts: BodyPart[];
   draft: Draft;
@@ -52,35 +53,38 @@ function DraftPanel({
   onClose: () => void;
   onDraftChange: (draft: Draft) => void;
   onSave: () => void;
+  showNameField?: boolean;
 }) {
   return (
-    <div className="mt-2 rounded-[8px] border border-[var(--accent)] bg-[var(--accent-soft)] p-3">
-      <div className="flex items-center justify-between gap-3">
-        <h4 className="font-semibold">{draft.id ? "種目を編集" : "種目を追加"}</h4>
+    <div className="mt-2 rounded-[12px] border border-[var(--accent)] bg-[var(--accent-soft)] p-3">
+      <div className={["flex items-center gap-3", showNameField ? "justify-between" : "justify-end"].join(" ")}>
+        {showNameField ? <h4 className="font-semibold">種目を追加</h4> : null}
         <button
           type="button"
           onClick={onClose}
           aria-label="閉じる"
-          className="flex h-9 w-9 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface)]"
+          className="flex h-9 w-9 items-center justify-center rounded-[12px] border border-[var(--border)] bg-[var(--surface)]"
         >
           <X size={17} />
         </button>
       </div>
       <div className="mt-3 space-y-3">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">種目名</span>
-          <input
-            value={draft.name}
-            onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
-          />
-        </label>
+        {showNameField ? (
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">種目名</span>
+            <input
+              value={draft.name}
+              onChange={(event) => onDraftChange({ ...draft, name: event.target.value })}
+              className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
+            />
+          </label>
+        ) : null}
         <label className="block space-y-1">
           <span className="text-sm font-medium text-[var(--muted)]">部位</span>
           <select
             value={draft.bodyPartId}
             onChange={(event) => onDraftChange({ ...draft, bodyPartId: event.target.value })}
-            className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
+            className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
           >
             {bodyParts.map((bodyPart) => (
               <option key={bodyPart.id} value={bodyPart.id}>
@@ -96,7 +100,7 @@ function DraftPanel({
               inputMode="numeric"
               value={draft.displayOrder}
               onChange={(event) => onDraftChange({ ...draft, displayOrder: event.target.value })}
-              className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
+              className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
             />
           </label>
           <label className="block space-y-1">
@@ -104,7 +108,7 @@ function DraftPanel({
             <input
               value={draft.rackPosition}
               onChange={(event) => onDraftChange({ ...draft, rackPosition: event.target.value })}
-              className="min-h-12 w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3"
+              className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
             />
           </label>
         </div>
@@ -114,7 +118,7 @@ function DraftPanel({
             value={draft.memo}
             onChange={(event) => onDraftChange({ ...draft, memo: event.target.value })}
             rows={3}
-            className="w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
+            className="w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2"
           />
         </label>
         <div className="grid gap-2 sm:grid-cols-2">
@@ -122,7 +126,7 @@ function DraftPanel({
             type="button"
             onClick={onSave}
             disabled={isSaving}
-            className="flex min-h-12 items-center justify-center gap-2 rounded-[8px] bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-50"
+            className="flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 py-3 font-semibold text-white disabled:opacity-50"
           >
             <Save size={18} />
             {isSaving ? "保存中" : "保存"}
@@ -131,7 +135,7 @@ function DraftPanel({
             type="button"
             onClick={onArchive}
             disabled={!draft.id || isSaving}
-            className="flex min-h-12 items-center justify-center gap-2 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 font-semibold text-[var(--muted)] disabled:opacity-40"
+            className="flex min-h-12 items-center justify-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-4 py-3 font-semibold text-[var(--muted)] disabled:opacity-40"
           >
             <Trash2 size={18} />
             削除
@@ -408,7 +412,7 @@ export function ExerciseMasterCard() {
         <button
           type="button"
           onClick={() => startNew()}
-          className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--border)] px-3 text-sm font-medium"
+          className="flex min-h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] px-3 text-sm font-medium"
         >
           <Plus size={16} />
           新規
@@ -420,18 +424,21 @@ export function ExerciseMasterCard() {
       <div className="space-y-4">
         {groupedExercises.map(({ bodyPart, exercises: bodyPartExercises }) => {
           const headerColor = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
-          const headerStyle = {
-            background: headerColor,
-            color: getTextColorForBodyPartColor(headerColor),
-          } as CSSProperties;
           return (
-            <section key={bodyPart.id} className="overflow-hidden rounded-[8px] bg-[var(--surface)] shadow-[var(--shadow)]">
-              <div className="flex items-center justify-between gap-3 px-3 py-2.5" style={headerStyle}>
-                <h3 className="min-w-0 truncate text-sm font-semibold">{bodyPart.displayName}</h3>
+            <section key={bodyPart.id} className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
+              <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2.5">
+                <h3 className="flex min-w-0 items-center gap-2 truncate text-sm font-semibold">
+                  <span
+                    aria-hidden="true"
+                    className="color-orb h-3 w-3 shrink-0 rounded-full"
+                    style={{ "--color-orb": headerColor } as CSSProperties}
+                  />
+                  <span className="min-w-0 truncate">{bodyPart.displayName}</span>
+                </h3>
                 <button
                   type="button"
                   onClick={() => startNew(bodyPart.id)}
-                  className="rounded-[8px] bg-black/15 px-2.5 py-1 text-xs font-semibold text-current"
+                  className="rounded-[12px] bg-[var(--surface-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--muted)]"
                 >
                   追加
                 </button>
@@ -461,7 +468,7 @@ export function ExerciseMasterCard() {
                     >
                       <div
                         className={[
-                          "flex w-full min-w-0 items-center gap-2 rounded-[8px] bg-[var(--surface-soft)] px-3 py-2",
+                          "flex w-full min-w-0 items-center gap-2 rounded-[12px] bg-[var(--surface-soft)] px-3 py-2",
                           touchDraggingExerciseId === exercise.id ? "opacity-60" : "",
                         ].join(" ")}
                       >
@@ -490,9 +497,9 @@ export function ExerciseMasterCard() {
                           onPointerUp={finishTouchDrag}
                           onPointerCancel={clearTouchDrag}
                           aria-label={exercise.name + "を並べ替え"}
-                          className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)]"
+                          className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)]"
                         >
-                          <GripVertical size={20} />
+                          <Menu size={20} />
                         </button>
                       </div>
                       {draft?.id === exercise.id ? (
@@ -504,6 +511,7 @@ export function ExerciseMasterCard() {
                           onClose={() => setDraft(null)}
                           onDraftChange={setDraft}
                           onSave={() => void save()}
+                          showNameField={false}
                         />
                       ) : null}
                     </div>
@@ -523,11 +531,11 @@ export function ExerciseMasterCard() {
           onClick={() => setArchiveTarget(null)}
         >
           <section
-            className="safe-bottom w-full rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]"
+            className="safe-bottom w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] bg-amber-100 text-amber-800">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[12px] bg-amber-100 text-amber-800">
                 <AlertTriangle size={20} />
               </div>
               <div className="min-w-0">
@@ -542,7 +550,7 @@ export function ExerciseMasterCard() {
                 type="button"
                 onClick={() => setArchiveTarget(null)}
                 disabled={isSaving}
-                className="min-h-12 rounded-[8px] border border-[var(--border)] px-4 font-semibold"
+                className="min-h-12 rounded-[12px] border border-[var(--border)] px-4 font-semibold"
               >
                 キャンセル
               </button>
@@ -550,7 +558,7 @@ export function ExerciseMasterCard() {
                 type="button"
                 onClick={() => void archive()}
                 disabled={isSaving}
-                className="flex min-h-12 items-center justify-center gap-2 rounded-[8px] bg-[var(--warning)] px-4 font-semibold text-white disabled:opacity-50"
+                className="flex min-h-12 items-center justify-center gap-2 rounded-[12px] bg-[var(--warning)] px-4 font-semibold text-white disabled:opacity-50"
               >
                 <Trash2 size={18} />
                 {isSaving ? "削除中" : "削除"}

@@ -12,7 +12,7 @@ export function SupportCard() {
       </p>
       <a
         href={`mailto:${contactEmail}`}
-        className="flex min-h-11 items-center gap-2 rounded-[8px] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[var(--text)]"
+        className="flex min-h-11 items-center gap-2 rounded-[12px] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[var(--text)]"
       >
         <Mail size={17} />
         {contactEmail}

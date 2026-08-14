@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, GripVertical, Save } from "lucide-react";
+import { Check, Menu, Save } from "lucide-react";
 import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -145,7 +145,7 @@ export function BodyPartMasterCard() {
           type="button"
           onClick={() => void saveOrder()}
           disabled={isSaving}
-          className="flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--border)] px-3 text-sm font-medium disabled:opacity-50"
+          className="flex min-h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] px-3 text-sm font-medium disabled:opacity-50"
         >
           <Save size={16} />
           {isSaving ? "保存中" : "保存"}
@@ -162,7 +162,7 @@ export function BodyPartMasterCard() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => moveBodyPart(bodyPart)}
             className={[
-              "rounded-[8px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3",
+              "rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3",
               touchDraggingBodyPartId === bodyPart.id ? "opacity-60" : "",
             ].join(" ")}
           >
@@ -194,13 +194,13 @@ export function BodyPartMasterCard() {
                 onPointerUp={clearTouchDrag}
                 onPointerCancel={clearTouchDrag}
                 aria-label={`${bodyPart.displayName}を並べ替え`}
-                className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-[8px] bg-[var(--surface)] text-[var(--muted)]"
+                className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)]"
               >
-                <GripVertical size={20} />
+                <Menu size={20} />
               </button>
             </div>
             {activeColorBodyPartId === bodyPart.id ? (
-              <div className="mt-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
+              <div className="mt-3 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
                 <div className="grid grid-cols-5 gap-2">
                   {bodyPartColorOptions.map((option) => (
                     <button
@@ -210,7 +210,7 @@ export function BodyPartMasterCard() {
                       aria-label={`${bodyPart.displayName}の色を${option.label}にする`}
                       aria-pressed={bodyPart.colorKey === option.key}
                       title={option.label}
-                      className="flex h-10 items-center justify-center rounded-[8px] border border-transparent"
+                      className="flex h-10 items-center justify-center rounded-[12px] border border-transparent"
                     >
                       <span
                         aria-hidden="true"

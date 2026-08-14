@@ -6,7 +6,8 @@ import {
   ChevronRight,
   Dumbbell,
   Mail,
-  Palette,
+  Sun,
+  Target,
   User,
   UserCircle,
 } from "lucide-react";
@@ -21,6 +22,7 @@ import { ThemeSelector } from "@/components/settings/theme-selector";
 
 export type SettingsSection =
   | "profile"
+  | "goals"
   | "accessibility"
   | "bodyParts"
   | "exercises"
@@ -35,18 +37,21 @@ const sectionItems: Array<{
   icon: React.ReactNode;
 }> = [
   { id: "profile", title: "プロフィール", detailTitle: "プロフィール設定", icon: <User size={21} /> },
+  { id: "goals", title: "目標", detailTitle: "目標", icon: <Target size={21} /> },
   { id: "bodyParts", title: "部位マスタ", detailTitle: "部位マスタ設定", icon: <Dumbbell size={21} /> },
   { id: "exercises", title: "種目マスタ", detailTitle: "種目マスタ設定", icon: <Dumbbell size={21} /> },
   { id: "formula", title: "計算式", detailTitle: "計算式", icon: <Calculator size={21} /> },
-  { id: "accessibility", title: "表示", detailTitle: "表示設定", icon: <Palette size={21} /> },
+  { id: "accessibility", title: "テーマ", detailTitle: "テーマ", icon: <Sun size={21} /> },
   { id: "support", title: "問い合わせ", detailTitle: "問い合わせ", icon: <Mail size={21} /> },
   { id: "account", title: "アカウント", detailTitle: "アカウント設定", icon: <UserCircle size={21} /> },
 ];
 
-function renderSection(section: SettingsSection) {
+function renderSection(section: SettingsSection, setActiveSection: (section: SettingsSection) => void) {
   switch (section) {
     case "profile":
-      return <ProfileSettingsCard />;
+      return <ProfileSettingsCard mode="profile" />;
+    case "goals":
+      return <ProfileSettingsCard mode="goals" />;
     case "accessibility":
       return <ThemeSelector />;
     case "bodyParts":
@@ -58,7 +63,7 @@ function renderSection(section: SettingsSection) {
     case "support":
       return <SupportCard />;
     case "account":
-      return <SupabaseAccountCard />;
+      return <SupabaseAccountCard onNavigateSettings={setActiveSection} />;
   }
 }
 
@@ -76,20 +81,22 @@ export function SettingsSections({
   }, [initialSection]);
 
   const activeItem = sectionItems.find((item) => item.id === activeSection);
+  const showDetailHeader = Boolean(activeItem && activeSection !== "account");
+  const handleBack = () => setActiveSection(showBackToList ? null : "account");
 
   return (
     <div className="space-y-4">
       {!activeSection ? (
         <>
           <h1 className="text-base font-semibold">設定</h1>
-          <section className="rounded-[8px] bg-[var(--surface-soft)] p-1">
+          <section className="rounded-[12px] bg-[var(--surface-soft)] p-1">
             <div className="grid gap-1">
               {sectionItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"
                   onClick={() => setActiveSection(item.id)}
-                  className="flex min-h-14 items-center gap-3 rounded-[8px] px-3 py-2 text-left text-[var(--text)] hover:bg-[var(--surface)]"
+                  className="flex min-h-14 items-center gap-3 rounded-[12px] px-3 py-2 text-left text-[var(--text)] hover:bg-[var(--surface)]"
                 >
                   <span className="flex h-10 w-10 shrink-0 items-center justify-center text-[var(--muted)]">
                     {item.icon}
@@ -103,12 +110,12 @@ export function SettingsSections({
         </>
       ) : (
         <div className="space-y-4">
-          {activeItem ? (
+          {showDetailHeader && activeItem ? (
             <div className="flex items-center gap-3">
-              {showBackToList ? (
+              {activeSection !== "account" ? (
                 <button
                   type="button"
-                  onClick={() => setActiveSection(null)}
+                  onClick={handleBack}
                   aria-label="設定一覧に戻る"
                   className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
                 >
@@ -118,7 +125,7 @@ export function SettingsSections({
               <h1 className="text-base font-semibold">{activeItem.detailTitle}</h1>
             </div>
           ) : null}
-          {renderSection(activeSection)}
+          {renderSection(activeSection, setActiveSection)}
         </div>
       )}
     </div>

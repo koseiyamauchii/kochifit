@@ -45,7 +45,7 @@ function StatCard({
   unit: string;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-2 rounded-[8px] bg-[var(--surface)] px-3 py-2 shadow-[var(--shadow)]">
+    <div className="flex min-h-12 items-center justify-between gap-2 rounded-[12px] bg-[var(--surface)] px-3 py-2 shadow-[var(--shadow)]">
       <p className="text-xs font-medium text-[var(--muted)]">{label}</p>
       <p className="flex shrink-0 items-baseline gap-1">
         <span className="text-lg font-semibold">{value}</span>
@@ -128,21 +128,21 @@ export function HomeDashboard() {
 
   return (
     <main className="space-y-4">
-      <section className="rounded-[8px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
+      <section className="rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
         <WorkoutCalendar showWorkoutDetails={false} />
       </section>
 
       {hasGoals ? (
-        <section className="space-y-2 rounded-[8px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
+        <section className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
           <div className="grid gap-2">
             {purpose ? (
-              <div className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-2">
+              <div className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2">
                 <h3 className="text-sm font-semibold">目的</h3>
                 <GoalValue>{purpose}</GoalValue>
               </div>
             ) : null}
             {visibleGoalDeadlines.map(({ label, date, value }) => (
-              <div key={label} className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-2">
+              <div key={label} className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2">
                 <h3 className="flex items-baseline justify-between gap-2 text-sm font-semibold leading-snug">
                   <span className="shrink-0">{label}</span>
                   {date ? (
@@ -155,7 +155,7 @@ export function HomeDashboard() {
               </div>
             ))}
             {finalGoal ? (
-              <div className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-2">
+              <div className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2">
                 <h3 className="text-sm font-semibold">最終目標</h3>
                 <GoalValue>{finalGoal}</GoalValue>
               </div>
@@ -166,7 +166,7 @@ export function HomeDashboard() {
 
       <Link
         href="/history"
-        className="flex min-h-10 w-full items-center justify-center gap-2 rounded-[8px] bg-[var(--surface)] px-3 py-2 text-sm font-semibold shadow-[var(--shadow)]"
+        className="flex min-h-10 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--surface)] px-3 py-2 text-sm font-semibold shadow-[var(--shadow)]"
       >
         <History size={18} />
         履歴
@@ -179,7 +179,7 @@ export function HomeDashboard() {
         <StatCard label="日平均消費" value={stats.averageDailyCalories} unit="kcal" />
       </section>
 
-      <section className="rounded-[8px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
+      <section className="rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
         <h2 className="text-base font-semibold">部位別トレーニング日数</h2>
         <div className="mt-3 grid grid-cols-[112px_1fr] items-center gap-3">
           <div className="relative h-[112px] w-[112px] rounded-full p-2">
@@ -203,7 +203,7 @@ export function HomeDashboard() {
                 return (
                   <div
                     key={item.bodyPartId}
-                    className="flex items-center justify-between gap-2 rounded-[8px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs"
+                    className="flex items-center justify-between gap-2 rounded-[12px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs"
                   >
                     <span className="flex min-w-0 items-center gap-2">
                       <span
@@ -225,7 +225,7 @@ export function HomeDashboard() {
                 );
               })
             ) : (
-              <p className="rounded-[8px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
+              <p className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
                 記録が増えると部位別の割合を表示します。
               </p>
             )}

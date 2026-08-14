@@ -11,7 +11,7 @@ export default function HistoryPage() {
         <main className="space-y-5">
           <Link
             href="/"
-            className="inline-flex min-h-10 items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold"
+            className="inline-flex min-h-10 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-semibold"
           >
             <ArrowLeft size={17} />
             戻る

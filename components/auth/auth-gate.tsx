@@ -20,7 +20,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (authStatus === "loading") {
     return (
       <main className="flex min-h-[70dvh] items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 text-center shadow-[var(--shadow)]">
+        <div className="w-full max-w-sm rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 text-center shadow-[var(--shadow)]">
           <p className="text-sm text-[var(--muted)]">起動中</p>
           {isSlowLoading ? (
             <p className="mt-3 text-sm leading-6 text-[var(--muted)]">
@@ -36,7 +36,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!isConfigured) {
     return (
       <main className="flex min-h-[70dvh] items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
+        <div className="w-full max-w-sm rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
           <p className="text-sm text-[var(--muted)]">KochiFit</p>
           <h1 className="mt-1 text-2xl font-semibold">トレーニング記録</h1>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
@@ -50,13 +50,13 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (!user) {
     return (
       <main className="flex min-h-[70dvh] items-center justify-center px-4">
-        <div className="w-full max-w-sm rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
+        <div className="w-full max-w-sm rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
           <p className="text-sm text-[var(--muted)]">KochiFit</p>
           <h1 className="mt-1 text-2xl font-semibold">トレーニング記録</h1>
           <button
             type="button"
             onClick={() => void login()}
-            className="mt-6 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[8px] bg-[var(--accent)] px-4 py-3 font-semibold text-white"
+            className="mt-6 flex min-h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-[12px] bg-[var(--accent)] px-4 py-3 font-semibold text-white"
           >
             <LogIn size={20} />
             Googleでログイン

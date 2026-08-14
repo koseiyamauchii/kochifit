@@ -119,7 +119,6 @@ function getOAuthRedirectTo() {
   if (callbackUrl.hostname === "0.0.0.0") {
     callbackUrl.hostname = "localhost";
   }
-  callbackUrl.searchParams.set("next", "/");
   return callbackUrl.toString();
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { Settings, UserRound, X } from "lucide-react";
+import { X } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { AccountAvatarButton } from "@/components/auth/account-menu";
@@ -22,12 +22,10 @@ export function AppShell({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [initialSettingsSection, setInitialSettingsSection] = useState<SettingsSection | null>(null);
   const [settingsListBackEnabled, setSettingsListBackEnabled] = useState(true);
-  const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false);
 
   const openSettings = (section: SettingsSection | null = null, showBackToList = true) => {
     setInitialSettingsSection(section);
     setSettingsListBackEnabled(showBackToList);
-    setIsAccountMenuOpen(false);
     setIsSettingsOpen(true);
   };
 
@@ -39,33 +37,11 @@ export function AppShell({
           <Link href="/" className="truncate text-center text-lg font-semibold">
             KochiFit
           </Link>
-          <div className="relative">
-            <AccountAvatarButton onClick={() => setIsAccountMenuOpen((current) => !current)} />
-            {isAccountMenuOpen ? (
-              <div className="absolute right-0 top-11 z-20 w-44 overflow-hidden rounded-[8px] bg-[var(--surface)] p-1 shadow-[var(--shadow)] ring-1 ring-[var(--border)]">
-                <button
-                  type="button"
-                  onClick={() => openSettings(null, true)}
-                  className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-sm font-semibold hover:bg-[var(--surface-soft)]"
-                >
-                  <Settings size={17} />
-                  設定
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openSettings("profile", true)}
-                  className="flex min-h-11 w-full items-center gap-2 rounded-[8px] px-3 text-left text-sm font-semibold hover:bg-[var(--surface-soft)]"
-                >
-                  <UserRound size={17} />
-                  プロフィール
-                </button>
-              </div>
-            ) : null}
-          </div>
+          <AccountAvatarButton onClick={() => openSettings("account", false)} />
         </header>
       ) : null}
 
-      <div className="flex-1" onClick={() => setIsAccountMenuOpen(false)}>{children}</div>
+      <div className="flex-1">{children}</div>
 
       {isSettingsOpen ? (
         <div
@@ -73,21 +49,23 @@ export function AppShell({
           onClick={() => setIsSettingsOpen(false)}
         >
           <section
-            className="safe-bottom relative h-full w-full overflow-y-auto rounded-t-[8px] bg-[var(--surface)] p-4 shadow-[var(--shadow)]"
+            className="safe-bottom relative h-full w-full overflow-y-auto rounded-t-[16px] bg-[var(--surface)] shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
             <button
               type="button"
               onClick={() => setIsSettingsOpen(false)}
               aria-label="設定を閉じる"
-              className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--muted)] hover:bg-[var(--border)]"
+              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--muted)] hover:bg-[var(--border)]"
             >
               <X size={18} />
             </button>
-            <SettingsSections
-              initialSection={initialSettingsSection}
-              showBackToList={settingsListBackEnabled}
-            />
+            <div className="px-1 pb-4 pt-4">
+              <SettingsSections
+                initialSection={initialSettingsSection}
+                showBackToList={settingsListBackEnabled}
+              />
+            </div>
           </section>
         </div>
       ) : null}

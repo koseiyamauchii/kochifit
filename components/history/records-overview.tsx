@@ -5,7 +5,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
-import { getBodyPartColor, getTextColorForBodyPartColor } from "@/lib/workouts/body-part-colors";
+import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
 import { getBodyParts, getExerciseRecords } from "@/lib/workouts/repository";
 import type { BodyPart, ExerciseRecord } from "@/lib/workouts/types";
 
@@ -74,13 +74,13 @@ export function RecordsOverview() {
   }, [authStatus, loadRecords, profileStatus]);
 
   return (
-    <section className="rounded-[8px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
+    <section className="rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-base font-semibold">履歴</h1>
         <button
           type="button"
           onClick={() => void loadRecords()}
-          className="flex min-h-9 items-center gap-2 rounded-[8px] bg-[var(--surface-soft)] px-3 text-sm font-medium"
+          className="flex min-h-9 items-center gap-2 rounded-[12px] bg-[var(--surface-soft)] px-3 text-sm font-medium"
         >
           <RefreshCw size={16} />
           更新
@@ -92,37 +92,38 @@ export function RecordsOverview() {
       <div className="mt-4 space-y-5">
         {groupedRecords.map(({ bodyPart, records: bodyPartRecords }) => {
           const headerColor = getBodyPartColor(bodyPart.key, bodyPart.colorKey);
-          const headerStyle = {
-            background: headerColor,
-            color: getTextColorForBodyPartColor(headerColor),
-          } as CSSProperties;
           return (
-            <section key={bodyPart.id} className="overflow-hidden rounded-[8px] bg-[var(--surface)] shadow-[var(--shadow)]">
-              <h2 className="px-3 py-2.5 text-sm font-semibold" style={headerStyle}>
-                {bodyPart.displayName}
+            <section key={bodyPart.id} className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
+              <h2 className="flex items-center gap-2 border-b border-[var(--hairline)] px-3 py-2.5 text-sm font-semibold">
+                <span
+                  aria-hidden="true"
+                  className="color-orb h-3 w-3 shrink-0 rounded-full"
+                  style={{ "--color-orb": headerColor } as CSSProperties}
+                />
+                <span className="min-w-0 truncate">{bodyPart.displayName}</span>
               </h2>
               {bodyPartRecords.length > 0 ? (
                 <div className="space-y-2 p-2">
                   {bodyPartRecords.map((record) => (
                     <article
                       key={record.exerciseId}
-                      className="rounded-[8px] bg-[var(--surface-soft)] p-3"
+                      className="rounded-[12px] bg-[var(--surface-soft)] p-3"
                     >
                       <h3 className="font-semibold">{record.exerciseName}</h3>
                       <dl className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
-                        <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
+                        <div className="rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5">
                           <dt className="text-xs text-[var(--muted)]">最高重量</dt>
                           <dd className="mt-1 font-semibold">
                             {formatNumber(record.maxWeightKg, "kg")}
                           </dd>
                         </div>
-                        <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
+                        <div className="rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5">
                           <dt className="text-xs text-[var(--muted)]">最大量</dt>
                           <dd className="mt-1 font-semibold">
                             {formatNumber(record.maxVolumeKg, "kg")}
                           </dd>
                         </div>
-                        <div className="rounded-[8px] bg-[var(--surface)] px-2.5 py-1.5">
+                        <div className="rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5">
                           <dt className="text-xs text-[var(--muted)]">最終</dt>
                           <dd className="mt-1 font-semibold">{formatDate(record.lastWorkoutDate)}</dd>
                         </div>
@@ -131,7 +132,7 @@ export function RecordsOverview() {
                   ))}
                 </div>
               ) : (
-                <p className="m-2 rounded-[8px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
+                <p className="m-2 rounded-[12px] bg-[var(--surface-soft)] px-3 py-3 text-sm text-[var(--muted)]">
                   {isLoading ? "読込中" : "記録なし"}
                 </p>
               )}

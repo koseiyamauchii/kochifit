@@ -17,7 +17,7 @@ export function BodyPartFilter() {
             onClick={() => setSelected(filter)}
             aria-pressed={selected === filter}
             className={[
-              "min-h-10 rounded-[8px] border px-3 text-sm font-medium",
+              "min-h-10 rounded-[12px] border px-3 text-sm font-medium",
               selected === filter
                 ? "border-[var(--accent)] bg-[var(--accent)] text-white"
                 : "border-[var(--border)] bg-[var(--surface-soft)] text-[var(--text)]",
