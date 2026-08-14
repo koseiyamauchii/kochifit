@@ -9,7 +9,6 @@ import {
   Mail,
   RefreshCw,
   Repeat2,
-  Sun,
   UserRound,
 } from "lucide-react";
 import Image from "next/image";
@@ -39,10 +38,10 @@ const settingsGroups: Array<{
     label: "記録",
     items: [{ label: "計算式", section: "formula", icon: <Calculator size={18} /> }],
   },
-  {
-    label: "サポート",
-    items: [{ label: "問い合わせ", section: "support", icon: <Mail size={18} /> }],
-  },
+];
+
+const supportItems: Array<{ label: string; section: SettingsSection; icon: React.ReactNode }> = [
+  { label: "問い合わせ", section: "support", icon: <Mail size={18} /> },
 ];
 
 export function AccountAvatarButton({
@@ -159,12 +158,32 @@ export function AccountMenu({
         ))}
 
         <section className="space-y-1">
-          <h2 className="flex items-center gap-2 px-1 text-xs font-semibold text-[var(--muted)]">
-            <Sun size={15} />
-            テーマ
-          </h2>
-          <div className="rounded-[12px] bg-[var(--surface-soft)] p-2">
-            <ThemeSelector compact />
+          <h2 className="px-1 text-xs font-semibold text-[var(--muted)]">テーマ</h2>
+          <ThemeSelector compact />
+        </section>
+
+        <section className="space-y-1">
+          <h2 className="px-1 text-xs font-semibold text-[var(--muted)]">サポート</h2>
+          <div className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)]">
+            {supportItems.map((item, index) => (
+              <button
+                key={item.label}
+                type="button"
+                onClick={() => onNavigateSettings?.(item.section)}
+                className={[
+                  "flex min-h-12 w-full items-center justify-between gap-3 px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]",
+                  index > 0 ? "border-t border-[var(--hairline)]" : "",
+                ].join(" ")}
+              >
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
+                    {item.icon}
+                  </span>
+                  <span className="min-w-0 truncate">{item.label}</span>
+                </span>
+                <ChevronRight size={18} className="shrink-0 text-[var(--muted)]" />
+              </button>
+            ))}
           </div>
         </section>
       </div>

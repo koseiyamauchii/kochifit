@@ -313,7 +313,7 @@ export function ExerciseMasterCard() {
     }
   };
 
-  const moveExerciseById = (sourceExerciseId: string, targetExerciseId: string) => {
+  const moveExerciseById = (sourceExerciseId: string, targetExerciseId: string, placeAfter = false) => {
     if (sourceExerciseId === targetExerciseId) {
       return;
     }
@@ -330,14 +330,18 @@ export function ExerciseMasterCard() {
         .filter((exercise) => exercise.bodyPartId === targetExercise.bodyPartId)
         .sort((a, b) => a.displayOrder - b.displayOrder);
       const sourceIndex = currentGroup.findIndex((exercise) => exercise.id === sourceExerciseId);
-      const targetIndex = currentGroup.findIndex((exercise) => exercise.id === targetExerciseId);
-      if (sourceIndex < 0 || targetIndex < 0) {
+      if (sourceIndex < 0) {
         return current;
       }
 
       const nextGroup = [...currentGroup];
       const [moved] = nextGroup.splice(sourceIndex, 1);
-      nextGroup.splice(targetIndex, 0, moved);
+      const targetIndex = nextGroup.findIndex((exercise) => exercise.id === targetExerciseId);
+      if (targetIndex < 0) {
+        return current;
+      }
+      const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
+      nextGroup.splice(insertIndex, 0, moved);
       nextOrder = {
         bodyPartId: targetExercise.bodyPartId,
         exerciseIds: nextGroup.map((exercise) => exercise.id),
@@ -388,7 +392,7 @@ export function ExerciseMasterCard() {
     touchDragTimerRef.current = window.setTimeout(() => {
       touchDragExerciseIdRef.current = exerciseId;
       setTouchDraggingExerciseId(exerciseId);
-    }, 260);
+    }, 180);
   };
 
   const moveTouchDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -402,7 +406,8 @@ export function ExerciseMasterCard() {
       ?.closest<HTMLElement>("[data-exercise-id]");
     const targetExerciseId = target?.dataset.exerciseId;
     if (targetExerciseId && targetExerciseId !== sourceExerciseId) {
-      moveExerciseById(sourceExerciseId, targetExerciseId);
+      const rect = target.getBoundingClientRect();
+      moveExerciseById(sourceExerciseId, targetExerciseId, event.clientY > rect.top + rect.height / 2);
     }
   };
 
@@ -479,8 +484,8 @@ export function ExerciseMasterCard() {
                     >
                       <div
                         className={[
-                          "flex w-full min-w-0 items-center gap-2 rounded-[12px] bg-[var(--surface-soft)] px-3 py-2",
-                          touchDraggingExerciseId === exercise.id ? "opacity-60" : "",
+                          "flex w-full min-w-0 items-center gap-2 rounded-[14px] bg-[var(--surface-soft)] px-3 py-2 transition-[transform,opacity,background-color] duration-150",
+                          touchDraggingExerciseId === exercise.id ? "scale-[0.985] bg-[var(--accent-soft)] opacity-70" : "",
                         ].join(" ")}
                       >
                         <button
@@ -508,7 +513,7 @@ export function ExerciseMasterCard() {
                           onPointerUp={finishTouchDrag}
                           onPointerCancel={clearTouchDrag}
                           aria-label={exercise.name + "を並べ替え"}
-                          className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)]"
+                          className="flex h-10 w-10 shrink-0 touch-none select-none items-center justify-center rounded-[14px] bg-[var(--surface)] text-[var(--muted)] active:bg-[var(--accent-soft)] active:text-[var(--accent-strong)]"
                         >
                           <Menu size={20} />
                         </button>

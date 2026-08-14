@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor, Moon, Palette, Sun } from "lucide-react";
+import { ChevronDown, Monitor, Moon, Palette, Sun } from "lucide-react";
 import type { CSSProperties } from "react";
 import {
   useThemePreference,
@@ -61,9 +61,67 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
     void savePreference(theme, nextAccent);
   };
 
+  const currentThemeLabel = choices.find((choice) => choice.value === theme)?.label ?? "システム";
+  const currentAccentLabel = accentChoices.find((choice) => choice.value === accent)?.label ?? "デフォルト";
+
+  if (compact) {
+    return (
+      <div className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)]">
+        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 border-b border-[var(--hairline)] px-2.5 text-sm font-medium">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
+              <Sun size={18} />
+            </span>
+            <span className="min-w-0 truncate">外観</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-sm text-[var(--muted)]">
+            {currentThemeLabel}
+            <ChevronDown size={16} />
+          </span>
+          <select
+            aria-label="外観"
+            value={theme}
+            onChange={(event) => handleThemeChange(event.target.value as ThemePreference)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          >
+            {choices.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 px-2.5 text-sm font-medium">
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
+              <Palette size={18} />
+            </span>
+            <span className="min-w-0 truncate">アクセントカラー</span>
+          </span>
+          <span className="flex shrink-0 items-center gap-1 text-sm text-[var(--muted)]">
+            {currentAccentLabel}
+            <ChevronDown size={16} />
+          </span>
+          <select
+            aria-label="アクセントカラー"
+            value={accent}
+            onChange={(event) => handleAccentChange(event.target.value as AccentPreference)}
+            className="absolute inset-0 cursor-pointer opacity-0"
+          >
+            {accentChoices.map((choice) => (
+              <option key={choice.value} value={choice.value}>
+                {choice.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+    );
+  }
+
   return (
-    <section className={compact ? "space-y-4" : "space-y-5"}>
-      {!compact ? <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]"><Sun size={15} />外観</h3> : null}
+    <section className="space-y-5">
+      <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]"><Sun size={15} />外観</h3>
       <div className="grid grid-cols-3 gap-1 rounded-[12px] bg-[var(--surface)] p-1">
         {choices.map((choice) => (
           <button

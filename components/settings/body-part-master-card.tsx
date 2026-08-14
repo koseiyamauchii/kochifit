@@ -41,19 +41,23 @@ export function BodyPartMasterCard() {
     }
   }, [authStatus, load, profileStatus]);
 
-  const moveBodyPartById = (sourceBodyPartId: string, targetBodyPartId: string) => {
+  const moveBodyPartById = (sourceBodyPartId: string, targetBodyPartId: string, placeAfter = false) => {
     if (sourceBodyPartId === targetBodyPartId) {
       return;
     }
     setBodyParts((current) => {
       const sourceIndex = current.findIndex((bodyPart) => bodyPart.id === sourceBodyPartId);
-      const targetIndex = current.findIndex((bodyPart) => bodyPart.id === targetBodyPartId);
-      if (sourceIndex < 0 || targetIndex < 0) {
+      if (sourceIndex < 0) {
         return current;
       }
       const next = [...current];
       const [moved] = next.splice(sourceIndex, 1);
-      next.splice(targetIndex, 0, moved);
+      const targetIndex = next.findIndex((bodyPart) => bodyPart.id === targetBodyPartId);
+      if (targetIndex < 0) {
+        return current;
+      }
+      const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
+      next.splice(insertIndex, 0, moved);
       return next.map((bodyPart, index) => ({ ...bodyPart, displayOrder: index + 1 }));
     });
   };
@@ -120,7 +124,7 @@ export function BodyPartMasterCard() {
     touchDragTimerRef.current = window.setTimeout(() => {
       touchDragBodyPartIdRef.current = bodyPartId;
       setTouchDraggingBodyPartId(bodyPartId);
-    }, 260);
+    }, 180);
   };
 
   const moveTouchDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -134,7 +138,8 @@ export function BodyPartMasterCard() {
       ?.closest<HTMLElement>("[data-body-part-id]");
     const targetBodyPartId = target?.dataset.bodyPartId;
     if (targetBodyPartId && targetBodyPartId !== sourceBodyPartId) {
-      moveBodyPartById(sourceBodyPartId, targetBodyPartId);
+      const rect = target.getBoundingClientRect();
+      moveBodyPartById(sourceBodyPartId, targetBodyPartId, event.clientY > rect.top + rect.height / 2);
     }
   };
 
@@ -162,8 +167,8 @@ export function BodyPartMasterCard() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => moveBodyPart(bodyPart)}
             className={[
-              "rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3",
-              touchDraggingBodyPartId === bodyPart.id ? "opacity-60" : "",
+              "rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 transition-[transform,opacity,background-color] duration-150",
+              touchDraggingBodyPartId === bodyPart.id ? "scale-[0.985] bg-[var(--accent-soft)] opacity-70" : "",
             ].join(" ")}
           >
             <div className="flex items-center gap-2">
@@ -194,7 +199,7 @@ export function BodyPartMasterCard() {
                 onPointerUp={clearTouchDrag}
                 onPointerCancel={clearTouchDrag}
                 aria-label={`${bodyPart.displayName}を並べ替え`}
-                className="flex h-10 w-10 shrink-0 touch-none items-center justify-center rounded-[12px] bg-[var(--surface)] text-[var(--muted)]"
+                className="flex h-10 w-10 shrink-0 touch-none select-none items-center justify-center rounded-[14px] bg-[var(--surface)] text-[var(--muted)] active:bg-[var(--accent-soft)] active:text-[var(--accent-strong)]"
               >
                 <Menu size={20} />
               </button>

@@ -334,6 +334,7 @@ function WorkoutEntryForm({
   mode,
   onDelete,
   onDraftChange,
+  onHeaderClick,
   onSave,
   previousWorkout,
   profile,
@@ -349,6 +350,7 @@ function WorkoutEntryForm({
   mode: "add" | "edit";
   onDelete?: () => void;
   onDraftChange: (draft: EntryDraft) => void;
+  onHeaderClick?: () => void;
   onSave: () => void;
   previousWorkout?: WorkoutExercise | null;
   profile: ReturnType<typeof useAuth>["profile"];
@@ -356,6 +358,7 @@ function WorkoutEntryForm({
   setSelectedBodyPartId?: (bodyPartId: string) => void;
 }) {
   const selectedExercise = findExercise(exercises, draft.exerciseId);
+  const headerTitle = selectedExercise?.name ?? "種目を追加してください";
   const filteredExercises =
     mode === "add" && selectedBodyPartId && selectedBodyPartId !== "all"
       ? exercises.filter((exercise) => exercise.bodyPartId === selectedBodyPartId)
@@ -454,9 +457,18 @@ function WorkoutEntryForm({
             style={{ "--color-orb": exerciseBodyPartColor } as CSSProperties}
           />
           <div className="min-w-0">
-            <h3 className="min-w-0 truncate text-base font-semibold">
-              {selectedExercise?.name ?? "種目を追加してください"}
-            </h3>
+            {onHeaderClick ? (
+              <button
+                type="button"
+                onClick={onHeaderClick}
+                className="min-w-0 text-left"
+                aria-label={headerTitle + "を閉じる"}
+              >
+                <h3 className="min-w-0 truncate text-base font-semibold">{headerTitle}</h3>
+              </button>
+            ) : (
+              <h3 className="min-w-0 truncate text-base font-semibold">{headerTitle}</h3>
+            )}
           </div>
         </div>
         <div className="shrink-0 whitespace-nowrap rounded-[12px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--muted)]">
@@ -1285,6 +1297,7 @@ export function WorkoutCalendar({
                 onDraftChange={(nextDraft) =>
                   setEditDrafts((current) => ({ ...current, [workout.id]: nextDraft }))
                 }
+                onHeaderClick={() => setEditingWorkoutId(null)}
                 onSave={() => void handleEditSave(workout)}
                 profile={profile}
               />

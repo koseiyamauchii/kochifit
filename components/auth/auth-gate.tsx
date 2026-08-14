@@ -19,7 +19,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (authStatus === "loading") {
     return (
-      <main className="flex min-h-[70dvh] items-center justify-center px-4">
+      <main className="flex min-h-[calc(100dvh-5rem)] items-center justify-center px-4">
         <div className="w-full max-w-sm rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 text-center shadow-[var(--shadow)]">
           <p className="text-sm text-[var(--muted)]">起動中</p>
           {isSlowLoading ? (
@@ -35,10 +35,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!isConfigured) {
     return (
-      <main className="flex min-h-[70dvh] items-center justify-center px-4">
+      <main className="flex min-h-[calc(100dvh-5rem)] items-center justify-center px-4">
         <div className="w-full max-w-sm rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
-          <p className="text-sm text-[var(--muted)]">KochiFit</p>
-          <h1 className="mt-1 text-2xl font-semibold">トレーニング記録</h1>
+          <p className="text-sm font-medium text-[var(--muted)]">トレーニング記録</p>
+          <h1 className="mt-1 text-3xl font-semibold">KochiFit</h1>
           <p className="mt-4 text-sm leading-6 text-[var(--muted)]">
             アプリの認証設定が完了していません。
           </p>
@@ -49,10 +49,10 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
   if (!user) {
     return (
-      <main className="flex min-h-[70dvh] items-center justify-center px-4">
+      <main className="flex min-h-[calc(100dvh-5rem)] items-center justify-center px-4">
         <div className="w-full max-w-sm rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-5 shadow-[var(--shadow)]">
-          <p className="text-sm text-[var(--muted)]">KochiFit</p>
-          <h1 className="mt-1 text-2xl font-semibold">トレーニング記録</h1>
+          <p className="text-sm font-medium text-[var(--muted)]">トレーニング記録</p>
+          <h1 className="mt-1 text-3xl font-semibold">KochiFit</h1>
           <button
             type="button"
             onClick={() => void login()}

@@ -2,7 +2,7 @@
 
 import { X } from "lucide-react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { AccountAvatarButton } from "@/components/auth/account-menu";
 import { useAuth } from "@/components/auth/auth-provider";
 import {
@@ -23,46 +23,15 @@ export function AppShell({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [initialSettingsSection, setInitialSettingsSection] = useState<SettingsSection | null>(null);
   const [settingsListBackEnabled, setSettingsListBackEnabled] = useState(true);
-  const settingsPanelRef = useRef<HTMLElement | null>(null);
-  const settingsSwipeStartYRef = useRef<number | null>(null);
-  const [settingsSwipeOffset, setSettingsSwipeOffset] = useState(0);
 
   const openSettings = (section: SettingsSection | null = null, showBackToList = true) => {
     setInitialSettingsSection(section);
     setSettingsListBackEnabled(showBackToList);
-    setSettingsSwipeOffset(0);
     setIsSettingsOpen(true);
   };
 
   const closeSettings = () => {
-    setSettingsSwipeOffset(0);
     setIsSettingsOpen(false);
-  };
-
-  const handleSettingsTouchStart = (event: React.TouchEvent<HTMLElement>) => {
-    if (settingsPanelRef.current && settingsPanelRef.current.scrollTop > 0) {
-      settingsSwipeStartYRef.current = null;
-      return;
-    }
-    settingsSwipeStartYRef.current = event.touches[0]?.clientY ?? null;
-  };
-
-  const handleSettingsTouchMove = (event: React.TouchEvent<HTMLElement>) => {
-    const startY = settingsSwipeStartYRef.current;
-    if (startY === null) {
-      return;
-    }
-    const nextOffset = Math.max(0, (event.touches[0]?.clientY ?? startY) - startY);
-    setSettingsSwipeOffset(nextOffset);
-  };
-
-  const handleSettingsTouchEnd = () => {
-    if (settingsSwipeOffset > 90) {
-      closeSettings();
-    } else {
-      setSettingsSwipeOffset(0);
-    }
-    settingsSwipeStartYRef.current = null;
   };
 
   return (
@@ -85,17 +54,8 @@ export function AppShell({
           onClick={closeSettings}
         >
           <section
-            ref={settingsPanelRef}
             className="safe-bottom relative h-full w-full overflow-y-auto rounded-t-[16px] bg-[var(--surface)] shadow-[var(--shadow)]"
-            style={{
-              transform: settingsSwipeOffset ? `translateY(${settingsSwipeOffset}px)` : undefined,
-              transition: settingsSwipeOffset ? undefined : "transform 160ms ease",
-            }}
             onClick={(event) => event.stopPropagation()}
-            onTouchStart={handleSettingsTouchStart}
-            onTouchMove={handleSettingsTouchMove}
-            onTouchEnd={handleSettingsTouchEnd}
-            onTouchCancel={handleSettingsTouchEnd}
           >
             <button
               type="button"
