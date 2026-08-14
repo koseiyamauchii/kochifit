@@ -1435,7 +1435,7 @@ export function WorkoutCalendar({
         {!showCalendar && !showAddForm && !isLoading && workouts.length === 0 ? (
           <Link
             href={`/today/add?date=${effectiveSelectedDate}`}
-            className="flex min-h-[48vh] items-center justify-center rounded-[14px] text-center text-sm font-medium text-[var(--muted)]"
+            className="flex min-h-[calc(100svh-13rem)] items-center justify-center text-center text-sm font-medium text-[var(--muted)]"
           >
             タップして種目を追加
           </Link>
