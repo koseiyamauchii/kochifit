@@ -9,6 +9,11 @@ const heightOptions = Array.from({ length: 91 }, (_, index) => String(130 + inde
 const weightOptions = Array.from({ length: 131 }, (_, index) => String(35 + index));
 const ageOptions = Array.from({ length: 83 }, (_, index) => String(12 + index));
 const setCountOptions = Array.from({ length: 10 }, (_, index) => String(index + 1));
+const baseSelectClass = "h-10 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm";
+const profileSelectClass = "h-11 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm";
+const blockSelectClass = "h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm";
+const dateInputClass = "h-11 w-full min-w-0 max-w-full appearance-none rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-2 text-sm";
+const textareaClass = "min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2";
 
 function toNumberOrNull(value: string) {
   if (value.trim() === "") {
@@ -115,7 +120,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
           <select
             value={heightCm}
             onChange={(event) => setHeightCm(event.target.value)}
-            className="min-h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
+            className={baseSelectClass}
           >
             <option value="">未設定</option>
             {heightOptions.map((value) => (
@@ -130,7 +135,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
           <select
             value={bodyWeightKg}
             onChange={(event) => setBodyWeightKg(event.target.value)}
-            className="min-h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
+            className={baseSelectClass}
           >
             <option value="">未設定</option>
             {weightOptions.map((value) => (
@@ -145,7 +150,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
           <select
             value={age}
             onChange={(event) => setAge(event.target.value)}
-            className="min-h-12 w-full min-w-0 max-w-full appearance-none rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
+            className={profileSelectClass}
           >
             <option value="">未設定</option>
             {ageOptions.map((value) => (
@@ -160,7 +165,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
           <select
             value={sex}
             onChange={(event) => setSex(event.target.value)}
-            className="min-h-12 w-full min-w-0 max-w-full appearance-none rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
+            className={profileSelectClass}
           >
             <option value="unspecified">未設定</option>
             <option value="male">男性</option>
@@ -174,7 +179,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
         <select
           value={trainingSplit}
           onChange={(event) => setTrainingSplit(event.target.value)}
-          className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+          className={blockSelectClass}
         >
           <option value="">未設定</option>
           <option value="full_body">全身</option>
@@ -188,7 +193,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
         <select
           value={defaultSetCount}
           onChange={(event) => setDefaultSetCount(event.target.value)}
-          className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+          className={blockSelectClass}
         >
           {setCountOptions.map((value) => (
             <option key={value} value={value}>
@@ -200,88 +205,94 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
         </>
       ) : (
         <div className="space-y-3">
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">目的</span>
-          <textarea
-            value={trainingPurpose}
-            onChange={(event) => setTrainingPurpose(event.target.value)}
-            maxLength={200}
-            rows={2}
-            className="min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2"
-            placeholder="例：健康維持、増量、減量"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">最終目標</span>
-          <textarea
-            value={finalGoal}
-            onChange={(event) => setFinalGoal(event.target.value)}
-            maxLength={200}
-            rows={2}
-            className="min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2"
-            placeholder="例：ベンチプレス100kg、体脂肪率を下げる"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">1か月目標の期限</span>
-          <input
-            type="date"
-            value={oneMonthGoalDate}
-            onChange={(event) => setOneMonthGoalDate(event.target.value)}
-            className="min-h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">1か月目標の内容</span>
-          <textarea
-            value={oneMonthGoalText}
-            onChange={(event) => setOneMonthGoalText(event.target.value)}
-            maxLength={200}
-            rows={2}
-            className="min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2"
-            placeholder="例：週3回のペースを作る"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">3か月目標の期限</span>
-          <input
-            type="date"
-            value={threeMonthGoalDate}
-            onChange={(event) => setThreeMonthGoalDate(event.target.value)}
-            className="min-h-12 w-full min-w-0 rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">3か月目標の内容</span>
-          <textarea
-            value={threeMonthGoalText}
-            onChange={(event) => setThreeMonthGoalText(event.target.value)}
-            maxLength={200}
-            rows={2}
-            className="min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2"
-            placeholder="例：フォームを安定させて扱う重量を伸ばす"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">1年目標の期限</span>
-          <input
-            type="date"
-            value={oneYearGoalDate}
-            onChange={(event) => setOneYearGoalDate(event.target.value)}
-            className="min-h-12 w-full min-w-0 max-w-full appearance-none rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm"
-          />
-        </label>
-        <label className="block space-y-1">
-          <span className="text-sm font-medium text-[var(--muted)]">1年目標の内容</span>
-          <textarea
-            value={oneYearGoalText}
-            onChange={(event) => setOneYearGoalText(event.target.value)}
-            maxLength={200}
-            rows={2}
-            className="min-h-20 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-2"
-            placeholder="例：継続して体型と筋力を変える"
-          />
-        </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">目的</span>
+            <textarea
+              value={trainingPurpose}
+              onChange={(event) => setTrainingPurpose(event.target.value)}
+              maxLength={200}
+              rows={2}
+              className={textareaClass}
+              placeholder="例：健康維持、増量、減量"
+            />
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">最終目標</span>
+            <textarea
+              value={finalGoal}
+              onChange={(event) => setFinalGoal(event.target.value)}
+              maxLength={200}
+              rows={2}
+              className={textareaClass}
+              placeholder="例：ベンチプレス100kg、体脂肪率を下げる"
+            />
+          </label>
+          <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">1か月目標の内容</span>
+              <textarea
+                value={oneMonthGoalText}
+                onChange={(event) => setOneMonthGoalText(event.target.value)}
+                maxLength={200}
+                rows={2}
+                className={textareaClass}
+                placeholder="例：週3回のペースを作る"
+              />
+            </label>
+            <label className="block min-w-0 space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">期限</span>
+              <input
+                type="date"
+                value={oneMonthGoalDate}
+                onChange={(event) => setOneMonthGoalDate(event.target.value)}
+                className={dateInputClass}
+              />
+            </label>
+          </div>
+          <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">3か月目標の内容</span>
+              <textarea
+                value={threeMonthGoalText}
+                onChange={(event) => setThreeMonthGoalText(event.target.value)}
+                maxLength={200}
+                rows={2}
+                className={textareaClass}
+                placeholder="例：フォームを安定させて扱う重量を伸ばす"
+              />
+            </label>
+            <label className="block min-w-0 space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">期限</span>
+              <input
+                type="date"
+                value={threeMonthGoalDate}
+                onChange={(event) => setThreeMonthGoalDate(event.target.value)}
+                className={dateInputClass}
+              />
+            </label>
+          </div>
+          <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
+            <label className="block space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">1年目標の内容</span>
+              <textarea
+                value={oneYearGoalText}
+                onChange={(event) => setOneYearGoalText(event.target.value)}
+                maxLength={200}
+                rows={2}
+                className={textareaClass}
+                placeholder="例：継続して体型と筋力を変える"
+              />
+            </label>
+            <label className="block min-w-0 space-y-1">
+              <span className="text-sm font-medium text-[var(--muted)]">期限</span>
+              <input
+                type="date"
+                value={oneYearGoalDate}
+                onChange={(event) => setOneYearGoalDate(event.target.value)}
+                className={dateInputClass}
+              />
+            </label>
+          </div>
         </div>
       )}
       <button
