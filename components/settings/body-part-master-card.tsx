@@ -46,6 +46,10 @@ export function BodyPartMasterCard() {
     }
   }, [authStatus, load, profileStatus]);
 
+  const notifyMasterDataChanged = useCallback(() => {
+    window.dispatchEvent(new Event("kochifit:master-data-changed"));
+  }, []);
+
   const persistBodyParts = useCallback(
     async (nextBodyParts: BodyPart[]) => {
       if (!user) {
@@ -61,6 +65,7 @@ export function BodyPartMasterCard() {
             colorKey: bodyPart.colorKey,
           })),
         });
+        notifyMasterDataChanged();
       } catch (saveError) {
         console.error("Body part preference save error", saveError);
         setError("部位設定の保存に失敗しました。");
@@ -69,7 +74,7 @@ export function BodyPartMasterCard() {
         setIsSaving(false);
       }
     },
-    [client, load, user],
+    [client, load, notifyMasterDataChanged, user],
   );
 
   const moveBodyPartById = (sourceBodyPartId: string, targetBodyPartId: string, placeAfter = false) => {

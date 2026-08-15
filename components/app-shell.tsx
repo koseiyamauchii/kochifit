@@ -30,19 +30,22 @@ export function AppShell({
     setIsSettingsOpen(true);
   };
 
-  const confirmNavigation = () => {
-    const navigationEvent = new Event("kochifit:confirm-navigation", { cancelable: true });
+  const confirmNavigation = (scope: "page" | "settings") => {
+    const navigationEvent = new CustomEvent("kochifit:confirm-navigation", {
+      cancelable: true,
+      detail: { scope },
+    });
     return window.dispatchEvent(navigationEvent);
   };
 
   const closeSettings = () => {
-    if (confirmNavigation()) {
+    if (confirmNavigation("settings")) {
       setIsSettingsOpen(false);
     }
   };
 
   const handleHomeClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!confirmNavigation()) {
+    if (!confirmNavigation("page")) {
       event.preventDefault();
     }
   };

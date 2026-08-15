@@ -83,7 +83,10 @@ export function SettingsSections({
   const activeItem = sectionItems.find((item) => item.id === activeSection);
   const showDetailHeader = Boolean(activeItem && activeSection !== "account");
   const confirmNavigation = () => {
-    const navigationEvent = new Event("kochifit:confirm-navigation", { cancelable: true });
+    const navigationEvent = new CustomEvent("kochifit:confirm-navigation", {
+      cancelable: true,
+      detail: { scope: "settings" },
+    });
     return window.dispatchEvent(navigationEvent);
   };
   const handleBack = () => {

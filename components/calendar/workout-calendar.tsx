@@ -952,6 +952,15 @@ export function WorkoutCalendar({
   }, [authStatus, loadBaseData, profileStatus]);
 
   useEffect(() => {
+    const handleMasterDataChange = () => {
+      if (authStatus === "authenticated" && profileStatus === "ready") {
+        void loadBaseData();
+      }
+    };
+    window.addEventListener("kochifit:master-data-changed", handleMasterDataChange);
+    return () => window.removeEventListener("kochifit:master-data-changed", handleMasterDataChange);
+  }, [authStatus, loadBaseData, profileStatus]);
+  useEffect(() => {
     if (authStatus === "authenticated" && profileStatus === "ready") {
       void loadMonth().catch((loadError) => {
         console.error("Workout summary load error", loadError);
@@ -1050,11 +1059,11 @@ export function WorkoutCalendar({
         note: addDraft.note.trim() || null,
         sets: toSetInputs(addDraft.sets, profile),
       });
-      setAddDraft((current) => ({
-        exerciseId: current.exerciseId,
+      setAddDraft({
+        exerciseId: "",
         note: "",
         sets: createSetDrafts(defaultSetCount),
-      }));
+      });
       await Promise.all([loadMonth(), loadSelectedDate(), loadPreviousWorkout()]);
       if (showAddForm && backHref) {
         router.push(backHref);
@@ -1118,6 +1127,10 @@ export function WorkoutCalendar({
       return;
     }
     const handleNavigationConfirm = (event: Event) => {
+      const scope = event instanceof CustomEvent ? event.detail?.scope : undefined;
+      if (scope && scope !== "page") {
+        return;
+      }
       if (!confirmUnsavedAddNavigation()) {
         event.preventDefault();
       }

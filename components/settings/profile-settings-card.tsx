@@ -261,6 +261,10 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
 
   useEffect(() => {
     const handleNavigationConfirm = (event: Event) => {
+      const scope = event instanceof CustomEvent ? event.detail?.scope : undefined;
+      if (scope && scope !== "settings" && scope !== "page") {
+        return;
+      }
       if (!confirmUnsavedNavigation()) {
         event.preventDefault();
       }

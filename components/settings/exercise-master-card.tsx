@@ -261,6 +261,7 @@ export function ExerciseMasterCard() {
         await createExercise(client, input);
       }
       await load();
+      notifyMasterDataChanged();
       setDraft(null);
       setNewDraftBodyPartId(null);
       setArchiveTarget(null);
@@ -283,6 +284,7 @@ export function ExerciseMasterCard() {
     try {
       await archiveExercise(client, archiveTarget.id);
       await load();
+      notifyMasterDataChanged();
       setDraft(null);
       setNewDraftBodyPartId(null);
       setArchiveTarget(null);
@@ -300,6 +302,11 @@ export function ExerciseMasterCard() {
       setArchiveTarget(draft);
     }
   };
+
+  const notifyMasterDataChanged = () => {
+    window.dispatchEvent(new Event("kochifit:master-data-changed"));
+  };
+
   const persistExerciseOrderIds = async (bodyPartId: string, exerciseIds: string[]) => {
     if (!user) {
       return;
@@ -310,6 +317,7 @@ export function ExerciseMasterCard() {
         bodyPartId,
         exerciseIds,
       });
+      notifyMasterDataChanged();
       setMessage("並び順を保存しました。");
     } catch (reorderError) {
       console.error("Exercise reorder error", reorderError);
