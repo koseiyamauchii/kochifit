@@ -38,8 +38,8 @@ const sectionItems: Array<{
 }> = [
   { id: "profile", title: "プロフィール", detailTitle: "プロフィール設定", icon: <User size={21} /> },
   { id: "goals", title: "目的・目標", detailTitle: "目的・目標", icon: <Target size={21} /> },
-  { id: "bodyParts", title: "部位マスタ", detailTitle: "部位マスター", icon: <Dumbbell size={21} /> },
-  { id: "exercises", title: "種目マスタ", detailTitle: "種目マスター", icon: <Dumbbell size={21} /> },
+  { id: "bodyParts", title: "部位マスタ", detailTitle: "部位マスタ", icon: <Dumbbell size={21} /> },
+  { id: "exercises", title: "種目マスタ", detailTitle: "種目マスタ", icon: <Dumbbell size={21} /> },
   { id: "formula", title: "計算式", detailTitle: "計算式", icon: <Calculator size={21} /> },
   { id: "accessibility", title: "テーマ", detailTitle: "テーマ", icon: <Sun size={21} /> },
   { id: "support", title: "問い合わせ", detailTitle: "問い合わせ", icon: <Mail size={21} /> },

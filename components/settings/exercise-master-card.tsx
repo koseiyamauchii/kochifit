@@ -153,6 +153,7 @@ export function ExerciseMasterCard() {
   const [archiveTarget, setArchiveTarget] = useState<Draft | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [savedBodyPartId, setSavedBodyPartId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const groupedExercises = useMemo(
@@ -202,6 +203,7 @@ export function ExerciseMasterCard() {
     });
     setNewDraftBodyPartId(null);
     setMessage(null);
+    setSavedBodyPartId(null);
     setError(null);
   };
 
@@ -222,6 +224,7 @@ export function ExerciseMasterCard() {
     setDraft(createEmptyDraft(bodyPartId, nextOrder));
     setNewDraftBodyPartId(bodyPartId);
     setMessage(null);
+    setSavedBodyPartId(null);
     setError(null);
   };
 
@@ -235,6 +238,7 @@ export function ExerciseMasterCard() {
     }
     setIsSaving(true);
     setMessage(null);
+    setSavedBodyPartId(null);
     setError(null);
     try {
       const displayOrder = Math.max(1, Math.trunc(Number(draft.displayOrder) || 1));
@@ -271,6 +275,7 @@ export function ExerciseMasterCard() {
     }
     setIsSaving(true);
     setMessage(null);
+    setSavedBodyPartId(null);
     setError(null);
     try {
       await archiveExercise(client, archiveTarget.id);
@@ -309,13 +314,25 @@ export function ExerciseMasterCard() {
         exerciseIds,
       });
       notifyMasterDataChanged();
-      setMessage("並び順を保存しました。");
+      setSavedBodyPartId(bodyPartId);
+      setMessage(null);
     } catch (reorderError) {
       console.error("Exercise reorder error", reorderError);
       setError("並び順の保存に失敗しました。");
       await load();
     }
   };
+
+  useEffect(() => {
+    if (!message && !savedBodyPartId) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      setMessage(null);
+      setSavedBodyPartId(null);
+    }, 2500);
+    return () => window.clearTimeout(timer);
+  }, [message, savedBodyPartId]);
 
   const moveExerciseByDelta = (exercise: Exercise, delta: -1 | 1) => {
     const currentGroup = exercises
@@ -338,7 +355,7 @@ export function ExerciseMasterCard() {
 
   return (
     <section className="space-y-4">
-      <p className="text-sm text-[var(--muted)]">三本線を長押しして並べ替えます。</p>
+      <p className="text-sm text-[var(--muted)]">上下ボタンで並べ替えます。</p>
 
       <div className="space-y-4">
         {groupedExercises.map(({ bodyPart, exercises: bodyPartExercises }) => {
@@ -355,6 +372,9 @@ export function ExerciseMasterCard() {
                     style={{ "--color-orb": headerColor } as CSSProperties}
                   />
                   <span className="min-w-0 truncate">{bodyPart.displayName}</span>
+                  {savedBodyPartId === bodyPart.id ? (
+                    <span className="shrink-0 text-xs font-medium text-teal-500">保存しました。</span>
+                  ) : null}
                 </h3>
                 <button
                   type="button"
@@ -451,7 +471,7 @@ export function ExerciseMasterCard() {
         })}
       </div>
 
-      {message ? <p className="mt-3 text-sm text-emerald-500">{message}</p> : null}
+      {message ? <p className="text-sm font-medium text-teal-500">{message}</p> : null}
       {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
       {archiveTarget ? (
         <div

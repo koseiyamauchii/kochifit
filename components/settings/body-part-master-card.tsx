@@ -16,6 +16,7 @@ export function BodyPartMasterCard() {
   const [activeColorBodyPartId, setActiveColorBodyPartId] = useState<string | null>(null);
   const [, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const bodyPartsRef = useRef<BodyPart[]>([]);
 
   const load = useCallback(async () => {
@@ -52,6 +53,7 @@ export function BodyPartMasterCard() {
       }
       setIsSaving(true);
       setError(null);
+      setMessage(null);
       try {
         await reorderBodyParts(client, {
           userId: user.id,
@@ -61,6 +63,7 @@ export function BodyPartMasterCard() {
           })),
         });
         notifyMasterDataChanged();
+        setMessage("保存しました。");
       } catch (saveError) {
         console.error("Body part preference save error", saveError);
         setError("部位設定の保存に失敗しました。");
@@ -71,6 +74,14 @@ export function BodyPartMasterCard() {
     },
     [client, load, notifyMasterDataChanged, user],
   );
+
+  useEffect(() => {
+    if (!message) {
+      return;
+    }
+    const timer = window.setTimeout(() => setMessage(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [message]);
 
   const moveBodyPartByDelta = (bodyPartId: string, delta: -1 | 1) => {
     const currentBodyParts = bodyPartsRef.current;
@@ -97,8 +108,11 @@ export function BodyPartMasterCard() {
 
   return (
     <section className="space-y-4">
+      <div className="flex min-h-5 items-center justify-start">
+        {message ? <p className="text-sm font-medium text-teal-500">{message}</p> : null}
+      </div>
       <p className="text-sm text-[var(--muted)]">
-        三本線を長押しして並べ替えます。ここで変更した順番は、種目マスタ、トレーニング記録、履歴の部位順に反映されます。
+        上下ボタンで並べ替えます。ここで変更した順番は、種目マスタ、トレーニング記録、履歴の部位順に反映されます。
       </p>
       <div className="space-y-2">
         {bodyParts.map((bodyPart, index) => (

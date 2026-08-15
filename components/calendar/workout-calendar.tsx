@@ -243,9 +243,9 @@ function PreviousWorkoutBlock({
   onCopyAll: () => void;
 }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-soft)] p-3 ring-1 ring-[var(--border)]">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <h4 className="font-semibold">前回の記録</h4>
+    <div className="rounded-[12px] bg-[var(--surface-soft)] p-2 ring-1 ring-[var(--border)]">
+      <div className="mb-1.5 flex items-center justify-between gap-2">
+        <h4 className="text-sm font-medium text-[var(--muted)]">前回の記録</h4>
         <div className="flex shrink-0 items-center gap-2">
           {previousWorkout ? (
             <Link
@@ -259,10 +259,10 @@ function PreviousWorkoutBlock({
             type="button"
             onClick={onCopyAll}
             disabled={!previousWorkout}
-            className="flex min-h-9 items-center gap-1.5 rounded-[12px] bg-[var(--accent)] px-3 text-sm font-medium text-white disabled:opacity-40"
+            aria-label="前回の記録をコピー"
+            className="flex h-8 w-8 items-center justify-center rounded-[12px] bg-[var(--accent)] text-white disabled:opacity-40"
           >
-            <Copy size={15} />
-            コピー
+            <Copy size={16} />
           </button>
         </div>
       </div>
@@ -270,7 +270,7 @@ function PreviousWorkoutBlock({
         <div className="space-y-2">
           <div className="space-y-1.5 text-xs text-[var(--muted)]">
             {previousWorkout.sets.map((set, index) => (
-              <div key={set.id} className="grid grid-cols-[3.5rem_1fr] items-start gap-2 rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5">
+              <div key={set.id} className="grid grid-cols-[3.5rem_1fr] items-start gap-2 rounded-[12px] bg-[var(--surface)] px-2.5 py-1">
                 <span className="font-semibold">{set.isWarmup ? "W" : "セット " + (index + 1)}</span>
                 <span className="min-w-0 space-y-1">
                   <span className="block">{formatSetLine(set.weightKg, set.reps)}</span>
