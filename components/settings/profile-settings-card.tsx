@@ -66,6 +66,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
   const [oneYearGoalDate, setOneYearGoalDate] = useState("");
   const [oneYearGoalText, setOneYearGoalText] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const lastSavedSnapshotRef = useRef("");
   const currentSnapshotKeyRef = useRef("");
   const saveTimerRef = useRef<number | null>(null);
@@ -155,6 +156,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
     hasPendingSaveRef.current = false;
     hasLoadedProfileRef.current = true;
     setError(null);
+    setSaveMessage(null);
   }, [profile]);
 
   const save = useCallback(
@@ -166,6 +168,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
       const savedSnapshot = { ...snapshot, defaultSetCount: parsedSetCount };
       isSavingRef.current = true;
       setError(null);
+      setSaveMessage(null);
       try {
         const { error: updateError } = await client
           .from("profiles")
@@ -200,8 +203,10 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
           }
           await refreshProfile();
         }
+        setSaveMessage("保存しました。");
       } catch (saveError) {
         console.error("Profile settings save error", saveError);
+        setSaveMessage(null);
         setError("プロフィール設定の保存に失敗しました。");
       } finally {
         isSavingRef.current = false;
@@ -258,6 +263,14 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
       }
     };
   }, [currentSnapshot, currentSnapshotKey, save, user]);
+
+  useEffect(() => {
+    if (!saveMessage) {
+      return;
+    }
+    const timer = window.setTimeout(() => setSaveMessage(null), 2500);
+    return () => window.clearTimeout(timer);
+  }, [saveMessage]);
 
   useEffect(() => {
     const handleNavigationConfirm = (event: Event) => {
@@ -502,6 +515,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
           </div>
         </div>
       )}
+      {saveMessage ? <p className="mt-3 text-sm font-medium text-teal-500">{saveMessage}</p> : null}
       {error ? <p className="mt-3 text-sm text-[var(--warning)]">{error}</p> : null}
     </section>
   );

@@ -1,8 +1,8 @@
 "use client";
 
-import { AlertTriangle, Menu, Save, Trash2, X } from "lucide-react";
-import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AlertTriangle, ChevronDown, ChevronUp, Save, Trash2, X } from "lucide-react";
+import type { CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -151,17 +151,9 @@ export function ExerciseMasterCard() {
   const [newDraftBodyPartId, setNewDraftBodyPartId] = useState<string | null>(null);
   const [expandedBodyPartIds, setExpandedBodyPartIds] = useState<Set<string>>(() => new Set());
   const [archiveTarget, setArchiveTarget] = useState<Draft | null>(null);
-  const [draggingExerciseId, setDraggingExerciseId] = useState<string | null>(null);
-  const [touchDraggingExerciseId, setTouchDraggingExerciseId] = useState<string | null>(null);
-  const [touchDragOffsetY, setTouchDragOffsetY] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const touchDragExerciseIdRef = useRef<string | null>(null);
-  const touchDragStartYRef = useRef<number | null>(null);
-  const touchDragTimerRef = useRef<number | null>(null);
-  const exercisesRef = useRef<Exercise[]>([]);
-  const pendingExerciseOrderRef = useRef<{ bodyPartId: string; exerciseIds: string[] } | null>(null);
 
   const groupedExercises = useMemo(
     () =>
@@ -192,9 +184,6 @@ export function ExerciseMasterCard() {
     }
   }, [client, user]);
 
-  useEffect(() => {
-    exercisesRef.current = exercises;
-  }, [exercises]);
 
   useEffect(() => {
     if (authStatus === "authenticated" && profileStatus === "ready") {
@@ -328,122 +317,23 @@ export function ExerciseMasterCard() {
     }
   };
 
-  const moveExerciseById = (sourceExerciseId: string, targetExerciseId: string, placeAfter = false) => {
-    if (sourceExerciseId === targetExerciseId) {
-      return false;
-    }
-    const currentExercises = exercisesRef.current;
-    const sourceExercise = currentExercises.find((exercise) => exercise.id === sourceExerciseId);
-    const targetExercise = currentExercises.find((exercise) => exercise.id === targetExerciseId);
-    if (!sourceExercise || !targetExercise || sourceExercise.bodyPartId !== targetExercise.bodyPartId) {
-      return false;
-    }
-
-    const currentGroup = currentExercises
-      .filter((exercise) => exercise.bodyPartId === targetExercise.bodyPartId)
+  const moveExerciseByDelta = (exercise: Exercise, delta: -1 | 1) => {
+    const currentGroup = exercises
+      .filter((item) => item.bodyPartId === exercise.bodyPartId)
       .sort((a, b) => a.displayOrder - b.displayOrder);
-    const sourceIndex = currentGroup.findIndex((exercise) => exercise.id === sourceExerciseId);
-    if (sourceIndex < 0) {
-      return false;
+    const sourceIndex = currentGroup.findIndex((item) => item.id === exercise.id);
+    const targetIndex = sourceIndex + delta;
+    if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= currentGroup.length) {
+      return;
     }
-
     const nextGroup = [...currentGroup];
-    const [moved] = nextGroup.splice(sourceIndex, 1);
-    const targetIndex = nextGroup.findIndex((exercise) => exercise.id === targetExerciseId);
-    if (targetIndex < 0) {
-      return false;
-    }
-    const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
-    nextGroup.splice(insertIndex, 0, moved);
-    const isSameOrder = nextGroup.every((exercise, index) => exercise.id === currentGroup[index]?.id);
-    if (isSameOrder) {
-      return false;
-    }
-    const nextExercises = currentExercises.map((exercise) => {
-      const nextIndex = nextGroup.findIndex((item) => item.id === exercise.id);
-      return nextIndex >= 0 ? { ...exercise, displayOrder: nextIndex + 1 } : exercise;
+    [nextGroup[sourceIndex], nextGroup[targetIndex]] = [nextGroup[targetIndex], nextGroup[sourceIndex]];
+    const nextExercises = exercises.map((item) => {
+      const nextIndex = nextGroup.findIndex((groupItem) => groupItem.id === item.id);
+      return nextIndex >= 0 ? { ...item, displayOrder: nextIndex + 1 } : item;
     });
-    const nextOrder = {
-      bodyPartId: targetExercise.bodyPartId,
-      exerciseIds: nextGroup.map((exercise) => exercise.id),
-    };
-    exercisesRef.current = nextExercises;
     setExercises(nextExercises);
-    pendingExerciseOrderRef.current = nextOrder;
-    return true;
-  };
-
-  const moveExercise = async (targetExercise: Exercise) => {
-    if (!user || !draggingExerciseId || draggingExerciseId === targetExercise.id) {
-      setDraggingExerciseId(null);
-      return;
-    }
-    moveExerciseById(draggingExerciseId, targetExercise.id);
-    const pendingOrder = pendingExerciseOrderRef.current;
-    pendingExerciseOrderRef.current = null;
-    if (pendingOrder) {
-      await persistExerciseOrderIds(pendingOrder.bodyPartId, pendingOrder.exerciseIds);
-    }
-    setDraggingExerciseId(null);
-  };
-
-  const clearTouchDrag = () => {
-    if (touchDragTimerRef.current !== null) {
-      window.clearTimeout(touchDragTimerRef.current);
-      touchDragTimerRef.current = null;
-    }
-    touchDragExerciseIdRef.current = null;
-    touchDragStartYRef.current = null;
-    setTouchDraggingExerciseId(null);
-    setTouchDragOffsetY(0);
-  };
-
-  const startTouchDrag = (exerciseId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === "mouse") {
-      return;
-    }
-    if (touchDragTimerRef.current !== null) {
-      window.clearTimeout(touchDragTimerRef.current);
-    }
-    event.currentTarget.setPointerCapture(event.pointerId);
-    touchDragStartYRef.current = event.clientY;
-    pendingExerciseOrderRef.current = null;
-    touchDragTimerRef.current = window.setTimeout(() => {
-      touchDragExerciseIdRef.current = exerciseId;
-      setTouchDraggingExerciseId(exerciseId);
-    }, 180);
-  };
-
-  const moveTouchDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
-    const sourceExerciseId = touchDragExerciseIdRef.current;
-    if (!sourceExerciseId) {
-      return;
-    }
-    event.preventDefault();
-    const nextOffsetY = event.clientY - (touchDragStartYRef.current ?? event.clientY);
-    const target = document
-      .elementFromPoint(event.clientX, event.clientY)
-      ?.closest<HTMLElement>("[data-exercise-id]");
-    const targetExerciseId = target?.dataset.exerciseId;
-    if (targetExerciseId && targetExerciseId !== sourceExerciseId) {
-      const rect = target.getBoundingClientRect();
-      const didMove = moveExerciseById(sourceExerciseId, targetExerciseId, event.clientY > rect.top + rect.height / 2);
-      if (didMove) {
-        touchDragStartYRef.current = event.clientY;
-        setTouchDragOffsetY(0);
-        return;
-      }
-    }
-    setTouchDragOffsetY(nextOffsetY);
-  };
-
-  const finishTouchDrag = () => {
-    const pendingOrder = pendingExerciseOrderRef.current;
-    clearTouchDrag();
-    pendingExerciseOrderRef.current = null;
-    if (pendingOrder) {
-      void persistExerciseOrderIds(pendingOrder.bodyPartId, pendingOrder.exerciseIds);
-    }
+    void persistExerciseOrderIds(exercise.bodyPartId, nextGroup.map((item) => item.id));
   };
 
   return (
@@ -490,19 +380,10 @@ export function ExerciseMasterCard() {
                   />
                 ) : null}
                 <div className="grid gap-2">
-                  {visibleExercises.map((exercise) => (
-                    <div
-                      key={exercise.id}
-                      data-exercise-id={exercise.id}
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={() => void moveExercise(exercise)}
-                    >
+                  {visibleExercises.map((exercise, index) => (
+                    <div key={exercise.id}>
                       <div
-                        className={[
-                          "relative flex w-full min-w-0 items-center gap-2 rounded-[14px] bg-[var(--surface-soft)] px-3 py-2 transition-[transform,opacity,background-color,box-shadow] duration-150 will-change-transform",
-                          touchDraggingExerciseId === exercise.id ? "z-20 bg-[var(--surface)] opacity-95 shadow-[var(--shadow)] transition-none pointer-events-none" : "",
-                        ].join(" ")}
-                        style={touchDraggingExerciseId === exercise.id ? { transform: `translate3d(0, ${touchDragOffsetY}px, 0)` } : undefined}
+                        className="flex w-full min-w-0 items-center gap-2 rounded-[14px] bg-[var(--surface-soft)] px-3 py-2 transition-colors duration-150"
                       >
                         <button
                           type="button"
@@ -520,19 +401,26 @@ export function ExerciseMasterCard() {
                             ) : null}
                           </span>
                         </button>
-                        <button
-                          type="button"
-                          draggable
-                          onDragStart={() => setDraggingExerciseId(exercise.id)}
-                          onPointerDown={(event) => startTouchDrag(exercise.id, event)}
-                          onPointerMove={moveTouchDrag}
-                          onPointerUp={finishTouchDrag}
-                          onPointerCancel={clearTouchDrag}
-                          aria-label={exercise.name + "を並べ替え"}
-                          className="flex h-10 w-10 shrink-0 touch-none select-none items-center justify-center rounded-[14px] bg-[var(--surface)] text-[var(--muted)] active:bg-[var(--accent-soft)] active:text-[var(--accent-strong)]"
-                        >
-                          <Menu size={20} />
-                        </button>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => moveExerciseByDelta(exercise, -1)}
+                            disabled={index === 0}
+                            aria-label={`${exercise.name}を上へ移動`}
+                            className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-30"
+                          >
+                            <ChevronUp size={20} />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => moveExerciseByDelta(exercise, 1)}
+                            disabled={index === visibleExercises.length - 1}
+                            aria-label={`${exercise.name}を下へ移動`}
+                            className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-[var(--surface)] text-[var(--muted)] disabled:opacity-30"
+                          >
+                            <ChevronDown size={20} />
+                          </button>
+                        </div>
                       </div>
                       {draft?.id === exercise.id ? (
                         <DraftPanel

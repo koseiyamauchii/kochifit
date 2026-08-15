@@ -243,7 +243,7 @@ function PreviousWorkoutBlock({
   onCopyAll: () => void;
 }) {
   return (
-    <div className="rounded-[12px] bg-[var(--surface-soft)] p-3">
+    <div className="rounded-[12px] bg-[var(--surface-soft)] p-3 ring-1 ring-[var(--border)]">
       <div className="mb-2 flex items-center justify-between gap-3">
         <h4 className="font-semibold">前回の記録</h4>
         <div className="flex shrink-0 items-center gap-2">
@@ -489,38 +489,35 @@ function WorkoutEntryForm({
   };
 
   return (
-    <section
-      className={[
-        "overflow-hidden rounded-[12px] shadow-[var(--shadow)]",
-        mode === "add" && !selectedExercise ? "bg-[var(--surface-soft)]" : "bg-[var(--surface)]",
-      ].join(" ")}
-    >
-      <div className={["flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2", mode === "add" && !selectedExercise ? "bg-[var(--surface-soft)]" : ""].join(" ")}>
-        <div className="flex min-w-0 items-center gap-2">
-          <span
-            aria-hidden="true"
-            className="color-orb h-3 w-3 shrink-0 rounded-full"
-            style={{ "--color-orb": exerciseBodyPartColor } as CSSProperties}
-          />
-          <div className="min-w-0">
-            {onHeaderClick ? (
-              <button
-                type="button"
-                onClick={onHeaderClick}
-                className="min-w-0 text-left"
-                aria-label={headerTitle + "を閉じる"}
-              >
+    <section className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
+      {mode === "add" && !selectedExercise ? null : (
+        <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="color-orb h-3 w-3 shrink-0 rounded-full"
+              style={{ "--color-orb": exerciseBodyPartColor } as CSSProperties}
+            />
+            <div className="min-w-0">
+              {onHeaderClick ? (
+                <button
+                  type="button"
+                  onClick={onHeaderClick}
+                  className="min-w-0 text-left"
+                  aria-label={headerTitle + "を閉じる"}
+                >
+                  <h3 className="min-w-0 truncate text-sm font-semibold">{headerTitle}</h3>
+                </button>
+              ) : (
                 <h3 className="min-w-0 truncate text-sm font-semibold">{headerTitle}</h3>
-              </button>
-            ) : (
-              <h3 className="min-w-0 truncate text-sm font-semibold">{headerTitle}</h3>
-            )}
+              )}
+            </div>
+          </div>
+          <div className="shrink-0 whitespace-nowrap rounded-[12px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--muted)]">
+            約{estimatedCalories}kcal
           </div>
         </div>
-        <div className="shrink-0 whitespace-nowrap rounded-[12px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[11px] font-semibold text-[var(--muted)]">
-          約{estimatedCalories}kcal
-        </div>
-      </div>
+      )}
       <div className="space-y-2.5 p-2.5">
 
       {mode === "add" && selectedBodyPartId && setSelectedBodyPartId ? (
@@ -560,7 +557,7 @@ function WorkoutEntryForm({
       ) : null}
 
       {mode === "add" ? (
-        <label className="block space-y-1 rounded-[12px] bg-[var(--surface-soft)] p-2">
+        <label className="block space-y-1">
           <span className="text-sm font-medium text-[var(--muted)]">種目</span>
           <select
             value={draft.exerciseId}
@@ -608,7 +605,7 @@ function WorkoutEntryForm({
         {draft.sets.map((set, index) => (
           <div
             key={index}
-            className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)] p-2"
+            className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)] p-2 ring-1 ring-[var(--border)]"
           >
             <div className="-mx-2 -mt-2 mb-2 flex items-center justify-between gap-2 bg-[var(--accent)] px-2.5 py-1.5 text-white">
               <span className="text-xs font-semibold">
