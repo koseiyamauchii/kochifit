@@ -490,7 +490,7 @@ function WorkoutEntryForm({
 
   return (
     <section className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
-      <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2">
+      <div className={["flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2", mode === "add" && !selectedExercise ? "bg-[var(--surface-soft)]" : ""].join(" ")}>
         <div className="flex min-w-0 items-center gap-2">
           <span
             aria-hidden="true"
@@ -560,7 +560,7 @@ function WorkoutEntryForm({
           <select
             value={draft.exerciseId}
             onChange={(event) => onDraftChange({ ...draft, exerciseId: event.target.value })}
-            className="min-h-11 w-full rounded-[12px] bg-[var(--surface)] px-3 text-sm font-semibold text-[var(--text)] ring-1 ring-[var(--border)]"
+            className="min-h-11 w-full rounded-[12px] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[var(--text)] ring-1 ring-[var(--border)]"
           >
             <option value="">種目を追加してください</option>
             {filteredExercises.map((exercise) => (

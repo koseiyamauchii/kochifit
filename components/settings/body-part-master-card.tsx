@@ -16,9 +16,11 @@ export function BodyPartMasterCard() {
   const [activeColorBodyPartId, setActiveColorBodyPartId] = useState<string | null>(null);
   const [draggingBodyPartId, setDraggingBodyPartId] = useState<string | null>(null);
   const [touchDraggingBodyPartId, setTouchDraggingBodyPartId] = useState<string | null>(null);
+  const [touchDragOffsetY, setTouchDragOffsetY] = useState(0);
   const [, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const touchDragBodyPartIdRef = useRef<string | null>(null);
+  const touchDragStartYRef = useRef<number | null>(null);
   const touchDragTimerRef = useRef<number | null>(null);
   const bodyPartsRef = useRef<BodyPart[]>([]);
   const pendingBodyPartsRef = useRef<BodyPart[] | null>(null);
@@ -128,7 +130,9 @@ export function BodyPartMasterCard() {
       touchDragTimerRef.current = null;
     }
     touchDragBodyPartIdRef.current = null;
+    touchDragStartYRef.current = null;
     setTouchDraggingBodyPartId(null);
+    setTouchDragOffsetY(0);
   };
 
   const startTouchDrag = (bodyPartId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -139,6 +143,7 @@ export function BodyPartMasterCard() {
       window.clearTimeout(touchDragTimerRef.current);
     }
     event.currentTarget.setPointerCapture(event.pointerId);
+    touchDragStartYRef.current = event.clientY;
     pendingBodyPartsRef.current = null;
     touchDragTimerRef.current = window.setTimeout(() => {
       touchDragBodyPartIdRef.current = bodyPartId;
@@ -152,6 +157,7 @@ export function BodyPartMasterCard() {
       return;
     }
     event.preventDefault();
+    setTouchDragOffsetY(event.clientY - (touchDragStartYRef.current ?? event.clientY));
     const target = document
       .elementFromPoint(event.clientX, event.clientY)
       ?.closest<HTMLElement>("[data-body-part-id]");
@@ -184,9 +190,10 @@ export function BodyPartMasterCard() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => moveBodyPart(bodyPart)}
             className={[
-              "rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 transition-[transform,opacity,background-color] duration-150",
-              touchDraggingBodyPartId === bodyPart.id ? "scale-[0.985] bg-[var(--accent-soft)] opacity-70" : "",
+              "relative rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 transition-[transform,opacity,background-color,box-shadow] duration-150",
+              touchDraggingBodyPartId === bodyPart.id ? "z-20 bg-[var(--surface)] opacity-95 shadow-[var(--shadow)] transition-none pointer-events-none" : "",
             ].join(" ")}
+            style={touchDraggingBodyPartId === bodyPart.id ? { transform: `translate3d(0, ${touchDragOffsetY}px, 0)` } : undefined}
           >
             <div className="flex items-center gap-2">
               <button

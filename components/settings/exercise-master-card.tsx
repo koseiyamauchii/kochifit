@@ -153,10 +153,12 @@ export function ExerciseMasterCard() {
   const [archiveTarget, setArchiveTarget] = useState<Draft | null>(null);
   const [draggingExerciseId, setDraggingExerciseId] = useState<string | null>(null);
   const [touchDraggingExerciseId, setTouchDraggingExerciseId] = useState<string | null>(null);
+  const [touchDragOffsetY, setTouchDragOffsetY] = useState(0);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const touchDragExerciseIdRef = useRef<string | null>(null);
+  const touchDragStartYRef = useRef<number | null>(null);
   const touchDragTimerRef = useRef<number | null>(null);
   const exercisesRef = useRef<Exercise[]>([]);
   const pendingExerciseOrderRef = useRef<{ bodyPartId: string; exerciseIds: string[] } | null>(null);
@@ -386,7 +388,9 @@ export function ExerciseMasterCard() {
       touchDragTimerRef.current = null;
     }
     touchDragExerciseIdRef.current = null;
+    touchDragStartYRef.current = null;
     setTouchDraggingExerciseId(null);
+    setTouchDragOffsetY(0);
   };
 
   const startTouchDrag = (exerciseId: string, event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -397,6 +401,7 @@ export function ExerciseMasterCard() {
       window.clearTimeout(touchDragTimerRef.current);
     }
     event.currentTarget.setPointerCapture(event.pointerId);
+    touchDragStartYRef.current = event.clientY;
     pendingExerciseOrderRef.current = null;
     touchDragTimerRef.current = window.setTimeout(() => {
       touchDragExerciseIdRef.current = exerciseId;
@@ -410,6 +415,7 @@ export function ExerciseMasterCard() {
       return;
     }
     event.preventDefault();
+    setTouchDragOffsetY(event.clientY - (touchDragStartYRef.current ?? event.clientY));
     const target = document
       .elementFromPoint(event.clientX, event.clientY)
       ?.closest<HTMLElement>("[data-exercise-id]");
@@ -482,9 +488,10 @@ export function ExerciseMasterCard() {
                     >
                       <div
                         className={[
-                          "flex w-full min-w-0 items-center gap-2 rounded-[14px] bg-[var(--surface-soft)] px-3 py-2 transition-[transform,opacity,background-color] duration-150",
-                          touchDraggingExerciseId === exercise.id ? "scale-[0.985] bg-[var(--accent-soft)] opacity-70" : "",
+                          "relative flex w-full min-w-0 items-center gap-2 rounded-[14px] bg-[var(--surface-soft)] px-3 py-2 transition-[transform,opacity,background-color,box-shadow] duration-150",
+                          touchDraggingExerciseId === exercise.id ? "z-20 bg-[var(--surface)] opacity-95 shadow-[var(--shadow)] transition-none pointer-events-none" : "",
                         ].join(" ")}
+                        style={touchDraggingExerciseId === exercise.id ? { transform: `translate3d(0, ${touchDragOffsetY}px, 0)` } : undefined}
                       >
                         <button
                           type="button"
