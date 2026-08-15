@@ -81,25 +81,30 @@ export function BodyPartMasterCard() {
 
   const moveBodyPartById = (sourceBodyPartId: string, targetBodyPartId: string, placeAfter = false) => {
     if (sourceBodyPartId === targetBodyPartId) {
-      return;
+      return false;
     }
     const currentBodyParts = bodyPartsRef.current;
     const sourceIndex = currentBodyParts.findIndex((bodyPart) => bodyPart.id === sourceBodyPartId);
     if (sourceIndex < 0) {
-      return;
+      return false;
     }
     const next = [...currentBodyParts];
     const [moved] = next.splice(sourceIndex, 1);
     const targetIndex = next.findIndex((bodyPart) => bodyPart.id === targetBodyPartId);
     if (targetIndex < 0) {
-      return;
+      return false;
     }
     const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
     next.splice(insertIndex, 0, moved);
+    const isSameOrder = next.every((bodyPart, index) => bodyPart.id === currentBodyParts[index]?.id);
+    if (isSameOrder) {
+      return false;
+    }
     const nextBodyParts = next.map((bodyPart, index) => ({ ...bodyPart, displayOrder: index + 1 }));
     bodyPartsRef.current = nextBodyParts;
     setBodyParts(nextBodyParts);
     pendingBodyPartsRef.current = nextBodyParts;
+    return true;
   };
 
   const moveBodyPart = async (targetBodyPart: BodyPart) => {
@@ -157,15 +162,21 @@ export function BodyPartMasterCard() {
       return;
     }
     event.preventDefault();
-    setTouchDragOffsetY(event.clientY - (touchDragStartYRef.current ?? event.clientY));
+    const nextOffsetY = event.clientY - (touchDragStartYRef.current ?? event.clientY);
     const target = document
       .elementFromPoint(event.clientX, event.clientY)
       ?.closest<HTMLElement>("[data-body-part-id]");
     const targetBodyPartId = target?.dataset.bodyPartId;
     if (targetBodyPartId && targetBodyPartId !== sourceBodyPartId) {
       const rect = target.getBoundingClientRect();
-      moveBodyPartById(sourceBodyPartId, targetBodyPartId, event.clientY > rect.top + rect.height / 2);
+      const didMove = moveBodyPartById(sourceBodyPartId, targetBodyPartId, event.clientY > rect.top + rect.height / 2);
+      if (didMove) {
+        touchDragStartYRef.current = event.clientY;
+        setTouchDragOffsetY(0);
+        return;
+      }
     }
+    setTouchDragOffsetY(nextOffsetY);
   };
 
   const finishTouchDrag = () => {
@@ -190,7 +201,7 @@ export function BodyPartMasterCard() {
             onDragOver={(event) => event.preventDefault()}
             onDrop={() => moveBodyPart(bodyPart)}
             className={[
-              "relative rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 transition-[transform,opacity,background-color,box-shadow] duration-150",
+              "relative rounded-[14px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 py-3 transition-[transform,opacity,background-color,box-shadow] duration-150 will-change-transform",
               touchDraggingBodyPartId === bodyPart.id ? "z-20 bg-[var(--surface)] opacity-95 shadow-[var(--shadow)] transition-none pointer-events-none" : "",
             ].join(" ")}
             style={touchDraggingBodyPartId === bodyPart.id ? { transform: `translate3d(0, ${touchDragOffsetY}px, 0)` } : undefined}

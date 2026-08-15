@@ -330,13 +330,13 @@ export function ExerciseMasterCard() {
 
   const moveExerciseById = (sourceExerciseId: string, targetExerciseId: string, placeAfter = false) => {
     if (sourceExerciseId === targetExerciseId) {
-      return;
+      return false;
     }
     const currentExercises = exercisesRef.current;
     const sourceExercise = currentExercises.find((exercise) => exercise.id === sourceExerciseId);
     const targetExercise = currentExercises.find((exercise) => exercise.id === targetExerciseId);
     if (!sourceExercise || !targetExercise || sourceExercise.bodyPartId !== targetExercise.bodyPartId) {
-      return;
+      return false;
     }
 
     const currentGroup = currentExercises
@@ -344,17 +344,21 @@ export function ExerciseMasterCard() {
       .sort((a, b) => a.displayOrder - b.displayOrder);
     const sourceIndex = currentGroup.findIndex((exercise) => exercise.id === sourceExerciseId);
     if (sourceIndex < 0) {
-      return;
+      return false;
     }
 
     const nextGroup = [...currentGroup];
     const [moved] = nextGroup.splice(sourceIndex, 1);
     const targetIndex = nextGroup.findIndex((exercise) => exercise.id === targetExerciseId);
     if (targetIndex < 0) {
-      return;
+      return false;
     }
     const insertIndex = placeAfter ? targetIndex + 1 : targetIndex;
     nextGroup.splice(insertIndex, 0, moved);
+    const isSameOrder = nextGroup.every((exercise, index) => exercise.id === currentGroup[index]?.id);
+    if (isSameOrder) {
+      return false;
+    }
     const nextExercises = currentExercises.map((exercise) => {
       const nextIndex = nextGroup.findIndex((item) => item.id === exercise.id);
       return nextIndex >= 0 ? { ...exercise, displayOrder: nextIndex + 1 } : exercise;
@@ -366,6 +370,7 @@ export function ExerciseMasterCard() {
     exercisesRef.current = nextExercises;
     setExercises(nextExercises);
     pendingExerciseOrderRef.current = nextOrder;
+    return true;
   };
 
   const moveExercise = async (targetExercise: Exercise) => {
@@ -415,15 +420,21 @@ export function ExerciseMasterCard() {
       return;
     }
     event.preventDefault();
-    setTouchDragOffsetY(event.clientY - (touchDragStartYRef.current ?? event.clientY));
+    const nextOffsetY = event.clientY - (touchDragStartYRef.current ?? event.clientY);
     const target = document
       .elementFromPoint(event.clientX, event.clientY)
       ?.closest<HTMLElement>("[data-exercise-id]");
     const targetExerciseId = target?.dataset.exerciseId;
     if (targetExerciseId && targetExerciseId !== sourceExerciseId) {
       const rect = target.getBoundingClientRect();
-      moveExerciseById(sourceExerciseId, targetExerciseId, event.clientY > rect.top + rect.height / 2);
+      const didMove = moveExerciseById(sourceExerciseId, targetExerciseId, event.clientY > rect.top + rect.height / 2);
+      if (didMove) {
+        touchDragStartYRef.current = event.clientY;
+        setTouchDragOffsetY(0);
+        return;
+      }
     }
+    setTouchDragOffsetY(nextOffsetY);
   };
 
   const finishTouchDrag = () => {
@@ -488,7 +499,7 @@ export function ExerciseMasterCard() {
                     >
                       <div
                         className={[
-                          "relative flex w-full min-w-0 items-center gap-2 rounded-[14px] bg-[var(--surface-soft)] px-3 py-2 transition-[transform,opacity,background-color,box-shadow] duration-150",
+                          "relative flex w-full min-w-0 items-center gap-2 rounded-[14px] bg-[var(--surface-soft)] px-3 py-2 transition-[transform,opacity,background-color,box-shadow] duration-150 will-change-transform",
                           touchDraggingExerciseId === exercise.id ? "z-20 bg-[var(--surface)] opacity-95 shadow-[var(--shadow)] transition-none pointer-events-none" : "",
                         ].join(" ")}
                         style={touchDraggingExerciseId === exercise.id ? { transform: `translate3d(0, ${touchDragOffsetY}px, 0)` } : undefined}

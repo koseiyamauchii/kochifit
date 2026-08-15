@@ -489,7 +489,12 @@ function WorkoutEntryForm({
   };
 
   return (
-    <section className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
+    <section
+      className={[
+        "overflow-hidden rounded-[12px] shadow-[var(--shadow)]",
+        mode === "add" && !selectedExercise ? "bg-[var(--surface-soft)]" : "bg-[var(--surface)]",
+      ].join(" ")}
+    >
       <div className={["flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2", mode === "add" && !selectedExercise ? "bg-[var(--surface-soft)]" : ""].join(" ")}>
         <div className="flex min-w-0 items-center gap-2">
           <span
@@ -555,12 +560,12 @@ function WorkoutEntryForm({
       ) : null}
 
       {mode === "add" ? (
-        <label className="block space-y-1">
+        <label className="block space-y-1 rounded-[12px] bg-[var(--surface-soft)] p-2">
           <span className="text-sm font-medium text-[var(--muted)]">種目</span>
           <select
             value={draft.exerciseId}
             onChange={(event) => onDraftChange({ ...draft, exerciseId: event.target.value })}
-            className="min-h-11 w-full rounded-[12px] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[var(--text)] ring-1 ring-[var(--border)]"
+            className="form-field-muted min-h-11 w-full appearance-none rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3 text-sm font-semibold text-[var(--text)]"
           >
             <option value="">種目を追加してください</option>
             {filteredExercises.map((exercise) => (
@@ -575,12 +580,6 @@ function WorkoutEntryForm({
       {mode === "add" && filteredExercises.length === 0 ? (
         <p className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--muted)]">
           種目マスタで種目を追加してください。
-        </p>
-      ) : null}
-
-      {mode === "add" && filteredExercises.length > 0 && !hasAnySetInput(draft, profile) ? (
-        <p className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2 text-sm text-[var(--muted)]">
-          重量、回数、メモのいずれかを入力してください。
         </p>
       ) : null}
 
