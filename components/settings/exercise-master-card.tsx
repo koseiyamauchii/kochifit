@@ -14,7 +14,14 @@ import {
   updateExercise,
 } from "@/lib/workouts/repository";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
-import type { BodyPart, Exercise } from "@/lib/workouts/types";
+import type { BodyPart, CardioMetric, Exercise } from "@/lib/workouts/types";
+
+const cardioMetricOptions: Array<{ key: CardioMetric; label: string }> = [
+  { key: "distance", label: "距離（km）" },
+  { key: "duration", label: "時間（分）" },
+  { key: "speed", label: "速さ（km/h）" },
+  { key: "calories", label: "カロリー（kcal）" },
+];
 
 interface Draft {
   id: string | null;
@@ -23,6 +30,10 @@ interface Draft {
   displayOrder: string;
   rackPosition: string;
   memo: string;
+  defaultSetCount: string;
+  bodyWeightEnabled: boolean;
+  bilateralRepsEnabled: boolean;
+  cardioMetrics: CardioMetric[];
 }
 
 function createEmptyDraft(bodyPartId = "", displayOrder = 1): Draft {
@@ -33,6 +44,10 @@ function createEmptyDraft(bodyPartId = "", displayOrder = 1): Draft {
     displayOrder: String(displayOrder),
     rackPosition: "",
     memo: "",
+    defaultSetCount: "",
+    bodyWeightEnabled: false,
+    bilateralRepsEnabled: false,
+    cardioMetrics: ["distance", "duration", "speed", "calories"],
   };
 }
 
@@ -53,6 +68,14 @@ function DraftPanel({
   onDraftChange: (draft: Draft) => void;
   onSave: () => void;
 }) {
+  const isCardio = bodyParts.find((bodyPart) => bodyPart.id === draft.bodyPartId)?.key === "cardio";
+  const toggleCardioMetric = (metric: CardioMetric) => {
+    const nextMetrics = draft.cardioMetrics.includes(metric)
+      ? draft.cardioMetrics.filter((item) => item !== metric)
+      : [...draft.cardioMetrics, metric];
+    onDraftChange({ ...draft, cardioMetrics: nextMetrics });
+  };
+
   return (
     <div className="mt-2 rounded-[12px] border border-[var(--accent)] bg-[var(--accent-soft)] p-3">
       <div className="flex items-center justify-between gap-3">
@@ -100,12 +123,63 @@ function DraftPanel({
             />
           </label>
           <label className="block space-y-1">
-            <span className="text-sm font-medium text-[var(--muted)]">ラック位置</span>
+            <span className="text-sm font-medium text-[var(--muted)]">器具位置</span>
             <input
               value={draft.rackPosition}
               onChange={(event) => onDraftChange({ ...draft, rackPosition: event.target.value })}
               className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
             />
+          </label>
+        </div>
+        {isCardio ? (
+          <fieldset className="space-y-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3">
+            <legend className="px-1 text-sm font-medium text-[var(--muted)]">記録する項目（複数選択可）</legend>
+            <div className="grid grid-cols-2 gap-2">
+              {cardioMetricOptions.map((option) => (
+                <label key={option.key} className="flex min-h-10 items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={draft.cardioMetrics.includes(option.key)}
+                    onChange={() => toggleCardioMetric(option.key)}
+                    className="h-5 w-5 accent-[var(--accent)]"
+                  />
+                  {option.label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+        <label className="block space-y-1">
+          <span className="text-sm font-medium text-[var(--muted)]">デフォルトセット数</span>
+          <select
+            value={draft.defaultSetCount}
+            onChange={(event) => onDraftChange({ ...draft, defaultSetCount: event.target.value })}
+            className="min-h-12 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3"
+          >
+            <option value="">プロフィール設定を使用</option>
+            {Array.from({ length: 10 }, (_, index) => index + 1).map((value) => (
+              <option key={value} value={value}>{value}セット</option>
+            ))}
+          </select>
+        </label>
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex min-h-12 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={draft.bodyWeightEnabled}
+              onChange={(event) => onDraftChange({ ...draft, bodyWeightEnabled: event.target.checked })}
+              className="h-5 w-5 accent-[var(--accent)]"
+            />
+            自重入力を表示
+          </label>
+          <label className="flex min-h-12 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-medium">
+            <input
+              type="checkbox"
+              checked={draft.bilateralRepsEnabled}
+              onChange={(event) => onDraftChange({ ...draft, bilateralRepsEnabled: event.target.checked })}
+              className="h-5 w-5 accent-[var(--accent)]"
+            />
+            左右回数を記録
           </label>
         </div>
         <label className="block space-y-1">
@@ -200,6 +274,10 @@ export function ExerciseMasterCard() {
       displayOrder: String(exercise.displayOrder),
       rackPosition: exercise.rackPosition ?? "",
       memo: exercise.memo ?? "",
+      defaultSetCount: exercise.defaultSetCount ? String(exercise.defaultSetCount) : "",
+      bodyWeightEnabled: exercise.bodyWeightEnabled,
+      bilateralRepsEnabled: exercise.bilateralRepsEnabled,
+      cardioMetrics: exercise.cardioMetrics,
     });
     setNewDraftBodyPartId(null);
     setMessage(null);
@@ -236,6 +314,11 @@ export function ExerciseMasterCard() {
       setError("種目名と部位を入力してください。");
       return;
     }
+    const isCardio = bodyParts.find((bodyPart) => bodyPart.id === draft.bodyPartId)?.key === "cardio";
+    if (isCardio && draft.cardioMetrics.length === 0) {
+      setError("有酸素種目は記録項目を1つ以上選択してください．");
+      return;
+    }
     setIsSaving(true);
     setMessage(null);
     setSavedBodyPartId(null);
@@ -249,6 +332,10 @@ export function ExerciseMasterCard() {
         displayOrder,
         rackPosition: draft.rackPosition.trim() || null,
         memo: draft.memo.trim() || null,
+        defaultSetCount: draft.defaultSetCount ? Number(draft.defaultSetCount) : null,
+        bodyWeightEnabled: draft.bodyWeightEnabled,
+        bilateralRepsEnabled: draft.bilateralRepsEnabled,
+        cardioMetrics: isCardio ? draft.cardioMetrics : [],
       };
       if (draft.id) {
         await updateExercise(client, draft.id, input);
@@ -414,7 +501,7 @@ export function ExerciseMasterCard() {
                             <span className="block font-medium">{exercise.name}</span>
                             {exercise.rackPosition || exercise.memo ? (
                               <span className="block truncate text-sm text-[var(--muted)]">
-                                {exercise.rackPosition ? "ラック：" + exercise.rackPosition : ""}
+                                {exercise.rackPosition ? "器具位置：" + exercise.rackPosition : ""}
                                 {exercise.rackPosition && exercise.memo ? " / " : ""}
                                 {exercise.memo ? "メモ：" + exercise.memo : ""}
                               </span>

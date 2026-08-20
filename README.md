@@ -81,7 +81,7 @@ https://kochifit.vercel.app
 Redirect URLs:
 https://kochifit.vercel.app/auth/callback
 http://localhost:3000/auth/callback
-http://192.168.11.3:3000/auth/callback
+http://<PCのLANホスト名>:3000/auth/callback
 ```
 
 Google Cloud側のOAuth redirect URIには，Supabase DashboardのGoogle Provider画面に表示されるcallback URLを登録します．
@@ -103,7 +103,7 @@ pnpm run dev:lan -- --port 3000
 
 PCでは `http://localhost:3000/` を開きます．
 
-スマートフォンでは `http://192.168.11.3:3000/` のようにPCのLAN IPアドレスを使います．
+スマートフォンでは `http://<PCのLANホスト名>:3000/` のように，環境ごとのLANホスト名を使います．
 
 Windows PowerShellで `pnpm` や `corepack` が見つからない場合は，Node.jsのLTS版をインストールし，新しいPowerShellを開き直してから以下を確認します．
 

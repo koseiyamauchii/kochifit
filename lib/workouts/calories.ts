@@ -5,6 +5,10 @@ export interface CalorieSet {
   weightKg: number | null;
   reps: number | null;
   isWarmup: boolean;
+  durationSec?: number | null;
+  distanceKm?: number | null;
+  speedKmh?: number | null;
+  caloriesKcal?: number | null;
 }
 
 const bodyPartMet: Record<string, number> = {
@@ -44,6 +48,21 @@ function getExerciseMet(exercise: Exercise | null) {
 }
 
 function estimateMinutes(sets: CalorieSet[]) {
+  const recordedMinutes = sets.reduce((total, set) => total + (set.durationSec ?? 0) / 60, 0);
+  if (recordedMinutes > 0) {
+    return recordedMinutes;
+  }
+  const derivedMinutes = sets.reduce((total, set) => {
+    const distanceKm = set.distanceKm ?? 0;
+    if (distanceKm <= 0) {
+      return total;
+    }
+    const speedKmh = set.speedKmh && set.speedKmh > 0 ? set.speedKmh : 8;
+    return total + (distanceKm / speedKmh) * 60;
+  }, 0);
+  if (derivedMinutes > 0) {
+    return derivedMinutes;
+  }
   const activeSets = sets.filter(
     (set) =>
       set.weightKg !== null &&
@@ -68,6 +87,10 @@ export function estimateWorkoutExerciseCalories(input: {
   exercise: Exercise | null;
   sets: CalorieSet[];
 }) {
+  const recordedCalories = input.sets.reduce((total, set) => total + (set.caloriesKcal ?? 0), 0);
+  if (recordedCalories > 0) {
+    return Math.round(recordedCalories);
+  }
   const minutes = estimateMinutes(input.sets);
   if (minutes === 0) {
     return 0;

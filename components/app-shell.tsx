@@ -15,9 +15,11 @@ type ActiveRoute = "home" | "today" | "history" | "settings";
 export function AppShell({
   active,
   children,
+  immersive = false,
 }: {
   active: ActiveRoute;
   children: React.ReactNode;
+  immersive?: boolean;
 }) {
   const { user } = useAuth();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -51,8 +53,8 @@ export function AppShell({
   };
 
   return (
-    <div className={["mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-3 pb-6 sm:px-6", active === "home" ? "pt-[7px] sm:pt-[19px]" : "pt-3 sm:pt-6"].join(" ")}>
-      {user ? (
+    <div className={["mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-3 pb-6 sm:px-6", immersive ? "pt-0" : active === "home" ? "pt-[7px] sm:pt-[19px]" : "pt-3 sm:pt-6"].join(" ")}>
+      {user && !immersive ? (
         <header className="mb-3 grid grid-cols-[36px_1fr_36px] items-center gap-2">
           <div />
           <Link href="/" onClick={handleHomeClick} className="truncate text-center text-lg font-bold">

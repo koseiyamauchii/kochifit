@@ -5,6 +5,7 @@ import { estimateWorkoutExerciseCalories } from "@/lib/workouts/calories";
 import type {
   BodyPart,
   BodyPartWorkoutDistribution,
+  CardioMetric,
   CreateWorkoutInput,
   Exercise,
   ExerciseMasterInput,
@@ -18,7 +19,28 @@ import type {
 } from "@/lib/workouts/types";
 
 type Client = SupabaseClient<Database>;
-type ExerciseSettingKey = "rack_position" | "memo";
+type ExerciseSettingKey =
+  | "rack_position"
+  | "memo"
+  | "default_set_count"
+  | "body_weight_enabled"
+  | "bilateral_reps_enabled"
+  | "cardio_metrics";
+
+const allCardioMetrics: CardioMetric[] = ["distance", "duration", "speed", "calories"];
+
+function parseCardioMetrics(value: string | undefined, isCardio: boolean): CardioMetric[] {
+  if (!isCardio) {
+    return [];
+  }
+  if (!value) {
+    return allCardioMetrics;
+  }
+  const selected = value.split(",").filter((metric): metric is CardioMetric =>
+    allCardioMetrics.includes(metric as CardioMetric),
+  );
+  return selected.length > 0 ? selected : allCardioMetrics;
+}
 
 type SetRow = {
   id: string;
@@ -28,11 +50,18 @@ type SetRow = {
   reps: number | null;
   rir: number | null;
   is_warmup: boolean;
+  is_assisted?: boolean;
   note?: string | null;
+  distance_km?: number | null;
+  duration_sec?: number | null;
+  speed_kmh?: number | null;
+  calories_kcal?: number | null;
+  left_reps?: number | null;
+  right_reps?: number | null;
 };
 
 const setSelectColumns = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup";
-const setSelectColumnsWithNote = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, note";
+const setSelectColumnsWithNote = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, is_assisted, note, distance_km, duration_sec, speed_kmh, calories_kcal, left_reps, right_reps";
 
 function isSetNoteUnavailable(error: unknown) {
   if (!error || typeof error !== "object") {
@@ -122,8 +151,12 @@ async function getSetsByWorkoutExerciseId(client: Client, workoutExerciseId: str
 }
 
 const exerciseSettingLabels: Record<ExerciseSettingKey, string> = {
-  rack_position: "ラック位置",
+  rack_position: "器具位置",
   memo: "メモ",
+  default_set_count: "デフォルトセット数",
+  body_weight_enabled: "自重入力",
+  bilateral_reps_enabled: "左右回数",
+  cardio_metrics: "有酸素入力項目",
 };
 
 async function getExerciseSettings(client: Client, exerciseIds: string[]) {
@@ -136,7 +169,7 @@ async function getExerciseSettings(client: Client, exerciseIds: string[]) {
     .from("exercise_settings")
     .select("exercise_id, setting_key, setting_value")
     .in("exercise_id", exerciseIds)
-    .in("setting_key", ["rack_position", "memo"]);
+    .in("setting_key", ["rack_position", "memo", "default_set_count", "body_weight_enabled", "bilateral_reps_enabled", "cardio_metrics"]);
 
   if (error) {
     throw error;
@@ -208,6 +241,34 @@ async function saveExerciseSettings(client: Client, exerciseId: string, input: E
       value: input.memo,
       displayOrder: 2,
     }),
+    upsertExerciseSetting(client, {
+      userId: input.userId,
+      exerciseId,
+      key: "default_set_count",
+      value: input.defaultSetCount === null ? null : String(input.defaultSetCount),
+      displayOrder: 3,
+    }),
+    upsertExerciseSetting(client, {
+      userId: input.userId,
+      exerciseId,
+      key: "body_weight_enabled",
+      value: input.bodyWeightEnabled ? "true" : null,
+      displayOrder: 4,
+    }),
+    upsertExerciseSetting(client, {
+      userId: input.userId,
+      exerciseId,
+      key: "bilateral_reps_enabled",
+      value: input.bilateralRepsEnabled ? "true" : null,
+      displayOrder: 5,
+    }),
+    upsertExerciseSetting(client, {
+      userId: input.userId,
+      exerciseId,
+      key: "cardio_metrics",
+      value: input.cardioMetrics.length > 0 ? input.cardioMetrics.join(",") : null,
+      displayOrder: 6,
+    }),
   ]);
 }
 
@@ -219,7 +280,14 @@ function mapSet(row: SetRow): WorkoutSet {
     reps: row.reps,
     rir: row.rir,
     isWarmup: row.is_warmup,
+    isAssisted: row.is_assisted ?? false,
     note: row.note ?? null,
+    distanceKm: row.distance_km ?? null,
+    durationSec: row.duration_sec ?? null,
+    speedKmh: row.speed_kmh ?? null,
+    caloriesKcal: row.calories_kcal ?? null,
+    leftReps: row.left_reps ?? null,
+    rightReps: row.right_reps ?? null,
   };
 }
 
@@ -321,6 +389,15 @@ export async function getExercises(
       active: row.active,
       rackPosition: exerciseSettings?.rack_position ?? null,
       memo: exerciseSettings?.memo ?? null,
+      defaultSetCount: exerciseSettings?.default_set_count
+        ? Number(exerciseSettings.default_set_count)
+        : null,
+      bodyWeightEnabled: exerciseSettings?.body_weight_enabled === "true",
+      bilateralRepsEnabled: exerciseSettings?.bilateral_reps_enabled === "true",
+      cardioMetrics: parseCardioMetrics(
+        exerciseSettings?.cardio_metrics,
+        bodyParts?.key === "cardio",
+      ),
     };
   });
 }
@@ -401,10 +478,11 @@ export async function getWorkoutSummaries(
 ): Promise<WorkoutSummary[]> {
   const { data: workouts, error: workoutError } = await client
     .from("workouts")
-    .select("id, workout_date")
+    .select("id, workout_date, created_at")
     .gte("workout_date", startDate)
     .lte("workout_date", endDate)
-    .order("workout_date");
+    .order("workout_date")
+    .order("created_at", { ascending: true });
 
   if (workoutError) {
     throw workoutError;
@@ -451,7 +529,10 @@ export async function getWorkoutSummaries(
     string,
     { exerciseCount: number; setCount: number; bodyPartKeys: Set<string> }
   >();
-  for (const workoutExercise of workoutExercises) {
+  const workoutOrder = new Map(workouts.map((workout, index) => [workout.id, index]));
+  for (const workoutExercise of [...workoutExercises].sort(
+    (a, b) => (workoutOrder.get(a.workout_id) ?? 0) - (workoutOrder.get(b.workout_id) ?? 0),
+  )) {
     const current = exercisesByWorkout.get(workoutExercise.workout_id) ?? {
       exerciseCount: 0,
       setCount: 0,
@@ -584,20 +665,24 @@ async function getAverageDailyCalories(
   const workoutExerciseIds = workoutExercises.map((item) => item.id);
   const { data: sets, error: setError } = await client
     .from("sets")
-    .select("workout_exercise_id, weight_kg, reps, is_warmup")
+    .select("workout_exercise_id, weight_kg, reps, is_warmup, duration_sec, distance_km, speed_kmh, calories_kcal")
     .in("workout_exercise_id", workoutExerciseIds);
 
   if (setError) {
     throw setError;
   }
 
-  const setsByWorkoutExercise = new Map<string, Array<{ weightKg: number | null; reps: number | null; isWarmup: boolean }>>();
+  const setsByWorkoutExercise = new Map<string, Array<{ weightKg: number | null; reps: number | null; isWarmup: boolean; durationSec: number | null; distanceKm: number | null; speedKmh: number | null; caloriesKcal: number | null }>>();
   for (const set of sets) {
     const current = setsByWorkoutExercise.get(set.workout_exercise_id) ?? [];
     current.push({
       weightKg: set.weight_kg,
       reps: set.reps,
       isWarmup: set.is_warmup,
+      durationSec: set.duration_sec,
+      distanceKm: set.distance_km,
+      speedKmh: set.speed_kmh,
+      caloriesKcal: set.calories_kcal,
     });
     setsByWorkoutExercise.set(set.workout_exercise_id, current);
   }
@@ -692,7 +777,7 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
   const workoutIds = workouts.map((workout) => workout.id);
   const { data: workoutExercises, error: workoutExerciseError } = await client
     .from("workout_exercises")
-    .select("id, workout_id, exercise_id, display_order, note")
+    .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
     .in("workout_id", workoutIds)
     .order("display_order");
 
@@ -740,6 +825,8 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
       workoutDate: workoutDateById.get(workoutExercise.workout_id) ?? workoutDate,
       displayOrder: workoutExercise.display_order,
       note: workoutExercise.note,
+      condition: workoutExercise.condition,
+      elapsedSec: workoutExercise.elapsed_sec,
       sets: setsByWorkoutExercise.get(workoutExercise.id) ?? [],
     });
     exercisesByWorkout.set(workoutExercise.workout_id, current);
@@ -777,7 +864,7 @@ export async function getLatestWorkoutForExerciseBeforeDate(
   const workoutDateById = new Map(workouts.map((workout) => [workout.id, workout.workout_date]));
   const { data: workoutExercises, error: workoutExerciseError } = await client
     .from("workout_exercises")
-    .select("id, workout_id, exercise_id, display_order, note")
+    .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
     .eq("exercise_id", exerciseId)
     .in("workout_id", workoutIds);
 
@@ -810,6 +897,8 @@ export async function getLatestWorkoutForExerciseBeforeDate(
     workoutDate: workoutDateById.get(latest.workout_id) ?? beforeDate,
     displayOrder: latest.display_order,
     note: latest.note,
+    condition: latest.condition,
+    elapsedSec: latest.elapsed_sec,
     sets: sets.map(mapSet),
   };
 }
@@ -916,7 +1005,11 @@ async function insertSets(
   client: Client,
   input: Pick<CreateWorkoutInput, "sets" | "userId"> & { workoutExerciseId: string },
 ) {
-  const validSets = input.sets.filter((set) => set.weightKg !== null || set.reps !== null || set.note !== null);
+  const validSets = input.sets.filter((set) =>
+    set.weightKg !== null || set.reps !== null || set.note !== null ||
+    set.distanceKm !== null || set.durationSec !== null || set.speedKmh !== null ||
+    set.caloriesKcal !== null || set.leftReps !== null || set.rightReps !== null,
+  );
   if (validSets.length === 0) {
     return;
   }
@@ -929,7 +1022,14 @@ async function insertSets(
     reps: set.reps,
     rir: null,
     is_warmup: set.isWarmup,
+    is_assisted: set.isAssisted,
     note: set.note,
+    distance_km: set.distanceKm,
+    duration_sec: set.durationSec,
+    speed_kmh: set.speedKmh,
+    calories_kcal: set.caloriesKcal,
+    left_reps: set.leftReps,
+    right_reps: set.rightReps,
   }));
   const { error } = await client.from("sets").insert(payload);
 
@@ -975,6 +1075,8 @@ export async function createWorkout(client: Client, input: CreateWorkoutInput) {
         exercise_id: input.exerciseId,
         display_order: 1,
         note: input.note,
+        condition: input.condition,
+        elapsed_sec: input.elapsedSec,
       })
       .select("id")
       .single();
@@ -1013,6 +1115,8 @@ export async function updateWorkout(client: Client, input: UpdateWorkoutInput) {
     .update({
       exercise_id: input.exerciseId,
       note: input.note,
+      condition: input.condition,
+      elapsed_sec: input.elapsedSec,
     })
     .eq("id", input.workoutExerciseId)
     .eq("user_id", input.userId);

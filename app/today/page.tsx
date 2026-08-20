@@ -16,7 +16,7 @@ function formatDateHeading(dateKey: string) {
 export default async function TodayPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ date?: string }>;
+  searchParams?: Promise<{ date?: string; exercise?: string }>;
 }) {
   const params = await searchParams;
   const selectedDate = params?.date;
@@ -29,6 +29,7 @@ export default async function TodayPage({
           <WorkoutCalendar
             backHref="/"
             detailsHeading={heading}
+            exerciseFilterId={params?.exercise}
             showCalendar={false}
             selectedDateOverride={selectedDate}
           />

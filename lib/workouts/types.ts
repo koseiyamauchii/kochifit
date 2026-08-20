@@ -16,7 +16,13 @@ export interface Exercise {
   active: boolean;
   rackPosition: string | null;
   memo: string | null;
+  defaultSetCount: number | null;
+  bodyWeightEnabled: boolean;
+  bilateralRepsEnabled: boolean;
+  cardioMetrics: CardioMetric[];
 }
+
+export type CardioMetric = "distance" | "duration" | "speed" | "calories";
 
 export interface WorkoutSummary {
   id: string;
@@ -48,7 +54,14 @@ export interface WorkoutSet {
   reps: number | null;
   rir: number | null;
   isWarmup: boolean;
+  isAssisted: boolean;
   note: string | null;
+  distanceKm: number | null;
+  durationSec: number | null;
+  speedKmh: number | null;
+  caloriesKcal: number | null;
+  leftReps: number | null;
+  rightReps: number | null;
 }
 
 export interface WorkoutExercise {
@@ -58,6 +71,8 @@ export interface WorkoutExercise {
   workoutDate: string;
   displayOrder: number;
   note: string | null;
+  condition: string | null;
+  elapsedSec: number | null;
   sets: WorkoutSet[];
 }
 
@@ -73,7 +88,14 @@ export interface CreateWorkoutSetInput {
   weightKg: number | null;
   reps: number | null;
   isWarmup: boolean;
+  isAssisted: boolean;
   note: string | null;
+  distanceKm: number | null;
+  durationSec: number | null;
+  speedKmh: number | null;
+  caloriesKcal: number | null;
+  leftReps: number | null;
+  rightReps: number | null;
 }
 
 export interface CreateWorkoutInput {
@@ -81,6 +103,8 @@ export interface CreateWorkoutInput {
   workoutDate: string;
   exerciseId: string;
   note: string | null;
+  condition: string | null;
+  elapsedSec: number | null;
   sets: CreateWorkoutSetInput[];
 }
 
@@ -96,6 +120,10 @@ export interface ExerciseMasterInput {
   displayOrder: number;
   rackPosition: string | null;
   memo: string | null;
+  defaultSetCount: number | null;
+  bodyWeightEnabled: boolean;
+  bilateralRepsEnabled: boolean;
+  cardioMetrics: CardioMetric[];
 }
 
 export interface ExerciseRecord {

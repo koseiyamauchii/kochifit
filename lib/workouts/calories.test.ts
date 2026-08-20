@@ -42,4 +42,40 @@ describe("estimateWorkoutExerciseCalories", () => {
       }),
     ).toBeGreaterThan(0);
   });
+
+  it("uses recorded cardio calories before estimating from duration", () => {
+    expect(
+      estimateWorkoutExerciseCalories({
+        profile,
+        exercise: { name: "トレッドミル", bodyPartKey: "cardio" } as Exercise,
+        sets: [
+          {
+            weightKg: null,
+            reps: null,
+            isWarmup: false,
+            durationSec: 1800,
+            caloriesKcal: 245.4,
+          },
+        ],
+      }),
+    ).toBe(245);
+  });
+
+  it("derives cardio duration from distance and speed", () => {
+    expect(
+      estimateWorkoutExerciseCalories({
+        profile,
+        exercise: { name: "トレッドミル", bodyPartKey: "cardio" } as Exercise,
+        sets: [
+          {
+            weightKg: null,
+            reps: null,
+            isWarmup: false,
+            distanceKm: 5,
+            speedKmh: 10,
+          },
+        ],
+      }),
+    ).toBeGreaterThan(0);
+  });
 });

@@ -14,6 +14,7 @@ export interface Database {
           sex: string | null;
           training_split: string | null;
           default_set_count: number;
+          session_sort_order: string;
           training_purpose: string | null;
           final_goal: string | null;
           one_month_goal_date: string | null;
@@ -37,6 +38,7 @@ export interface Database {
           sex?: string | null;
           training_split?: string | null;
           default_set_count?: number;
+          session_sort_order?: string;
           training_purpose?: string | null;
           final_goal?: string | null;
           one_month_goal_date?: string | null;
@@ -60,6 +62,7 @@ export interface Database {
           sex?: string | null;
           training_split?: string | null;
           default_set_count?: number;
+          session_sort_order?: string;
           training_purpose?: string | null;
           final_goal?: string | null;
           one_month_goal_date?: string | null;
@@ -206,6 +209,8 @@ export interface Database {
           exercise_id: string;
           display_order: number;
           note: string | null;
+          condition: string | null;
+          elapsed_sec: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -216,6 +221,8 @@ export interface Database {
           exercise_id: string;
           display_order: number;
           note?: string | null;
+          condition?: string | null;
+          elapsed_sec?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -226,6 +233,8 @@ export interface Database {
           exercise_id?: string;
           display_order?: number;
           note?: string | null;
+          condition?: string | null;
+          elapsed_sec?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -242,9 +251,14 @@ export interface Database {
           rir: number | null;
           rpe: number | null;
           is_warmup: boolean;
+          is_assisted: boolean;
           note: string | null;
           duration_sec: number | null;
           distance_km: number | null;
+          speed_kmh: number | null;
+          calories_kcal: number | null;
+          left_reps: number | null;
+          right_reps: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -258,9 +272,14 @@ export interface Database {
           rir?: number | null;
           rpe?: number | null;
           is_warmup?: boolean;
+          is_assisted?: boolean;
           note?: string | null;
           duration_sec?: number | null;
           distance_km?: number | null;
+          speed_kmh?: number | null;
+          calories_kcal?: number | null;
+          left_reps?: number | null;
+          right_reps?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -274,9 +293,14 @@ export interface Database {
           rir?: number | null;
           rpe?: number | null;
           is_warmup?: boolean;
+          is_assisted?: boolean;
           note?: string | null;
           duration_sec?: number | null;
           distance_km?: number | null;
+          speed_kmh?: number | null;
+          calories_kcal?: number | null;
+          left_reps?: number | null;
+          right_reps?: number | null;
           created_at?: string;
           updated_at?: string;
         };

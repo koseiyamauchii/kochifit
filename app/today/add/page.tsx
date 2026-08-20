@@ -28,7 +28,7 @@ export default async function TodayAddPage({
   const selectedDate = normalizeDateKey(params?.date);
 
   return (
-    <AppShell active="today">
+    <AppShell active="today" immersive>
       <AuthGate>
         <main>
           <WorkoutCalendar

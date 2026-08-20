@@ -45,7 +45,7 @@ async function loadProfile(supabase: SupabaseClient<Database>, userId: string) {
   const { data, error } = await supabase
     .from("profiles")
     .select(
-      "id, display_name, avatar_url, height_cm, body_weight_kg, age, sex, training_split, default_set_count, training_purpose, final_goal, one_month_goal_date, one_month_goal_text, three_month_goal_date, three_month_goal_text, one_year_goal_date, one_year_goal_text, theme_preference, accent_preference, created_at, updated_at",
+      "id, display_name, avatar_url, height_cm, body_weight_kg, age, sex, training_split, default_set_count, session_sort_order, training_purpose, final_goal, one_month_goal_date, one_month_goal_text, three_month_goal_date, three_month_goal_text, one_year_goal_date, one_year_goal_text, theme_preference, accent_preference, created_at, updated_at",
     )
     .eq("id", userId)
     .single();
@@ -306,6 +306,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthStatus("unauthenticated");
     setProfileStatus("idle");
     setInitialExercisesStatus("idle");
+    window.location.replace("/");
   }, [supabase]);
 
   const refreshProfile = useCallback(async () => {

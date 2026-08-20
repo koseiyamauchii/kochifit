@@ -57,8 +57,35 @@ const setNotesMigrationSql = readFileSync(
   join(process.cwd(), "supabase", "migrations", "20260813162000_add_set_notes.sql"),
   "utf8",
 );
+const workoutEntryFieldsMigrationSql = readFileSync(
+  join(
+    process.cwd(),
+    "supabase",
+    "migrations",
+    "20260820103000_expand_workout_entry_fields.sql",
+  ),
+  "utf8",
+);
 
 describe("Supabase schema migration", () => {
+  it("adds workout entry fields and validates non-negative measurements", () => {
+    for (const column of [
+      "session_sort_order",
+      "condition",
+      "elapsed_sec",
+      "is_assisted",
+      "speed_kmh",
+      "calories_kcal",
+      "left_reps",
+      "right_reps",
+    ]) {
+      expect(workoutEntryFieldsMigrationSql).toContain(column);
+    }
+    expect(workoutEntryFieldsMigrationSql).toContain("profiles_session_sort_order_valid");
+    expect(workoutEntryFieldsMigrationSql).toContain("workout_exercises_elapsed_non_negative");
+    expect(workoutEntryFieldsMigrationSql).toContain("sets_speed_non_negative");
+    expect(workoutEntryFieldsMigrationSql).toContain("sets_calories_non_negative");
+  });
   it("defines the required tables", () => {
     for (const table of [
       "profiles",

@@ -22,6 +22,7 @@ interface ProfileSettingsSnapshot {
   sex: string;
   trainingSplit: string;
   defaultSetCount: string;
+  sessionSortOrder: string;
   trainingPurpose: string;
   finalGoal: string;
   oneMonthGoalDate: string;
@@ -57,6 +58,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
   const [sex, setSex] = useState("unspecified");
   const [trainingSplit, setTrainingSplit] = useState("");
   const [defaultSetCount, setDefaultSetCount] = useState("5");
+  const [sessionSortOrder, setSessionSortOrder] = useState("asc");
   const [trainingPurpose, setTrainingPurpose] = useState("");
   const [finalGoal, setFinalGoal] = useState("");
   const [oneMonthGoalDate, setOneMonthGoalDate] = useState("");
@@ -84,6 +86,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
       sex,
       trainingSplit,
       defaultSetCount,
+      sessionSortOrder,
       trainingPurpose,
       finalGoal,
       oneMonthGoalDate,
@@ -97,6 +100,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
       age,
       bodyWeightKg,
       defaultSetCount,
+      sessionSortOrder,
       finalGoal,
       heightCm,
       oneMonthGoalDate,
@@ -127,6 +131,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
       sex: profile.sex ?? "unspecified",
       trainingSplit: profile.training_split ?? "",
       defaultSetCount: String(profile.default_set_count ?? 5),
+      sessionSortOrder: profile.session_sort_order ?? "asc",
       trainingPurpose: profile.training_purpose ?? "",
       finalGoal: profile.final_goal ?? "",
       oneMonthGoalDate: profile.one_month_goal_date ?? "",
@@ -142,6 +147,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
     setSex(nextSnapshot.sex);
     setTrainingSplit(nextSnapshot.trainingSplit);
     setDefaultSetCount(nextSnapshot.defaultSetCount);
+    setSessionSortOrder(nextSnapshot.sessionSortOrder);
     setTrainingPurpose(nextSnapshot.trainingPurpose);
     setFinalGoal(nextSnapshot.finalGoal);
     setOneMonthGoalDate(nextSnapshot.oneMonthGoalDate);
@@ -179,6 +185,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
             sex: snapshot.sex,
             training_split: snapshot.trainingSplit.trim() || null,
             default_set_count: Number(parsedSetCount),
+            session_sort_order: snapshot.sessionSortOrder === "desc" ? "desc" : "asc",
             training_purpose: snapshot.trainingPurpose.trim() || null,
             final_goal: snapshot.finalGoal.trim() || null,
             one_month_goal_date: snapshot.oneMonthGoalDate || null,
@@ -408,6 +415,17 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
                   {value}
                 </option>
               ))}
+            </select>
+          </label>
+          <label className="block space-y-1">
+            <span className="text-sm font-medium text-[var(--muted)]">同日のセッション表示順</span>
+            <select
+              value={sessionSortOrder}
+              onChange={(event) => setSessionSortOrder(event.target.value)}
+              className={blockSelectClass}
+            >
+              <option value="asc">古い順</option>
+              <option value="desc">新しい順</option>
             </select>
           </label>
         </>
