@@ -1247,6 +1247,26 @@ export async function updateWorkout(client: Client, input: UpdateWorkoutInput) {
   });
 }
 
+export async function updateWorkoutExerciseConditions(
+  client: Client,
+  userId: string,
+  workoutExerciseIds: string[],
+  condition: string | null,
+) {
+  if (workoutExerciseIds.length === 0) {
+    return;
+  }
+  const { error } = await client
+    .from("workout_exercises")
+    .update({ condition })
+    .eq("user_id", userId)
+    .in("id", workoutExerciseIds);
+
+  if (error) {
+    throw error;
+  }
+}
+
 export async function deleteWorkout(client: Client, workoutId: string) {
   const { error } = await client.from("workouts").delete().eq("id", workoutId);
 

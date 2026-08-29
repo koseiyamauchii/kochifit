@@ -32,6 +32,7 @@ import {
   getWorkoutsForExercise,
   getWorkoutSummaries,
   getWorkoutsByDate,
+  updateWorkoutExerciseConditions,
   updateWorkout,
 } from "@/lib/workouts/repository";
 import type {
@@ -185,6 +186,19 @@ function estimateOneRepMax(weightKg: number | null, reps: number | null) {
 function formatRmValue(weightKg: number | null, reps: number | null) {
   const rm = estimateOneRepMax(weightKg, reps);
   return rm === null ? "-" : rm.toFixed(1);
+}
+
+function hasSetMeasurementInput(set: SetDraft) {
+  return [
+    set.weightKg,
+    set.reps,
+    set.distanceKm,
+    set.durationMin,
+    set.speedKmh,
+    set.caloriesKcal,
+    set.leftReps,
+    set.rightReps,
+  ].some((value) => value.trim() !== "");
 }
 
 function formatElapsedDuration(totalSec: number | null) {
@@ -343,6 +357,7 @@ function hasAnySetInput(draft: EntryDraft, profile: ReturnType<typeof useAuth>["
 function PreviousWorkoutBlock({
   bilateralRepsEnabled,
   cardioUnits,
+  historyReturnHref,
   isCopyConfirmed,
   isCardio,
   previousWorkout,
@@ -350,6 +365,7 @@ function PreviousWorkoutBlock({
 }: {
   bilateralRepsEnabled: boolean;
   cardioUnits: CardioUnitSettings;
+  historyReturnHref: string;
   isCopyConfirmed: boolean;
   isCardio: boolean;
   previousWorkout: WorkoutExercise | null;
@@ -363,7 +379,7 @@ function PreviousWorkoutBlock({
         <div className="flex shrink-0 items-center gap-2">
           {previousWorkout ? (
             <Link
-              href={`/history/exercise?exercise=${previousWorkout.exerciseId}`}
+              href={`/history/exercise?exercise=${previousWorkout.exerciseId}&returnTo=${encodeURIComponent(historyReturnHref)}`}
               className="rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5 text-xs font-semibold text-[var(--muted)]"
             >
               詳細
@@ -394,15 +410,14 @@ function PreviousWorkoutBlock({
                         ? `${formatWeightNumber(set.weightKg)}kg / 左${set.leftReps ?? set.reps ?? "-"}回 / 右${set.rightReps ?? set.reps ?? "-"}回`
                         : formatSetLine(set.weightKg, set.reps)}
                   </span>
-                  {set.note ? <span className="block text-[var(--muted)]">メモ：{set.note}</span> : null}
+                  {set.note ? <span className="block whitespace-pre-wrap break-words text-[var(--muted)]">メモ：{set.note}</span> : null}
                 </span>
               </div>
             ))}
           </div>
           {previousWorkout.note ? (
-            <p className="text-sm text-[var(--muted)]">前回メモ：{previousWorkout.note}</p>
+            <p className="whitespace-pre-wrap break-words text-sm text-[var(--muted)]">前回メモ：{previousWorkout.note}</p>
           ) : null}
-          {previousWorkout.condition ? <p className="text-sm text-[var(--muted)]">前回の体調：{previousWorkout.condition}</p> : null}
         </div>
       ) : (
         <p className="text-sm text-[var(--muted)]">この種目の前回記録はまだありません。</p>
@@ -481,17 +496,16 @@ function WorkoutReadOnlyCard({
             </div>
             {set.isAssisted ? <p className="mt-1 text-xs font-medium text-[var(--accent)]">補助あり</p> : null}
             {isCardio && set.caloriesKcal !== null ? <p className="mt-1 text-xs text-[var(--muted)]">カロリー：{formatCardioStoredValue("calories", set.caloriesKcal, cardioUnits)}{cardioUnitLabels.calories}</p> : null}
-            {set.note ? <p className="mt-1 text-xs text-[var(--muted)]">メモ：{set.note}</p> : null}
+            {set.note ? <p className="mt-1 whitespace-pre-wrap break-words text-xs text-[var(--muted)]">メモ：{set.note}</p> : null}
           </div>
         ))}
       </div>
       {exercise.note ? (
-        <div className="border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
+        <div className="whitespace-pre-wrap break-words border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
           メモ：{exercise.note}
         </div>
       ) : null}
       {!isCardio && maxWeightKg !== null ? <div className="border-t border-[var(--hairline)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">最高重量：{Number(maxWeightKg.toFixed(1))}kg</div> : null}
-      {exercise.condition ? <div className="border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">体調・コンディション：{exercise.condition}</div> : null}
       {totalDuration ? <div className="border-t border-[var(--hairline)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">合計所要時間：{totalDuration}</div> : null}
     </button>
   );
@@ -503,6 +517,7 @@ function WorkoutEntryForm({
   draft,
   exercises,
   exerciseRecords,
+  historyReturnHref,
   isSaving,
   masterReturnHref,
   mode,
@@ -512,6 +527,7 @@ function WorkoutEntryForm({
   onSave,
   previousWorkout,
   profile,
+  sessionNumber,
   selectedBodyPartId,
   setSelectedBodyPartId,
 }: {
@@ -520,6 +536,7 @@ function WorkoutEntryForm({
   draft: EntryDraft;
   exercises: Exercise[];
   exerciseRecords: ExerciseRecord[];
+  historyReturnHref: string;
   isSaving: boolean;
   masterReturnHref?: string;
   mode: "add" | "edit";
@@ -529,6 +546,7 @@ function WorkoutEntryForm({
   onSave: () => void;
   previousWorkout?: WorkoutExercise | null;
   profile: ReturnType<typeof useAuth>["profile"];
+  sessionNumber?: number;
   selectedBodyPartId?: string;
   setSelectedBodyPartId?: (bodyPartId: string) => void;
 }) {
@@ -653,7 +671,7 @@ function WorkoutEntryForm({
     while (copied.length < formDefaultSetCount) {
       copied.push(createInitialSetDraft());
     }
-    onDraftChange({ ...draft, sets: copied, note: previousWorkout.note ?? "", condition: previousWorkout.condition ?? "" });
+    onDraftChange({ ...draft, sets: copied, note: previousWorkout.note ?? "" });
     showConfirmation("history-all");
   };
 
@@ -664,8 +682,13 @@ function WorkoutEntryForm({
           "flex items-center justify-between gap-3 border-b border-[var(--hairline)] px-3 py-2",
           mode === "edit" ? "bg-[var(--accent)] text-white" : "",
         ].join(" ")}>
-          <div className="flex min-w-0 items-center gap-2">
-            <div className="min-w-0">
+          <div className="flex min-w-0 flex-1 items-center gap-2">
+            {mode === "edit" && sessionNumber ? (
+              <span className="shrink-0 rounded-[8px] bg-white/20 px-2 py-1 text-[11px] font-semibold">
+                {sessionNumber}
+              </span>
+            ) : null}
+            <div className="min-w-0 flex-1">
               {onHeaderClick ? (
                 <button
                   type="button"
@@ -681,8 +704,10 @@ function WorkoutEntryForm({
             </div>
           </div>
           <div className={[
-            "shrink-0 whitespace-nowrap rounded-[12px] px-2.5 py-1.5 text-[11px] font-semibold",
-            mode === "edit" ? "bg-white/15 text-white/90" : "bg-[var(--surface-soft)] text-[var(--muted)]",
+            "shrink-0 whitespace-nowrap text-[11px] font-semibold",
+            mode === "edit"
+              ? "rounded-[8px] bg-white/15 px-2 py-1 text-white/90"
+              : "rounded-[12px] bg-[var(--surface-soft)] px-2.5 py-1.5 text-[var(--muted)]",
           ].join(" ")}>
             約{estimatedCalories}kcal
           </div>
@@ -795,6 +820,7 @@ function WorkoutEntryForm({
         <PreviousWorkoutBlock
           bilateralRepsEnabled={selectedExercise?.bilateralRepsEnabled ?? false}
           cardioUnits={cardioUnits}
+          historyReturnHref={historyReturnHref}
           isCopyConfirmed={confirmedAction === "history-all"}
           isCardio={isCardio}
           previousWorkout={previousWorkout ?? null}
@@ -803,17 +829,8 @@ function WorkoutEntryForm({
       ) : null}
 
       {draft.sets.length > 0 ? (
-        <div className="grid grid-cols-[1fr_7rem] items-end gap-2">
-          <label className="block space-y-1">
-            <span className="text-xs font-medium text-[var(--muted)]">体調・コンディション</span>
-            <input
-              value={draft.condition}
-              onChange={(event) => onDraftChange({ ...draft, condition: event.target.value })}
-              placeholder="1セット目を始める前の体調など"
-              className="h-10 w-full rounded-[12px] bg-[var(--surface-soft)] px-3 text-sm"
-            />
-          </label>
-          <label className="block space-y-1">
+        <div className="flex justify-end">
+          <label className="block w-28 space-y-1">
             <span className="text-xs font-medium text-[var(--muted)]">所要時間</span>
             <output className="flex h-10 w-full items-center justify-center rounded-[12px] bg-[var(--surface-soft)] px-2 text-sm font-semibold">
               {formatElapsedDuration(getDraftElapsedSec(draft)) ?? "0:00"}
@@ -1122,6 +1139,7 @@ export function WorkoutCalendar({
   const [editDrafts, setEditDrafts] = useState<Record<string, EntryDraft>>({});
   const [editingWorkoutId, setEditingWorkoutId] = useState<string | null>(null);
   const [editingBaseline, setEditingBaseline] = useState<string | null>(null);
+  const [dayConditionDraft, setDayConditionDraft] = useState("");
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const confirmUnsavedNavigationRef = useRef<(() => boolean) | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -1156,10 +1174,7 @@ export function WorkoutCalendar({
   }, [addDraft, editDrafts, exercises, isAddFormActive, profile]);
   const isAddDraftDirty =
     showAddForm &&
-    (Boolean(addDraft.exerciseId) ||
-      addDraft.note.trim() !== "" ||
-      addDraft.condition.trim() !== "" ||
-      addDraft.sets.some((set) => !isBlankSetDraft(set)));
+    addDraft.sets.some(hasSetMeasurementInput);
   const editingExerciseId = editingWorkoutId ? (editDrafts[editingWorkoutId]?.exerciseId ?? "") : "";
   const isEditDraftDirty = Boolean(
     editingWorkoutId &&
@@ -1185,8 +1200,20 @@ export function WorkoutCalendar({
             : [];
         })
       : ascending;
-    return profile?.session_sort_order === "desc" ? filtered.reverse() : filtered;
+    return profile?.session_sort_order === "asc" ? filtered : filtered.reverse();
   }, [exerciseFilterId, exerciseHistoryId, profile?.session_sort_order, workouts]);
+  const savedDayCondition = useMemo(() => {
+    for (const workout of workouts) {
+      for (const exercise of workout.exercises) {
+        const condition = exercise.condition?.trim();
+        if (condition) {
+          return condition;
+        }
+      }
+    }
+    return "";
+  }, [workouts]);
+  const isDayConditionDirty = dayConditionDraft.trim() !== savedDayCondition;
   const sessionNumberByWorkoutId = useMemo(
     () => new Map(
       [...workouts]
@@ -1195,6 +1222,10 @@ export function WorkoutCalendar({
     ),
     [workouts],
   );
+
+  useEffect(() => {
+    setDayConditionDraft(savedDayCondition);
+  }, [effectiveSelectedDate, savedDayCondition]);
 
   const loadMonth = useCallback(async () => {
     if (!user) {
@@ -1435,11 +1466,11 @@ export function WorkoutCalendar({
   ]);
 
   const confirmUnsavedNavigation = useCallback(() => {
-    if ((!isAddDraftDirty && !isEditDraftDirty) || savingKey) {
+    if ((!isAddDraftDirty && !isEditDraftDirty && !isDayConditionDirty) || savingKey) {
       return true;
     }
     return window.confirm("保存していない内容があります。保存せず戻りますか？");
-  }, [isAddDraftDirty, isEditDraftDirty, savingKey]);
+  }, [isAddDraftDirty, isDayConditionDirty, isEditDraftDirty, savingKey]);
 
   useEffect(() => {
     confirmUnsavedNavigationRef.current = confirmUnsavedNavigation;
@@ -1455,7 +1486,7 @@ export function WorkoutCalendar({
   }, [backHref, confirmUnsavedNavigation, router]);
 
   useEffect(() => {
-    if (!isAddDraftDirty && !isEditDraftDirty) {
+    if (!isAddDraftDirty && !isEditDraftDirty && !isDayConditionDirty) {
       return;
     }
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
@@ -1464,10 +1495,10 @@ export function WorkoutCalendar({
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [isAddDraftDirty, isEditDraftDirty]);
+  }, [isAddDraftDirty, isDayConditionDirty, isEditDraftDirty]);
 
   useEffect(() => {
-    if (!isAddDraftDirty && !isEditDraftDirty) {
+    if (!isAddDraftDirty && !isEditDraftDirty && !isDayConditionDirty) {
       return;
     }
     const handleNavigationConfirm = (event: Event) => {
@@ -1481,10 +1512,10 @@ export function WorkoutCalendar({
     };
     window.addEventListener("kochifit:confirm-navigation", handleNavigationConfirm);
     return () => window.removeEventListener("kochifit:confirm-navigation", handleNavigationConfirm);
-  }, [confirmUnsavedNavigation, isAddDraftDirty, isEditDraftDirty]);
+  }, [confirmUnsavedNavigation, isAddDraftDirty, isDayConditionDirty, isEditDraftDirty]);
 
   useEffect(() => {
-    if ((!isAddDraftDirty && !isEditDraftDirty) || !backHref) {
+    if ((!isAddDraftDirty && !isEditDraftDirty && !isDayConditionDirty) || !backHref) {
       return;
     }
     window.history.pushState({ kochifitUnsavedGuard: true }, "", window.location.href);
@@ -1497,7 +1528,50 @@ export function WorkoutCalendar({
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [backHref, confirmUnsavedNavigation, isAddDraftDirty, isEditDraftDirty, router]);
+  }, [backHref, confirmUnsavedNavigation, isAddDraftDirty, isDayConditionDirty, isEditDraftDirty, router]);
+
+  const handleDayConditionSave = async () => {
+    if (!user || savingKey || workouts.length === 0) {
+      return;
+    }
+    const workoutExerciseIds = workouts.flatMap((workout) =>
+      workout.exercises.map((exercise) => exercise.id),
+    );
+    const activeEditDraft = editingWorkoutId ? editDrafts[editingWorkoutId] : null;
+    const activeEditWasClean = Boolean(
+      activeEditDraft && editingBaseline && JSON.stringify(activeEditDraft) === editingBaseline,
+    );
+    setSavingKey("day-condition");
+    setError(null);
+    try {
+      const nextCondition = dayConditionDraft.trim() || null;
+      await updateWorkoutExerciseConditions(client, user.id, workoutExerciseIds, nextCondition);
+      setWorkouts((current) => current.map((workout) => ({
+        ...workout,
+        exercises: workout.exercises.map((exercise) => ({
+          ...exercise,
+          condition: nextCondition,
+        })),
+      })));
+      setEditDrafts((current) => Object.fromEntries(
+        Object.entries(current).map(([workoutId, draft]) => [
+          workoutId,
+          { ...draft, condition: nextCondition ?? "" },
+        ]),
+      ));
+      if (activeEditDraft && activeEditWasClean) {
+        setEditingBaseline(JSON.stringify({
+          ...activeEditDraft,
+          condition: nextCondition ?? "",
+        }));
+      }
+    } catch (conditionError) {
+      console.error("Workout condition update error", conditionError);
+      setError("体調・コンディションの保存に失敗しました。");
+    } finally {
+      setSavingKey(null);
+    }
+  };
 
   const handleEditSave = async (workout: Workout) => {
     if (!user || savingKey) {
@@ -1738,7 +1812,7 @@ export function WorkoutCalendar({
       <section className={[!showCalendar && detailsHeading ? "mt-0" : "mt-5", "space-y-3"].join(" ")}>
         {!showCalendar && detailsHeading ? (
           <div className={showAddForm ? "sticky top-0 z-30 -mx-3 flex items-center justify-between gap-2 bg-[color-mix(in_srgb,var(--background)_82%,transparent)] px-3 py-2 backdrop-blur-xl" : "flex items-center justify-between gap-2"}>
-            <div className="flex min-w-0 items-center gap-2">
+            <div className="flex min-w-0 flex-1 items-center gap-2">
               {backHref ? (
                 showAddForm ? (
                   <button
@@ -1760,7 +1834,7 @@ export function WorkoutCalendar({
                   </button>
                 )
               ) : null}
-              <h1 className="min-w-0 whitespace-nowrap text-base font-semibold leading-tight sm:text-lg">
+              <h1 className="min-w-0 truncate whitespace-nowrap text-base font-semibold leading-tight sm:text-lg">
                 {resolvedDetailsHeading}
               </h1>
             </div>
@@ -1774,7 +1848,7 @@ export function WorkoutCalendar({
               >
                 <Check size={22} />
               </button>
-            ) : (
+            ) : exerciseHistoryId ? null : (
               <div className="shrink-0 whitespace-nowrap rounded-[12px] bg-[var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--muted)]">
                 合計 約{totalCalories}kcal
               </div>
@@ -1790,6 +1864,29 @@ export function WorkoutCalendar({
           {isLoading ? <span className="text-sm text-[var(--muted)]">読込中</span> : null}
         </div>
         )}
+
+        {!showCalendar && !showAddForm && !exerciseHistoryId && workouts.length > 0 ? (
+          <section className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2.5 shadow-[var(--shadow)]">
+            <h2 className="text-xs font-semibold text-[var(--muted)]">体調・コンディション</h2>
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                value={dayConditionDraft}
+                onChange={(event) => setDayConditionDraft(event.target.value)}
+                placeholder="その日の体調など"
+                className="h-10 min-w-0 flex-1 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => void handleDayConditionSave()}
+                disabled={!isDayConditionDirty || savingKey === "day-condition"}
+                aria-label="体調・コンディションを保存"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
+              >
+                <Check size={20} />
+              </button>
+            </div>
+          </section>
+        ) : null}
 
         {showCalendar ? (
           <Link
@@ -1818,6 +1915,7 @@ export function WorkoutCalendar({
             draft={addDraft}
             exerciseRecords={exerciseRecords}
             exercises={exercises}
+            historyReturnHref={`/today/add?date=${effectiveSelectedDate}`}
             isSaving={savingKey === "add"}
             masterReturnHref={`/today/add?date=${effectiveSelectedDate}`}
             mode="add"
@@ -1872,6 +1970,9 @@ export function WorkoutCalendar({
                 draft={draft}
                 exerciseRecords={exerciseRecords}
                 exercises={exercises}
+                historyReturnHref={exerciseHistoryId
+                  ? backHref ?? "/history"
+                  : `/today?date=${effectiveSelectedDate}${exerciseFilterId ? `&exercise=${encodeURIComponent(exerciseFilterId)}` : ""}`}
                 isSaving={savingKey === workout.id}
                 mode="edit"
                 onDelete={() => void handleDelete(workout.id)}
@@ -1897,6 +1998,7 @@ export function WorkoutCalendar({
                 onSave={() => void handleEditSave(workout)}
                 previousWorkout={editPreviousWorkouts[workout.id] ?? null}
                 profile={profile}
+                sessionNumber={sessionNumberByWorkoutId.get(workout.id) ?? index + 1}
               />
             );
           })()
