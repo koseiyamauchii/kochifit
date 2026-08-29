@@ -2,10 +2,12 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Profile } from "@/lib/supabase/database.types";
 import { getDefaultBodyPartColorKey } from "@/lib/workouts/body-part-colors";
 import { estimateWorkoutExerciseCalories } from "@/lib/workouts/calories";
+import { defaultCardioUnits } from "@/lib/workouts/cardio-units";
 import type {
   BodyPart,
   BodyPartWorkoutDistribution,
   CardioMetric,
+  CardioUnitSettings,
   CreateWorkoutInput,
   Exercise,
   ExerciseMasterInput,
@@ -25,9 +27,26 @@ type ExerciseSettingKey =
   | "default_set_count"
   | "body_weight_enabled"
   | "bilateral_reps_enabled"
-  | "cardio_metrics";
+  | "cardio_metrics"
+  | "cardio_units";
 
 const allCardioMetrics: CardioMetric[] = ["distance", "duration", "speed", "calories"];
+function parseCardioUnits(value: string | undefined): CardioUnitSettings {
+  if (!value) {
+    return defaultCardioUnits;
+  }
+  try {
+    const parsed = JSON.parse(value) as Partial<CardioUnitSettings>;
+    return {
+      distance: parsed.distance === "m" ? "m" : "km",
+      duration: parsed.duration === "sec" ? "sec" : "min",
+      speed: parsed.speed === "ms" ? "ms" : "kmh",
+      calories: parsed.calories === "kj" ? "kj" : "kcal",
+    };
+  } catch {
+    return defaultCardioUnits;
+  }
+}
 
 function parseCardioMetrics(value: string | undefined, isCardio: boolean): CardioMetric[] {
   if (!isCardio) {
@@ -157,6 +176,7 @@ const exerciseSettingLabels: Record<ExerciseSettingKey, string> = {
   body_weight_enabled: "自重入力",
   bilateral_reps_enabled: "左右回数",
   cardio_metrics: "有酸素入力項目",
+  cardio_units: "有酸素単位",
 };
 
 async function getExerciseSettings(client: Client, exerciseIds: string[]) {
@@ -169,7 +189,7 @@ async function getExerciseSettings(client: Client, exerciseIds: string[]) {
     .from("exercise_settings")
     .select("exercise_id, setting_key, setting_value")
     .in("exercise_id", exerciseIds)
-    .in("setting_key", ["rack_position", "memo", "default_set_count", "body_weight_enabled", "bilateral_reps_enabled", "cardio_metrics"]);
+    .in("setting_key", ["rack_position", "memo", "default_set_count", "body_weight_enabled", "bilateral_reps_enabled", "cardio_metrics", "cardio_units"]);
 
   if (error) {
     throw error;
@@ -268,6 +288,13 @@ async function saveExerciseSettings(client: Client, exerciseId: string, input: E
       key: "cardio_metrics",
       value: input.cardioMetrics.length > 0 ? input.cardioMetrics.join(",") : null,
       displayOrder: 6,
+    }),
+    upsertExerciseSetting(client, {
+      userId: input.userId,
+      exerciseId,
+      key: "cardio_units",
+      value: input.cardioMetrics.length > 0 ? JSON.stringify(input.cardioUnits) : null,
+      displayOrder: 7,
     }),
   ]);
 }
@@ -398,6 +425,7 @@ export async function getExercises(
         exerciseSettings?.cardio_metrics,
         bodyParts?.key === "cardio",
       ),
+      cardioUnits: parseCardioUnits(exerciseSettings?.cardio_units),
     };
   });
 }
@@ -839,6 +867,83 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
     note: workout.note,
     exercises: exercisesByWorkout.get(workout.id) ?? [],
   }));
+}
+
+export async function getWorkoutsForExercise(
+  client: Client,
+  exerciseId: string,
+): Promise<Workout[]> {
+  const { data: workoutExercises, error: workoutExerciseError } = await client
+    .from("workout_exercises")
+    .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
+    .eq("exercise_id", exerciseId);
+
+  if (workoutExerciseError) {
+    throw workoutExerciseError;
+  }
+  if (workoutExercises.length === 0) {
+    return [];
+  }
+
+  const workoutIds = [...new Set(workoutExercises.map((item) => item.workout_id))];
+  const { data: workouts, error: workoutError } = await client
+    .from("workouts")
+    .select("id, workout_date, note, created_at")
+    .in("id", workoutIds)
+    .order("workout_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (workoutError) {
+    throw workoutError;
+  }
+
+  const { data: exercise, error: exerciseError } = await client
+    .from("exercises")
+    .select("name")
+    .eq("id", exerciseId)
+    .single();
+
+  if (exerciseError) {
+    throw exerciseError;
+  }
+
+  const sets = await getSetsByWorkoutExerciseIds(
+    client,
+    workoutExercises.map((item) => item.id),
+  );
+  const setsByWorkoutExercise = new Map<string, WorkoutSet[]>();
+  for (const set of sets) {
+    const current = setsByWorkoutExercise.get(set.workout_exercise_id) ?? [];
+    current.push(mapSet(set));
+    setsByWorkoutExercise.set(set.workout_exercise_id, current);
+  }
+
+  const workoutExerciseByWorkoutId = new Map(
+    workoutExercises.map((item) => [item.workout_id, item]),
+  );
+  return workouts.flatMap((workout) => {
+    const workoutExercise = workoutExerciseByWorkoutId.get(workout.id);
+    if (!workoutExercise) {
+      return [];
+    }
+    return [{
+      id: workout.id,
+      workoutDate: workout.workout_date,
+      createdAt: workout.created_at,
+      note: workout.note,
+      exercises: [{
+        id: workoutExercise.id,
+        exerciseId,
+        exerciseName: exercise.name,
+        workoutDate: workout.workout_date,
+        displayOrder: workoutExercise.display_order,
+        note: workoutExercise.note,
+        condition: workoutExercise.condition,
+        elapsedSec: workoutExercise.elapsed_sec,
+        sets: setsByWorkoutExercise.get(workoutExercise.id) ?? [],
+      }],
+    }];
+  });
 }
 
 export async function getLatestWorkoutForExerciseBeforeDate(

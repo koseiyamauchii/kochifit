@@ -70,8 +70,6 @@ NEXT_PUBLIC_SUPABASE_URL
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
 ```
 
-これらはGitHubリポジトリには書きません．
-
 Googleログインを使うには，Supabase Authenticationに以下を登録します．
 
 ```text

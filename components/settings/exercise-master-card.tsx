@@ -5,6 +5,7 @@ import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
+import { defaultCardioUnits } from "@/lib/workouts/cardio-units";
 import {
   archiveExercise,
   createExercise,
@@ -14,13 +15,17 @@ import {
   updateExercise,
 } from "@/lib/workouts/repository";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
-import type { BodyPart, CardioMetric, Exercise } from "@/lib/workouts/types";
+import type { BodyPart, CardioMetric, CardioUnitSettings, Exercise } from "@/lib/workouts/types";
 
-const cardioMetricOptions: Array<{ key: CardioMetric; label: string }> = [
-  { key: "distance", label: "距離（km）" },
-  { key: "duration", label: "時間（分）" },
-  { key: "speed", label: "速さ（km/h）" },
-  { key: "calories", label: "カロリー（kcal）" },
+const cardioUnitOptions: Array<{
+  key: keyof CardioUnitSettings;
+  label: string;
+  options: Array<{ value: string; label: string }>;
+}> = [
+  { key: "distance", label: "距離", options: [{ value: "km", label: "km" }, { value: "m", label: "m" }] },
+  { key: "duration", label: "時間", options: [{ value: "min", label: "分" }, { value: "sec", label: "秒" }] },
+  { key: "speed", label: "速さ", options: [{ value: "kmh", label: "km/h" }, { value: "ms", label: "m/s" }] },
+  { key: "calories", label: "カロリー", options: [{ value: "kcal", label: "kcal" }, { value: "kj", label: "kJ" }] },
 ];
 
 interface Draft {
@@ -34,6 +39,7 @@ interface Draft {
   bodyWeightEnabled: boolean;
   bilateralRepsEnabled: boolean;
   cardioMetrics: CardioMetric[];
+  cardioUnits: CardioUnitSettings;
 }
 
 function createEmptyDraft(bodyPartId = "", displayOrder = 1): Draft {
@@ -48,6 +54,7 @@ function createEmptyDraft(bodyPartId = "", displayOrder = 1): Draft {
     bodyWeightEnabled: false,
     bilateralRepsEnabled: false,
     cardioMetrics: ["distance", "duration", "speed", "calories"],
+    cardioUnits: defaultCardioUnits,
   };
 }
 
@@ -69,13 +76,6 @@ function DraftPanel({
   onSave: () => void;
 }) {
   const isCardio = bodyParts.find((bodyPart) => bodyPart.id === draft.bodyPartId)?.key === "cardio";
-  const toggleCardioMetric = (metric: CardioMetric) => {
-    const nextMetrics = draft.cardioMetrics.includes(metric)
-      ? draft.cardioMetrics.filter((item) => item !== metric)
-      : [...draft.cardioMetrics, metric];
-    onDraftChange({ ...draft, cardioMetrics: nextMetrics });
-  };
-
   return (
     <div className="mt-2 rounded-[12px] border border-[var(--accent)] bg-[var(--accent-soft)] p-3">
       <div className="flex items-center justify-between gap-3">
@@ -133,17 +133,26 @@ function DraftPanel({
         </div>
         {isCardio ? (
           <fieldset className="space-y-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] p-3">
-            <legend className="px-1 text-sm font-medium text-[var(--muted)]">記録する項目（複数選択可）</legend>
+            <legend className="px-1 text-sm font-medium text-[var(--muted)]">項目の単位</legend>
             <div className="grid grid-cols-2 gap-2">
-              {cardioMetricOptions.map((option) => (
-                <label key={option.key} className="flex min-h-10 items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={draft.cardioMetrics.includes(option.key)}
-                    onChange={() => toggleCardioMetric(option.key)}
-                    className="h-5 w-5 accent-[var(--accent)]"
-                  />
-                  {option.label}
+              {cardioUnitOptions.map((item) => (
+                <label key={item.key} className="block min-w-0 space-y-1 text-sm">
+                  <span className="font-medium text-[var(--muted)]">{item.label}</span>
+                  <select
+                    value={draft.cardioUnits[item.key]}
+                    onChange={(event) => onDraftChange({
+                      ...draft,
+                      cardioUnits: {
+                        ...draft.cardioUnits,
+                        [item.key]: event.target.value,
+                      } as CardioUnitSettings,
+                    })}
+                    className="min-h-11 w-full rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-3"
+                  >
+                    {item.options.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
                 </label>
               ))}
             </div>
@@ -162,24 +171,26 @@ function DraftPanel({
             ))}
           </select>
         </label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           <label className="flex min-h-12 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-medium">
             <input
               type="checkbox"
               checked={draft.bodyWeightEnabled}
               onChange={(event) => onDraftChange({ ...draft, bodyWeightEnabled: event.target.checked })}
-              className="h-5 w-5 accent-[var(--accent)]"
+              className="h-5 w-5 shrink-0"
+              style={{ accentColor: "var(--accent)" }}
             />
-            自重入力を表示
+            <span className="whitespace-nowrap">自重入力を表示</span>
           </label>
           <label className="flex min-h-12 items-center gap-2 rounded-[12px] border border-[var(--border)] bg-[var(--surface)] px-3 text-sm font-medium">
             <input
               type="checkbox"
               checked={draft.bilateralRepsEnabled}
               onChange={(event) => onDraftChange({ ...draft, bilateralRepsEnabled: event.target.checked })}
-              className="h-5 w-5 accent-[var(--accent)]"
+              className="h-5 w-5 shrink-0"
+              style={{ accentColor: "var(--accent)" }}
             />
-            左右回数を記録
+            <span className="whitespace-nowrap">左右回数を記録</span>
           </label>
         </div>
         <label className="block space-y-1">
@@ -278,6 +289,7 @@ export function ExerciseMasterCard() {
       bodyWeightEnabled: exercise.bodyWeightEnabled,
       bilateralRepsEnabled: exercise.bilateralRepsEnabled,
       cardioMetrics: exercise.cardioMetrics,
+      cardioUnits: exercise.cardioUnits,
     });
     setNewDraftBodyPartId(null);
     setMessage(null);
@@ -315,10 +327,6 @@ export function ExerciseMasterCard() {
       return;
     }
     const isCardio = bodyParts.find((bodyPart) => bodyPart.id === draft.bodyPartId)?.key === "cardio";
-    if (isCardio && draft.cardioMetrics.length === 0) {
-      setError("有酸素種目は記録項目を1つ以上選択してください．");
-      return;
-    }
     setIsSaving(true);
     setMessage(null);
     setSavedBodyPartId(null);
@@ -335,7 +343,10 @@ export function ExerciseMasterCard() {
         defaultSetCount: draft.defaultSetCount ? Number(draft.defaultSetCount) : null,
         bodyWeightEnabled: draft.bodyWeightEnabled,
         bilateralRepsEnabled: draft.bilateralRepsEnabled,
-        cardioMetrics: isCardio ? draft.cardioMetrics : [],
+        cardioMetrics: isCardio
+          ? (["distance", "duration", "speed", "calories"] as CardioMetric[])
+          : [],
+        cardioUnits: draft.cardioUnits,
       };
       if (draft.id) {
         await updateExercise(client, draft.id, input);

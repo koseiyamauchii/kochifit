@@ -12,6 +12,7 @@ import {
   UserCircle,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { BodyPartMasterCard } from "@/components/settings/body-part-master-card";
 import { ExerciseMasterCard } from "@/components/settings/exercise-master-card";
 import { FormulaCard } from "@/components/settings/formula-card";
@@ -69,9 +70,11 @@ function renderSection(section: SettingsSection, setActiveSection: (section: Set
 
 export function SettingsSections({
   initialSection = null,
+  returnHref,
   showBackToList = true,
 }: {
   initialSection?: SettingsSection | null;
+  returnHref?: string;
   showBackToList?: boolean;
 }) {
   const [activeSection, setActiveSection] = useState<SettingsSection | null>(initialSection);
@@ -124,14 +127,24 @@ export function SettingsSections({
           {showDetailHeader && activeItem ? (
             <div className="flex items-center gap-3">
               {activeSection !== "account" ? (
-                <button
-                  type="button"
-                  onClick={handleBack}
-                  aria-label="設定一覧に戻る"
-                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
-                >
-                  <ChevronLeft size={22} />
-                </button>
+                returnHref ? (
+                  <Link
+                    href={returnHref}
+                    aria-label="記録入力画面に戻る"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
+                  >
+                    <ChevronLeft size={22} />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleBack}
+                    aria-label="設定一覧に戻る"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
+                  >
+                    <ChevronLeft size={22} />
+                  </button>
+                )
               ) : null}
               <h1 className="text-base font-semibold">{activeItem.detailTitle}</h1>
             </div>

@@ -20,9 +20,21 @@ export interface Exercise {
   bodyWeightEnabled: boolean;
   bilateralRepsEnabled: boolean;
   cardioMetrics: CardioMetric[];
+  cardioUnits: CardioUnitSettings;
 }
 
 export type CardioMetric = "distance" | "duration" | "speed" | "calories";
+export type CardioDistanceUnit = "km" | "m";
+export type CardioDurationUnit = "min" | "sec";
+export type CardioSpeedUnit = "kmh" | "ms";
+export type CardioCaloriesUnit = "kcal" | "kj";
+
+export interface CardioUnitSettings {
+  distance: CardioDistanceUnit;
+  duration: CardioDurationUnit;
+  speed: CardioSpeedUnit;
+  calories: CardioCaloriesUnit;
+}
 
 export interface WorkoutSummary {
   id: string;
@@ -124,6 +136,7 @@ export interface ExerciseMasterInput {
   bodyWeightEnabled: boolean;
   bilateralRepsEnabled: boolean;
   cardioMetrics: CardioMetric[];
+  cardioUnits: CardioUnitSettings;
 }
 
 export interface ExerciseRecord {

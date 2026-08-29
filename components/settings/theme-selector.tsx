@@ -67,14 +67,14 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
   if (compact) {
     return (
       <div className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)]">
-        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 border-b border-[var(--hairline)] px-2.5 text-sm font-medium">
+        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 border-b border-[var(--hairline)] px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]">
           <span className="flex min-w-0 items-center gap-2">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
               <Sun size={18} />
             </span>
             <span className="min-w-0 truncate">外観</span>
           </span>
-          <span className="flex shrink-0 items-center gap-1 text-sm text-[var(--muted)]">
+          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--muted)]">
             {currentThemeLabel}
             <ChevronDown size={16} />
           </span>
@@ -91,14 +91,14 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
             ))}
           </select>
         </label>
-        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 px-2.5 text-sm font-medium">
+        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]">
           <span className="flex min-w-0 items-center gap-2">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
               <Palette size={18} />
             </span>
             <span className="min-w-0 truncate">アクセントカラー</span>
           </span>
-          <span className="flex shrink-0 items-center gap-1 text-sm text-[var(--muted)]">
+          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--muted)]">
             {currentAccentLabel}
             <ChevronDown size={16} />
           </span>

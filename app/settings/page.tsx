@@ -9,19 +9,22 @@ const settingsSections = new Set<SettingsSection>([
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ section?: string }>;
+  searchParams?: Promise<{ section?: string; returnTo?: string }>;
 }) {
   const params = await searchParams;
   const section = params?.section;
   const initialSection = section && settingsSections.has(section as SettingsSection)
     ? section as SettingsSection
     : null;
+  const returnHref = params?.returnTo && /^\/today\/add(?:\?|$)/.test(params.returnTo)
+    ? params.returnTo
+    : undefined;
   return (
     <AppShell active="settings">
       <AuthGate>
         <main className="space-y-4">
           <h1 className="text-base font-semibold">設定</h1>
-          <SettingsSections initialSection={initialSection} />
+          <SettingsSections initialSection={initialSection} returnHref={returnHref} />
         </main>
       </AuthGate>
     </AppShell>
