@@ -2,119 +2,139 @@
 
 :root {
   color-scheme: light;
-  --background: #f5f5f4;
+  --background: #f4f5f7;
   --surface: #ffffff;
-  --surface-soft: #f3f4f6;
-  --surface-strong: #e5e7eb;
-  --text: #171717;
-  --muted: #6b7280;
-  --border: #d4d4d4;
+  --surface-soft: #f0f2f5;
+  --surface-strong: #e6e9ee;
+  --text: #171b22;
+  --muted: #626c7b;
+  --border: #dce1e8;
   --accent: #52525b;
   --accent-strong: #27272a;
   --accent-soft: #e5e7eb;
   --warning: #b45309;
-  --shadow: 0 16px 44px rgba(23, 23, 23, 0.08);
+  --shadow: 0 1px 2px rgb(17 24 39 / 3%), 0 6px 20px rgb(17 24 39 / 4%);
+  --on-accent: #ffffff;
+  --focus-ring: color-mix(in srgb, var(--accent) 60%, var(--text));
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --background: #151517;
-  --surface: #242428;
-  --surface-soft: #303036;
-  --surface-strong: #3c3c43;
-  --text: #f4f4f5;
-  --muted: #b8b8c0;
-  --border: #46464f;
+  --background: #08090b;
+  --surface: #111317;
+  --surface-soft: #1a1d23;
+  --surface-strong: #242831;
+  --text: #eef0f4;
+  --muted: #a0a8b6;
+  --border: #2b303a;
   --accent: #73737d;
   --accent-strong: #f0f0f3;
-  --accent-soft: #36363d;
+  --accent-soft: #24262e;
   --warning: #fbbf24;
-  --shadow: 0 14px 36px rgba(0, 0, 0, 0.28);
+  --shadow: 0 1px 0 rgb(255 255 255 / 2%) inset, 0 6px 20px rgb(0 0 0 / 16%);
 }
 
-:root[data-accent="orange"] {
-  --accent: #ea580c;
-  --accent-strong: #9a3412;
-  --accent-soft: #ffedd5;
+:root[data-accent="gray"], .accent-preview[data-accent="gray"] {
+  --accent: #59606c;
+  --accent-strong: #59606c;
+  --accent-soft: color-mix(in srgb, #59606c 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="gray"], :root[data-theme="dark"] .accent-preview[data-accent="gray"] {
+  --accent: #757e8e;
+  --accent-strong: color-mix(in srgb, #757e8e 65%, #fff);
+  --accent-soft: color-mix(in srgb, #757e8e 15%, #111317);
 }
 
-:root[data-accent="red"] {
-  --accent: #dc2626;
-  --accent-strong: #991b1b;
-  --accent-soft: #fee2e2;
+:root[data-accent="red"], .accent-preview[data-accent="red"] {
+  --accent: #bd464e;
+  --accent-strong: #bd464e;
+  --accent-soft: color-mix(in srgb, #bd464e 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="red"], :root[data-theme="dark"] .accent-preview[data-accent="red"] {
+  --accent: #ca4e58;
+  --accent-strong: color-mix(in srgb, #ca4e58 65%, #fff);
+  --accent-soft: color-mix(in srgb, #ca4e58 15%, #111317);
 }
 
-:root[data-theme="dark"][data-accent="red"] {
-  --accent: #ef4444;
-  --accent-strong: #fecaca;
-  --accent-soft: #351112;
+:root[data-accent="orange"], .accent-preview[data-accent="orange"] {
+  --accent: #b75924;
+  --accent-strong: #b75924;
+  --accent-soft: color-mix(in srgb, #b75924 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="orange"], :root[data-theme="dark"] .accent-preview[data-accent="orange"] {
+  --accent: #bc652c;
+  --accent-strong: color-mix(in srgb, #bc652c 65%, #fff);
+  --accent-soft: color-mix(in srgb, #bc652c 15%, #111317);
 }
 
-:root[data-theme="dark"][data-accent="orange"] {
-  --accent: #fb923c;
-  --accent-strong: #fed7aa;
-  --accent-soft: #341c0c;
+:root[data-accent="yellow"], .accent-preview[data-accent="yellow"] {
+  --accent: #947014;
+  --accent-strong: #947014;
+  --accent-soft: color-mix(in srgb, #947014 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="yellow"], :root[data-theme="dark"] .accent-preview[data-accent="yellow"] {
+  --accent: #95721b;
+  --accent-strong: color-mix(in srgb, #95721b 65%, #fff);
+  --accent-soft: color-mix(in srgb, #95721b 15%, #111317);
 }
 
-:root[data-accent="yellow"] {
-  --accent: #d6a000;
-  --accent-strong: #8a5f00;
-  --accent-soft: #fef3c7;
+:root[data-accent="green"], .accent-preview[data-accent="green"] {
+  --accent: #337c59;
+  --accent-strong: #337c59;
+  --accent-soft: color-mix(in srgb, #337c59 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="green"], :root[data-theme="dark"] .accent-preview[data-accent="green"] {
+  --accent: #39825c;
+  --accent-strong: color-mix(in srgb, #39825c 65%, #fff);
+  --accent-soft: color-mix(in srgb, #39825c 15%, #111317);
 }
 
-:root[data-theme="dark"][data-accent="yellow"] {
-  --accent: #facc15;
-  --accent-strong: #fef08a;
-  --accent-soft: #30270a;
+:root[data-accent="blue"], .accent-preview[data-accent="blue"] {
+  --accent: #386bb4;
+  --accent-strong: #386bb4;
+  --accent-soft: color-mix(in srgb, #386bb4 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="blue"], :root[data-theme="dark"] .accent-preview[data-accent="blue"] {
+  --accent: #4576be;
+  --accent-strong: color-mix(in srgb, #4576be 65%, #fff);
+  --accent-soft: color-mix(in srgb, #4576be 15%, #111317);
 }
 
-:root[data-accent="pink"] {
-  --accent: #db2777;
-  --accent-strong: #9d174d;
-  --accent-soft: #fce7f3;
+:root[data-accent="purple"], .accent-preview[data-accent="purple"] {
+  --accent: #7950ac;
+  --accent-strong: #7950ac;
+  --accent-soft: color-mix(in srgb, #7950ac 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="purple"], :root[data-theme="dark"] .accent-preview[data-accent="purple"] {
+  --accent: #8b59c2;
+  --accent-strong: color-mix(in srgb, #8b59c2 65%, #fff);
+  --accent-soft: color-mix(in srgb, #8b59c2 15%, #111317);
 }
 
-:root[data-theme="dark"][data-accent="pink"] {
-  --accent: #f472b6;
-  --accent-strong: #fbcfe8;
-  --accent-soft: #331123;
+:root[data-accent="pink"], .accent-preview[data-accent="pink"] {
+  --accent: #ad4775;
+  --accent-strong: #ad4775;
+  --accent-soft: color-mix(in srgb, #ad4775 12%, #fff);
+}
+:root[data-theme="dark"][data-accent="pink"], :root[data-theme="dark"] .accent-preview[data-accent="pink"] {
+  --accent: #b34f7e;
+  --accent-strong: color-mix(in srgb, #b34f7e 65%, #fff);
+  --accent-soft: color-mix(in srgb, #b34f7e 15%, #111317);
 }
 
-:root[data-accent="green"] {
-  --accent: #16a34a;
-  --accent-strong: #166534;
-  --accent-soft: #dcfce7;
-}
-
-:root[data-theme="dark"][data-accent="green"] {
-  --accent: #16a34a;
-  --accent-strong: #dcfce7;
-  --accent-soft: #0d2415;
-}
-
-:root[data-accent="blue"] {
-  --accent: #2563eb;
-  --accent-strong: #1d4ed8;
-  --accent-soft: #dbeafe;
-}
-
-:root[data-theme="dark"][data-accent="blue"] {
-  --accent: #60a5fa;
-  --accent-strong: #bfdbfe;
-  --accent-soft: #10233f;
-}
-
-:root[data-accent="purple"] {
-  --accent: #9333ea;
-  --accent-strong: #7e22ce;
-  --accent-soft: #f3e8ff;
-}
-
-:root[data-theme="dark"][data-accent="purple"] {
-  --accent: #a855f7;
-  --accent-strong: #f3e8ff;
-  --accent-soft: #27163d;
-}
+.accent-preview { background: var(--accent); box-shadow: inset 0 0 0 1px rgb(128 128 128 / 15%); }
+.theme-choice { background: var(--surface); }
+.theme-preview { display: grid; gap: 5px; height: 58px; border-radius: 8px; padding: 10px; background: #eef0f3; border: 1px solid #cfd4dd; }
+.theme-preview span { display: block; border-radius: 3px; background: #c2c8d2; }
+.theme-preview span:first-child { width: 50%; }
+.theme-preview-dark { background: #111317; border-color: #373d48; }
+.theme-preview-dark span { background: #4b5462; }
+.theme-preview-system { background: linear-gradient(110deg, #eef0f3 50%, #111317 50%); }
+.theme-preview-system span { background: #8e98a8; }
+.ui-section-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.ui-field { display: block; width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; background: var(--surface-soft); }
+.ui-primary { display: inline-flex; min-height: 44px; align-items: center; justify-content: center; gap: 8px; border-radius: 12px; padding: 10px 16px; background: var(--accent); color: white; font-size: 14px; font-weight: 600; }
+.ui-primary:disabled { opacity: .45; }
 
 * {
   box-sizing: border-box;
@@ -135,9 +155,14 @@ body {
     system-ui,
     sans-serif;
   letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  font-variant-numeric: tabular-nums;
 }
 
-button,
+@layer base {
+  button { font: inherit; }
+}
+
 input,
 textarea,
 select {
@@ -171,6 +196,103 @@ select.form-field-muted option {
 
 button {
   -webkit-tap-highlight-color: transparent;
+}
+
+button:not(:disabled), a, select {
+  cursor: pointer;
+}
+
+button, a, input, textarea, select {
+  transition: background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
+}
+
+:is(button, a, input, textarea, select):focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 3px;
+}
+
+input:not([type="checkbox"]):not([type="date"]), textarea, select:not(.opacity-0) {
+  box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
+input::placeholder, textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.75;
+}
+
+.ui-card {
+  background: var(--surface);
+  border-radius: 18px;
+  box-shadow: var(--shadow), 0 0 0 1px var(--hairline);
+}
+
+.workout-card-header {
+  background: var(--surface-strong);
+  color: var(--text);
+}
+
+.workout-header-badge {
+  background: var(--surface-soft);
+}
+
+.ui-icon-button, .ui-today-button {
+  display: inline-flex;
+  height: 40px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  background: var(--surface-soft);
+}
+
+.ui-icon-button { width: 40px; }
+.ui-today-button { min-width: 64px; padding-inline: 16px; white-space: nowrap; }
+
+.ui-action {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.ui-fab {
+  position: fixed;
+  right: max(20px, calc((100vw - 720px) / 2));
+  bottom: max(24px, calc(env(safe-area-inset-bottom) + 16px));
+  z-index: 20;
+  display: flex;
+  width: 52px;
+  height: 52px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--on-accent);
+  box-shadow: 0 6px 22px color-mix(in srgb, var(--accent) 24%, transparent);
+}
+
+@media (hover: hover) {
+  .ui-icon-button:hover, .ui-today-button:hover, .ui-action:hover {
+    background: var(--surface-strong);
+  }
+  .calendar-day:hover { background: var(--surface-soft); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 a {

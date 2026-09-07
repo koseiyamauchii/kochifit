@@ -17,6 +17,7 @@ import { BodyPartMasterCard } from "@/components/settings/body-part-master-card"
 import { ExerciseMasterCard } from "@/components/settings/exercise-master-card";
 import { FormulaCard } from "@/components/settings/formula-card";
 import { ProfileSettingsCard } from "@/components/settings/profile-settings-card";
+import { GoalsSettingsCard } from "@/components/settings/goals-settings-card";
 import { SupabaseAccountCard } from "@/components/settings/supabase-account-card";
 import { SupportCard } from "@/components/settings/support-card";
 import { ThemeSelector } from "@/components/settings/theme-selector";
@@ -52,7 +53,7 @@ function renderSection(section: SettingsSection, setActiveSection: (section: Set
     case "profile":
       return <ProfileSettingsCard mode="profile" />;
     case "goals":
-      return <ProfileSettingsCard mode="goals" />;
+      return <GoalsSettingsCard />;
     case "accessibility":
       return <ThemeSelector />;
     case "bodyParts":
@@ -130,7 +131,8 @@ export function SettingsSections({
                 returnHref ? (
                   <Link
                     href={returnHref}
-                    aria-label="記録入力画面に戻る"
+                    aria-label={returnHref === "/" ? "ホームに戻る" : "記録入力画面に戻る"}
+                    onClick={event => { if (!confirmNavigation()) event.preventDefault(); }}
                     className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
                   >
                     <ChevronLeft size={22} />

@@ -1,6 +1,6 @@
 "use client";
 
-import { History } from "lucide-react";
+import { ArrowUpRight, ChartNoAxesCombined, History, Target } from "lucide-react";
 import Link from "next/link";
 import type { CSSProperties } from "react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -9,6 +9,8 @@ import { WorkoutCalendar } from "@/components/calendar/workout-calendar";
 import { createClient } from "@/lib/supabase/client";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
 import { getBodyPartWorkoutDistribution, getWorkoutStats } from "@/lib/workouts/repository";
+import { isGoalDue } from "@/lib/goals/goals";
+import { toDateKey } from "@/lib/workouts/date";
 import type { BodyPartWorkoutDistribution, WorkoutStats } from "@/lib/workouts/types";
 
 const emptyStats: WorkoutStats = {
@@ -32,7 +34,7 @@ function formatDate(value: string | null) {
 }
 
 function GoalValue({ children }: { children: React.ReactNode }) {
-  return <p className="mt-1 text-[13px] font-medium leading-5 text-[var(--text)]">{children}</p>;
+  return <p className="mt-2 whitespace-pre-wrap break-words text-base leading-relaxed text-[var(--text)]">{children}</p>;
 }
 
 function StatCard({
@@ -45,10 +47,10 @@ function StatCard({
   unit: string;
 }) {
   return (
-    <div className="flex min-h-12 items-center justify-between gap-2 rounded-[12px] bg-[var(--surface)] px-3 py-2 shadow-[var(--shadow)]">
+    <div className="ui-card space-y-2 px-4 py-3.5">
       <p className="text-xs font-medium text-[var(--muted)]">{label}</p>
       <p className="flex shrink-0 items-baseline gap-1">
-        <span className="text-lg font-semibold">{value}</span>
+        <span className="text-2xl font-semibold tracking-tight">{value}</span>
         <span className="text-xs text-[var(--muted)]">{unit}</span>
       </p>
     </div>
@@ -61,12 +63,20 @@ export function HomeDashboard() {
   const [stats, setStats] = useState<WorkoutStats>(emptyStats);
   const [distribution, setDistribution] = useState<BodyPartWorkoutDistribution[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [showStats, setShowStats] = useState(false);
+  const [statsLoading, setStatsLoading] = useState(false);
+  const [today, setToday] = useState(() => toDateKey(new Date()));
+  useEffect(() => {
+    const timer = window.setInterval(() => setToday(toDateKey(new Date())), 60000);
+    return () => window.clearInterval(timer);
+  }, []);
 
   const loadStats = useCallback(async () => {
     if (!user) {
       return;
     }
     setError(null);
+    setStatsLoading(true);
     try {
       const [nextStats, nextDistribution] = await Promise.all([
         getWorkoutStats(client, profile),
@@ -77,14 +87,16 @@ export function HomeDashboard() {
     } catch (loadError) {
       console.error("Workout stats load error", loadError);
       setError("集計の読み込みに失敗しました。");
+    } finally {
+      setStatsLoading(false);
     }
   }, [client, profile, user]);
 
   useEffect(() => {
-    if (authStatus === "authenticated" && profileStatus === "ready") {
+    if (showStats && authStatus === "authenticated" && profileStatus === "ready") {
       void loadStats();
     }
-  }, [authStatus, loadStats, profileStatus]);
+  }, [authStatus, loadStats, profileStatus, showStats]);
 
   const goalDeadlines: Array<{ label: string; date: string | null; value: string | null | undefined }> = [
     {
@@ -127,36 +139,41 @@ export function HomeDashboard() {
   })();
 
   return (
-    <main className="space-y-4">
-      <section className="rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
+    <main className="space-y-4 pb-16">
+      <section className="ui-card p-3 sm:p-5">
         <WorkoutCalendar showWorkoutDetails={false} />
       </section>
 
       {hasGoals ? (
-        <section className="space-y-2 rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
-          <div className="grid gap-2">
+        <section className="ui-card overflow-hidden px-4 sm:px-5">
+          <div className="flex items-center justify-between gap-3 border-b border-[var(--hairline)] py-3.5">
+            <h2 className="flex items-center gap-2 text-base font-semibold"><Target size={18} className="text-[var(--muted)]" />目的・目標</h2>
+            <Link href="/settings?section=goals&returnTo=%2F" className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-xs font-medium">管理・振り返り</Link>
+          </div>
+          <div className="divide-y divide-[var(--hairline)]">
             {purpose ? (
-              <div className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2">
-                <h3 className="text-sm font-semibold">目的</h3>
+              <div className="py-3.5">
+                <h3 className="text-sm font-semibold text-[var(--muted)]">目的</h3>
                 <GoalValue>{purpose}</GoalValue>
               </div>
             ) : null}
             {visibleGoalDeadlines.map(({ label, date, value }) => (
-              <div key={label} className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2">
-                <h3 className="flex items-baseline justify-between gap-2 text-sm font-semibold leading-snug">
+              <div key={label} className="py-3.5">
+                <h3 className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-1 text-sm font-semibold leading-snug text-[var(--muted)]">
                   <span className="shrink-0">{label}</span>
                   {date ? (
-                    <span className="min-w-0 truncate text-right text-sm font-medium text-[var(--muted)]">
-                      （～{formatDate(date)}）
+                    <span className="text-right text-[11px] font-normal">
+                      ～{formatDate(date)}
                     </span>
                   ) : null}
                 </h3>
                 <GoalValue>{value}</GoalValue>
+                {isGoalDue(value, date ?? "", today) ? <Link href="/settings?section=goals&returnTo=%2F" className="mt-3 flex min-h-11 items-center justify-between gap-3 rounded-xl bg-[var(--surface-soft)] px-3 text-sm font-medium"><span>期限を迎えました．振り返りましょう</span><ArrowUpRight size={17} className="shrink-0" /></Link> : null}
               </div>
             ))}
             {finalGoal ? (
-              <div className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2">
-                <h3 className="text-sm font-semibold">最終目標</h3>
+              <div className="py-3.5">
+                <h3 className="text-sm font-semibold text-[var(--muted)]">最終目標</h3>
                 <GoalValue>{finalGoal}</GoalValue>
               </div>
             ) : null}
@@ -166,12 +183,28 @@ export function HomeDashboard() {
 
       <Link
         href="/history"
-        className="flex min-h-10 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--surface)] px-3 py-2 text-sm font-semibold shadow-[var(--shadow)]"
+        className="ui-card ui-action w-full"
       >
-        <History size={18} />
-        履歴
+        <History size={18} className="text-[var(--muted)]" />
+        <span className="flex-1">記録の履歴</span>
+        <ArrowUpRight size={16} className="text-[var(--muted)]" />
       </Link>
 
+      {!showStats ? (
+        <button
+          type="button"
+          onClick={() => setShowStats(true)}
+          className="ui-card ui-action w-full"
+        >
+          <ChartNoAxesCombined size={18} className="text-[var(--muted)]" />
+          <span className="flex-1">集計を表示</span>
+          <ArrowUpRight size={16} className="text-[var(--muted)]" />
+        </button>
+      ) : statsLoading ? (
+        <p role="status" className="text-center text-sm text-[var(--muted)]">集計を読み込み中</p>
+      ) : null}
+
+      {showStats && !statsLoading ? <>
       <section className="grid grid-cols-2 gap-2">
         <StatCard label="合計" value={stats.totalWorkoutDays} unit="日" />
         <StatCard label="今月" value={stats.monthWorkoutDays} unit="日" />
@@ -179,8 +212,8 @@ export function HomeDashboard() {
         <StatCard label="日平均消費" value={stats.averageDailyCalories} unit="kcal" />
       </section>
 
-      <section className="rounded-[12px] bg-[var(--surface)] p-3 shadow-[var(--shadow)]">
-        <h2 className="text-base font-semibold">部位別トレーニング日数</h2>
+      <section className="ui-card p-4 sm:p-5">
+        <h2 className="text-sm font-semibold">部位別トレーニング日数</h2>
         <div className="mt-3 grid grid-cols-[112px_1fr] items-center gap-3">
           <div className="relative h-[112px] w-[112px] rounded-full p-2">
             <div
@@ -233,6 +266,7 @@ export function HomeDashboard() {
         </div>
       </section>
 
+      </> : null}
       {error ? <p className="text-sm text-[var(--warning)]">{error}</p> : null}
     </main>
   );

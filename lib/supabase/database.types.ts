@@ -1,8 +1,31 @@
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+export type GoalReviewRow = {
+  id: string;
+  user_id: string;
+  goal_kind: string;
+  goal_text: string;
+  goal_deadline: string;
+  period_start: string;
+  achieved: boolean;
+  achievement_percent: number;
+  reflection: string;
+  next_action: string;
+  next_goal_text: string;
+  next_goal_deadline: string;
+  progress: Json;
+  reviewed_at: string;
+};
+
 export interface Database {
   public: {
     Tables: {
+      goal_reviews: {
+        Row: GoalReviewRow;
+        Insert: Omit<GoalReviewRow, "reviewed_at"> & { reviewed_at?: string };
+        Update: Partial<GoalReviewRow>;
+        Relationships: [];
+      };
       profiles: {
         Row: {
           id: string;
@@ -345,6 +368,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      complete_goal_review: {
+        Args: {
+          p_id: string; p_goal_kind: string; p_goal_text: string; p_goal_deadline: string; p_period_start: string;
+          p_achieved: boolean; p_achievement_percent: number; p_reflection: string; p_next_action: string;
+          p_next_goal_text: string; p_next_goal_deadline: string; p_progress: Json;
+        };
+        Returns: string;
+      };
       initialize_current_user: {
         Args: Record<string, never>;
         Returns: undefined;

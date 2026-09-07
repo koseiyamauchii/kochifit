@@ -20,6 +20,7 @@
 | `workout_exercises` | Workout 内の種目 |
 | `sets` | セット記録 |
 | `exercise_settings` | 種目ごとのラック位置，メモ，マシン設定 |
+| `goal_reviews` | 期限付き目標の振り返りと次の目標の履歴 |
 
 ## profiles
 
@@ -179,6 +180,22 @@ display_order integer
 created_at timestamptz
 updated_at timestamptz
 ```
+
+## 目標の振り返り
+
+`goal_reviews` はユーザー所有の履歴であり，元の目標，期限，集計期間，達成状況，自己評価，振り返り，次の行動，次の目標，集計値のスナップショットを保持する．
+RLS は `auth.uid() = user_id` とし，authenticated には SELECT と INSERT のみを許可する．
+匿名ユーザーにはテーブル権限も RPC 実行権限も付与しない．
+
+`complete_goal_review` は security invoker の RPC で，振り返りの保存と profiles の該当する次回目標への更新を同一トランザクションで実行する．
+プロフィールをロックし，対象目標と期限の一致を確認することで，変更済みの目標への誤った振り返りを防ぐ．
+リクエスト UUID を再利用した再送は重複保存しない．
+
+`supabase/verification/goal_reviews.sql` では，別ユーザーのアクセス拒否，履歴の更新・削除拒否，匿名権限の不在，原子的な更新，再送の冪等性を確認する．
+検証用データはトランザクション末尾でロールバックする．
+
+記録入力中の下書きはブラウザ内だけに保持し，確定時のみ既存の Workout 保存処理へ渡す．
+下書きをトレーニング記録の正本や集計対象として扱わない．
 
 ## 初期種目作成
 

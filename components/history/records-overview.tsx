@@ -93,7 +93,7 @@ export function RecordsOverview() {
           const isExpanded = expandedBodyPartIds.has(bodyPart.id);
           const visibleRecords = isExpanded ? bodyPartRecords : bodyPartRecords.slice(0, 3);
           return (
-            <section key={bodyPart.id} className="overflow-hidden rounded-[12px] bg-[var(--surface)] shadow-[var(--shadow)]">
+            <section key={bodyPart.id} className="ui-card overflow-hidden">
               <h2 className="flex items-center gap-2 border-b border-[var(--hairline)] px-3 py-2.5 text-sm font-semibold">
                 <span
                   aria-hidden="true"

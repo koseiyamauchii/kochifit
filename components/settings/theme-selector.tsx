@@ -1,170 +1,78 @@
 "use client";
 
-import { ChevronDown, Monitor, Moon, Palette, Sun } from "lucide-react";
-import type { CSSProperties } from "react";
-import {
-  useThemePreference,
-  type AccentPreference,
-  type ThemePreference,
-} from "@/components/settings/theme-provider";
+import { Check, ChevronDown, Monitor, Moon, Palette, Sun } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
+import { useThemePreference, type AccentPreference, type ThemePreference } from "./theme-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
-import { useMemo } from "react";
 
-const choices: Array<{ value: ThemePreference; label: string; icon: React.ReactNode }> = [
-  { value: "system", label: "システム", icon: <Monitor size={16} /> },
-  { value: "light", label: "ライト", icon: <Sun size={16} /> },
-  { value: "dark", label: "ダーク", icon: <Moon size={16} /> },
-];
-
-const accentChoices: Array<{ value: AccentPreference; label: string; color: string }> = [
-  { value: "gray", label: "デフォルト", color: "#52525b" },
-  { value: "red", label: "レッド", color: "#dc2626" },
-  { value: "orange", label: "オレンジ", color: "#ea580c" },
-  { value: "yellow", label: "イエロー", color: "#d6a000" },
-  { value: "green", label: "グリーン", color: "#16a34a" },
-  { value: "blue", label: "ブルー", color: "#2563eb" },
-  { value: "purple", label: "パープル", color: "#9333ea" },
-  { value: "pink", label: "ピンク", color: "#db2777" },
+const choices = [
+  { value: "system", label: "システム", icon: Monitor },
+  { value: "light", label: "ライト", icon: Sun },
+  { value: "dark", label: "ダーク", icon: Moon },
+] as const;
+const accentChoices: { value: AccentPreference; label: string }[] = [
+  { value: "gray", label: "グレー" }, { value: "red", label: "レッド" },
+  { value: "orange", label: "オレンジ" }, { value: "yellow", label: "イエロー" },
+  { value: "green", label: "グリーン" }, { value: "blue", label: "ブルー" },
+  { value: "purple", label: "パープル" }, { value: "pink", label: "ピンク" },
 ];
 
 export function ThemeSelector({ compact = false }: { compact?: boolean }) {
   const { theme, accent, setTheme, setAccent } = useThemePreference();
   const { refreshProfile, user } = useAuth();
   const client = useMemo(() => createClient(), []);
-
-  const savePreference = async (nextTheme: ThemePreference, nextAccent: AccentPreference) => {
-    if (!user) {
-      return;
-    }
-    const { error } = await client
-      .from("profiles")
-      .update({
-        theme_preference: nextTheme,
-        accent_preference: nextAccent,
-      })
-      .eq("id", user.id);
-    if (error) {
-      console.error("Theme preference save error", error);
-      return;
-    }
-    await refreshProfile();
-  };
-
-  const handleThemeChange = (nextTheme: ThemePreference) => {
+  const [expanded, setExpanded] = useState<"theme" | "accent" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const save = async (nextTheme: ThemePreference, nextAccent: AccentPreference) => {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setError(null);
     setTheme(nextTheme);
-    void savePreference(nextTheme, accent);
-  };
-
-  const handleAccentChange = (nextAccent: AccentPreference) => {
     setAccent(nextAccent);
-    void savePreference(theme, nextAccent);
+    try {
+      if (user) {
+        const { error } = await client.from("profiles").update({ theme_preference: nextTheme, accent_preference: nextAccent }).eq("id", user.id);
+        if (error) throw error;
+        await refreshProfile();
+      }
+    } catch {
+      setError("この端末に反映しましたが、アカウントへの保存に失敗しました。");
+    } finally { savingRef.current = false; setSaving(false); }
   };
-
-  const currentThemeLabel = choices.find((choice) => choice.value === theme)?.label ?? "システム";
-  const currentAccentLabel = accentChoices.find((choice) => choice.value === accent)?.label ?? "デフォルト";
-
-  if (compact) {
-    return (
-      <div className="overflow-hidden rounded-[12px] bg-[var(--surface-soft)]">
-        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 border-b border-[var(--hairline)] px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]">
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
-              <Sun size={18} />
-            </span>
-            <span className="min-w-0 truncate">外観</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--muted)]">
-            {currentThemeLabel}
-            <ChevronDown size={16} />
-          </span>
-          <select
-            aria-label="外観"
-            value={theme}
-            onChange={(event) => handleThemeChange(event.target.value as ThemePreference)}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          >
-            {choices.map((choice) => (
-              <option key={choice.value} value={choice.value}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="relative flex min-h-12 w-full items-center justify-between gap-3 px-2.5 text-left text-sm font-medium text-[var(--text)] hover:bg-[var(--surface)]">
-          <span className="flex min-w-0 items-center gap-2">
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center text-[var(--muted)]">
-              <Palette size={18} />
-            </span>
-            <span className="min-w-0 truncate">アクセントカラー</span>
-          </span>
-          <span className="flex shrink-0 items-center gap-1 text-sm font-medium text-[var(--muted)]">
-            {currentAccentLabel}
-            <ChevronDown size={16} />
-          </span>
-          <select
-            aria-label="アクセントカラー"
-            value={accent}
-            onChange={(event) => handleAccentChange(event.target.value as AccentPreference)}
-            className="absolute inset-0 cursor-pointer opacity-0"
-          >
-            {accentChoices.map((choice) => (
-              <option key={choice.value} value={choice.value}>
-                {choice.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-    );
-  }
-
+  const CurrentIcon = choices.find(c => c.value === theme)!.icon;
   return (
-    <section className="space-y-5">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]"><Sun size={15} />外観</h3>
-      <div className="grid grid-cols-3 gap-1 rounded-[12px] bg-[var(--surface)] p-1">
-        {choices.map((choice) => (
-          <button
-            key={choice.value}
-            type="button"
-            onClick={() => handleThemeChange(choice.value)}
-            aria-pressed={theme === choice.value}
-            className={[
-              "flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-[12px] px-1 text-[13px] font-medium sm:text-sm",
-              theme === choice.value
-                ? "bg-[var(--surface)] text-[var(--text)] shadow-sm"
-                : "text-[var(--muted)]",
-            ].join(" ")}
-          >
-            {choice.icon}
-            <span className="whitespace-nowrap">{choice.label}</span>
-          </button>
-        ))}
+    <section className={compact ? "overflow-hidden rounded-2xl bg-[var(--surface-soft)]" : "space-y-5"}>
+      <div className={compact ? "border-b border-[var(--hairline)]" : ""}>
+        {compact ? <button type="button" aria-expanded={expanded === "theme"} onClick={() => setExpanded(expanded === "theme" ? null : "theme")} className="flex min-h-14 w-full items-center gap-3 px-4 text-sm font-medium">
+          <CurrentIcon size={18} className="text-[var(--muted)]" /><span className="flex-1 text-left">外観</span>
+          <span className="text-[var(--muted)]">{choices.find(c => c.value === theme)?.label}</span><ChevronDown size={16} />
+        </button> : <h3 className="ui-section-title mb-3">外観</h3>}
+        {!compact || expanded === "theme" ? <div role="group" aria-label="外観" className={compact ? "grid grid-cols-3 gap-2 px-3 pb-4" : "grid grid-cols-3 gap-2"}>
+          {choices.map(({ value, label, icon: Icon }) => <button key={value} type="button" disabled={saving} aria-pressed={theme === value} onClick={() => void save(value, accent)} className={["theme-choice min-w-0 rounded-2xl border p-2.5", theme === value ? "border-[var(--accent)]" : "border-[var(--border)]"].join(" ")}>
+            <span aria-hidden="true" className={"theme-preview theme-preview-" + value}><span /><span /><span /></span>
+            <span className="mt-2 flex items-center justify-center gap-1 text-xs font-semibold"><Icon size={14} />{label}</span>
+            <span className="mt-1 flex h-4 justify-center">{theme === value ? <Check size={14} className="text-[var(--accent-strong)]" /> : null}</span>
+          </button>)}
+        </div> : null}
       </div>
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--muted)]"><Palette size={15} />アクセントカラー</h3>
-      <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-        {accentChoices.map((choice) => (
-          <button
-            key={choice.value}
-            type="button"
-            onClick={() => handleAccentChange(choice.value)}
-            aria-pressed={accent === choice.value}
-            className={[
-              "flex min-h-11 items-center gap-2 rounded-[12px] border px-3 text-sm font-medium",
-              accent === choice.value
-                ? "border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent-strong)]"
-                : "border-[var(--border)] bg-[var(--surface)] text-[var(--text)]",
-            ].join(" ")}
-          >
-            <span
-              aria-hidden="true"
-              className="color-orb h-4 w-4 rounded-full"
-              style={{ "--color-orb": choice.color } as CSSProperties}
-            />
-            <span>{choice.label}</span>
-          </button>
-        ))}
+      <div>
+        {compact ? <button type="button" aria-expanded={expanded === "accent"} onClick={() => setExpanded(expanded === "accent" ? null : "accent")} className="flex min-h-14 w-full items-center gap-3 px-4 text-sm font-medium">
+          <Palette size={18} className="text-[var(--muted)]" /><span className="flex-1 text-left">アクセントカラー</span>
+          <span className="accent-preview h-4 w-4 shrink-0 rounded-full" data-accent={accent} />
+          <span className="text-[var(--muted)]">{accentChoices.find(c => c.value === accent)?.label}</span><ChevronDown size={16} />
+        </button> : <h3 className="ui-section-title mb-3">アクセントカラー</h3>}
+        {!compact || expanded === "accent" ? <div role="group" aria-label="アクセントカラー" className={compact ? "grid grid-cols-2 gap-2 px-3 pb-4 sm:grid-cols-4" : "grid grid-cols-2 gap-2 sm:grid-cols-4"}>
+          {accentChoices.map(choice => <button key={choice.value} type="button" disabled={saving} onClick={() => void save(theme, choice.value)} aria-pressed={accent === choice.value} className={["flex min-h-12 items-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-sm font-medium", accent === choice.value ? "border-[var(--accent)]" : "border-[var(--border)]"].join(" ")}>
+            <span aria-hidden="true" className="accent-preview h-6 w-6 shrink-0 rounded-full" data-accent={choice.value} /><span className="flex-1 text-left">{choice.label}</span>
+            {accent === choice.value ? <Check size={15} className="shrink-0" /> : null}
+          </button>)}
+        </div> : null}
       </div>
+      {error ? <p role="alert" className="px-3 pb-3 text-xs text-[var(--warning)]">{error}<button type="button" disabled={saving} className="ml-2 underline" onClick={() => void save(theme, accent)}>再試行</button></p> : null}
     </section>
   );
 }

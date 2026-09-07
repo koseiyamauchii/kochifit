@@ -53,11 +53,11 @@ export function AppShell({
   };
 
   return (
-    <div className={["mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-3 pb-6 sm:px-6", immersive ? "pt-0" : active === "home" ? "pt-[7px] sm:pt-[19px]" : "pt-3 sm:pt-6"].join(" ")}>
+    <div data-active-route={active} className={["mx-auto flex min-h-dvh w-full max-w-3xl flex-col px-3 pb-6 sm:px-6", immersive ? "pt-0" : "pt-3 sm:pt-5"].join(" ")}>
       {user && !immersive ? (
-        <header className="mb-3 grid grid-cols-[36px_1fr_36px] items-center gap-2">
+        <header className="mb-4 grid min-h-10 grid-cols-[36px_1fr_36px] items-center gap-2">
           <div />
-          <Link href="/" onClick={handleHomeClick} className="truncate text-center text-lg font-bold">
+          <Link href="/" onClick={handleHomeClick} className="truncate text-center text-xl font-bold tracking-[-0.035em]">
             KochiFit
           </Link>
           <AccountAvatarButton onClick={() => openSettings("account", false)} />
@@ -68,11 +68,11 @@ export function AppShell({
 
       {isSettingsOpen ? (
         <div
-          className="fixed inset-0 z-30 bg-black/45 pt-8"
+          className="fixed inset-0 z-30 bg-black/65 pt-6 backdrop-blur-sm"
           onClick={closeSettings}
         >
           <section
-            className="safe-bottom relative h-full w-full overflow-y-auto rounded-t-[16px] bg-[var(--surface)] shadow-[var(--shadow)]"
+            className="safe-bottom relative mx-auto h-full w-full max-w-3xl overflow-y-auto rounded-t-[24px] border-t border-[var(--hairline)] bg-[var(--surface)] shadow-[var(--shadow)]"
             onClick={(event) => event.stopPropagation()}
           >
             <button

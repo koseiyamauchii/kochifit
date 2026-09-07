@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { getCalendarCells, getMonthRange, toDateKey } from "@/lib/workouts/date";
+import { getCalendarCells, getCalendarRange, getMonthRange, toDateKey } from "@/lib/workouts/date";
 
 describe("workout date helpers", () => {
+  it("limits calendar queries to visible weeks including adjacent dates", () => {
+    expect(getCalendarRange(new Date(2026, 7, 1))).toEqual({
+      start: "2026-07-27", end: "2026-09-06",
+    });
+    expect(getCalendarRange(new Date(2026, 8, 1))).toEqual({
+      start: "2026-08-31", end: "2026-10-04",
+    });
+    expect(getCalendarRange(new Date(2027, 0, 1))).toEqual({
+      start: "2026-12-28", end: "2027-01-31",
+    });
+    expect(getCalendarRange(new Date(2021, 1, 1))).toEqual({
+      start: "2021-02-01", end: "2021-02-28",
+    });
+  });
   it("formats local date keys", () => {
     expect(toDateKey(new Date(2026, 7, 13))).toBe("2026-08-13");
   });

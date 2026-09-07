@@ -16,7 +16,7 @@ export default async function SettingsPage({
   const initialSection = section && settingsSections.has(section as SettingsSection)
     ? section as SettingsSection
     : null;
-  const returnHref = params?.returnTo && /^\/today\/add(?:\?|$)/.test(params.returnTo)
+  const returnHref = params?.returnTo && (params.returnTo === "/" || /^\/today\/add(?:\?|$)/.test(params.returnTo))
     ? params.returnTo
     : undefined;
   return (

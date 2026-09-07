@@ -186,6 +186,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
             training_split: snapshot.trainingSplit.trim() || null,
             default_set_count: Number(parsedSetCount),
             session_sort_order: snapshot.sessionSortOrder === "desc" ? "desc" : "asc",
+            ...(mode === "goals" ? {
             training_purpose: snapshot.trainingPurpose.trim() || null,
             final_goal: snapshot.finalGoal.trim() || null,
             one_month_goal_date: snapshot.oneMonthGoalDate || null,
@@ -194,6 +195,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
             three_month_goal_text: snapshot.threeMonthGoalText.trim() || null,
             one_year_goal_date: snapshot.oneYearGoalDate || null,
             one_year_goal_text: snapshot.oneYearGoalText.trim() || null,
+            } : {}),
           })
           .eq("id", user.id);
 
@@ -219,7 +221,7 @@ export function ProfileSettingsCard({ mode = "profile" }: { mode?: "profile" | "
         isSavingRef.current = false;
       }
     },
-    [client, currentSnapshot, refreshProfile, user],
+    [client, currentSnapshot, mode, refreshProfile, user],
   );
 
   const hasUnsavedChanges = useCallback(() => {

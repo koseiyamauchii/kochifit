@@ -47,3 +47,8 @@ export function getCalendarCells(month: Date): CalendarCell[] {
     };
   });
 }
+
+export function getCalendarRange(month: Date) {
+  const cells = getCalendarCells(month);
+  return { start: cells[0].dateKey, end: cells[cells.length - 1].dateKey };
+}

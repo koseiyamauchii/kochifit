@@ -503,6 +503,7 @@ export async function getWorkoutSummaries(
   client: Client,
   startDate: string,
   endDate: string,
+  includeSetCounts = true,
 ): Promise<WorkoutSummary[]> {
   const { data: workouts, error: workoutError } = await client
     .from("workouts")
@@ -535,7 +536,7 @@ export async function getWorkoutSummaries(
 
   const workoutExerciseIds = workoutExercises.map((item) => item.id);
   const setsByWorkoutExercise = new Map<string, number>();
-  if (workoutExerciseIds.length > 0) {
+  if (includeSetCounts && workoutExerciseIds.length > 0) {
     const { data: sets, error: setError } = await client
       .from("sets")
       .select("workout_exercise_id")
@@ -1008,8 +1009,11 @@ export async function getLatestWorkoutForExerciseBeforeDate(
   };
 }
 
-export async function getExerciseRecords(client: Client): Promise<ExerciseRecord[]> {
-  const exercises = await getExercises(client);
+export async function getExerciseRecords(
+  client: Client,
+  selectedExercises?: Exercise[],
+): Promise<ExerciseRecord[]> {
+  const exercises = selectedExercises ?? await getExercises(client);
   if (exercises.length === 0) {
     return [];
   }
