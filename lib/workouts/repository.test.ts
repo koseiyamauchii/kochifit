@@ -1,8 +1,25 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { getDayCondition, getExerciseWeightRecords, getLatestWorkoutForExerciseBeforeDate, getWorkoutsForExercise } from "./repository";
-import type { Exercise } from "./types";
+import { appendHistoryRecords, getDayCondition, getExerciseWeightRecords, getLatestWorkoutForExerciseBeforeDate, getWorkoutsForExercise } from "./repository";
+import type { Exercise, Workout } from "./types";
+
+describe("expanding history", () => {
+  const record = (id: string): Workout => ({ id, workoutDate: "2026-09-25", createdAt: "09:00", note: null, exercises: [] });
+  it("keeps the first five and appends the next five in order", () => {
+    const first = Array.from({ length: 5 }, (_, i) => record(String(i)));
+    const next = Array.from({ length: 5 }, (_, i) => record(String(i + 5)));
+    const result = appendHistoryRecords(first, next);
+    expect(result.map(item => item.id)).toEqual(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+    expect(result[0]).toBe(first[0]);
+    expect(first).toHaveLength(5);
+  });
+  it("does not duplicate records on retries or overlapping pages", () => {
+    const first = [record("a"), record("b")];
+    expect(appendHistoryRecords(first, [record("b"), record("c")]).map(item => item.id)).toEqual(["a", "b", "c"]);
+    expect(appendHistoryRecords(first, [])).toEqual(first);
+  });
+});
 
 function mockClient(responses: Record<string, unknown[]>) {
   const calls: { table: string; method: string; args: unknown[] }[] = [];

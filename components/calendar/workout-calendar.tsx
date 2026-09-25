@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { CSSProperties, TouchEvent as ReactTouchEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
-import { WorkoutMemoSummary, WorkoutCardHeader } from "./workout-card-parts";
+import { SetAnnotations, WorkoutMemoSummary, WorkoutCardHeader } from "./workout-card-parts";
 import { readWorkoutDraft, shouldConfirmWorkoutClose, workoutDraftKey, writeWorkoutDraft } from "@/lib/workouts/draft-storage";
 import { createClient } from "@/lib/supabase/client";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
@@ -31,6 +31,7 @@ import {
   getDayCondition,
   getExerciseRecords,
   getExerciseWeightRecords,
+  appendHistoryRecords,
   EXERCISE_HISTORY_PAGE_SIZE,
   getExercises,
   getLatestWorkoutForExerciseBeforeDate,
@@ -441,7 +442,7 @@ function WorkoutReadOnlyCard({
             {exercise.sets.length}セット
           </span>
       </WorkoutCardHeader>
-      <WorkoutMemoSummary note={exercise.note} masterMemo={masterExercise?.memo} sets={exercise.sets} />
+      <WorkoutMemoSummary note={exercise.note} masterMemo={masterExercise?.memo} />
       {showDate && exercise.condition ? <p className="whitespace-pre-wrap break-words border-b border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">体調・コンディション：{exercise.condition}</p> : null}
       <div className={[isCardio ? "grid-cols-[2.4rem_1fr_1fr_1fr]" : "grid-cols-[2.4rem_0.9fr_1.3fr_0.9fr_2.5rem]", "grid gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]"].join(" ")}>
         <span>セット</span>
@@ -461,6 +462,7 @@ function WorkoutReadOnlyCard({
               {!isCardio ? <span aria-label={set.isAssisted ? "補助あり" : "補助なし"} className="text-center text-[var(--muted)]">{set.isAssisted ? "あり" : "なし"}</span> : null}
             </div>
             {isCardio && set.caloriesKcal !== null ? <p className="mt-1 text-xs text-[var(--muted)]">カロリー：{formatCardioStoredValue("calories", set.caloriesKcal, cardioUnits)}{cardioUnitLabels.calories}</p> : null}
+            <SetAnnotations note={set.note} isAssisted={set.isAssisted} isCardio={isCardio} showAssistance={false} />
           </div>
         ))}
       </div>
@@ -1080,9 +1082,10 @@ export function WorkoutCalendar({
   const monthRequest = useRef(0);
   const detailRequest = useRef(0);
   const [detailsLoading, setDetailsLoading] = useState(true);
-  const [historyPage, setHistoryPage] = useState(0);
+  const historyPage = useRef(0);
+  const historyMoreInFlight = useRef(false);
   const [historyHasMore, setHistoryHasMore] = useState(false);
-  const [historyLoadError, setHistoryLoadError] = useState(false);
+  const [historyLoadError, setHistoryLoadError] = useState<"refresh" | "more" | null>(null);
 
   const router = useRouter();
   const client = useMemo(() => createClient(), []);
@@ -1225,28 +1228,51 @@ export function WorkoutCalendar({
       return;
     }
     setDetailsLoading(true);
-    setHistoryLoadError(false);
+    setHistoryLoadError(null);
     const request = ++detailRequest.current;
     try {
       if (exerciseHistoryId) {
-        const page = await getWorkoutsForExercise(client, exerciseHistoryId, historyPage);
+        const pages = await Promise.all(Array.from({ length: historyPage.current + 1 }, (_, page) =>
+          getWorkoutsForExercise(client, exerciseHistoryId, page)));
         if (detailRequest.current !== request) return;
-        // If the final record on this page was deleted, return to the preceding page.
-        if (!page.workouts.length && historyPage > 0) { setHistoryPage(historyPage - 1); return; }
-        setWorkouts(page.workouts);
-        setHistoryHasMore(page.hasMore);
+        const records = pages.flatMap(page => page.workouts);
+        setWorkouts(records);
+        historyPage.current = Math.max(0, Math.ceil(records.length / EXERCISE_HISTORY_PAGE_SIZE) - 1);
+        setHistoryHasMore(pages[pages.length - 1].hasMore);
         setError(null);
       } else {
         const nextWorkouts = await getWorkoutsByDate(client, effectiveSelectedDate);
         if (detailRequest.current === request) setWorkouts(nextWorkouts);
       }
     } catch (error) {
-      if (detailRequest.current === request) setHistoryLoadError(true);
+      if (detailRequest.current === request) setHistoryLoadError("refresh");
       throw error;
     } finally {
       if (detailRequest.current === request) setDetailsLoading(false);
     }
-  }, [client, effectiveSelectedDate, exerciseHistoryId, historyPage, showAddForm, showWorkoutDetails, user]);
+  }, [client, effectiveSelectedDate, exerciseHistoryId, showAddForm, showWorkoutDetails, user]);
+
+  const loadMoreHistory = async () => {
+    if (!exerciseHistoryId || detailsLoading || savingKey || historyMoreInFlight.current) return;
+    historyMoreInFlight.current = true;
+    setDetailsLoading(true);
+    setHistoryLoadError(null);
+    const request = ++detailRequest.current;
+    try {
+      const next = historyPage.current + 1;
+      const page = await getWorkoutsForExercise(client, exerciseHistoryId, next);
+      if (detailRequest.current !== request) return;
+      setWorkouts(current => appendHistoryRecords(current, page.workouts));
+      historyPage.current = next;
+      setHistoryHasMore(page.hasMore);
+      setError(null);
+    } catch {
+      if (detailRequest.current === request) setHistoryLoadError("more");
+    } finally {
+      historyMoreInFlight.current = false;
+      if (detailRequest.current === request) setDetailsLoading(false);
+    }
+  };
 
   useEffect(() => {
     setEditDrafts((current) => {
@@ -2087,23 +2113,10 @@ export function WorkoutCalendar({
             );
         }) : null}
 
-        {exerciseHistoryId ? <nav aria-label="記録履歴のページ" className="space-y-2 pb-4">
-          {detailsLoading ? <p role="status" className="text-center text-sm text-[var(--muted)]">記録を読み込み中</p> : historyLoadError ? <button type="button" className="ui-action w-full justify-center" onClick={() => void loadSelectedDate().catch(() => undefined)}>再読み込み</button> : workouts.length ? <p className="text-center text-xs text-[var(--muted)]">{historyPage * EXERCISE_HISTORY_PAGE_SIZE + 1}–{historyPage * EXERCISE_HISTORY_PAGE_SIZE + workouts.length}件目</p> : null}
-          <div className="flex gap-2">
-            {[
-              { show: historyPage > 0, next: historyPage - 1, label: "前の5件" },
-              { show: historyHasMore, next: historyPage + 1, label: "もっと見る" },
-            ].filter(item => item.show).map(item => <button key={item.label} type="button" disabled={detailsLoading || Boolean(savingKey)} className="ui-action flex-1 justify-center disabled:opacity-40" onClick={() => {
-              if (!confirmUnsavedNavigation()) return;
-              clearLocalDraft(activeStorageKey);
-              setEditingWorkoutId(null);
-              setEditingBaseline(null);
-              setWorkouts([]);
-              setDetailsLoading(true);
-              setHistoryPage(item.next);
-              window.scrollTo({ top: 0, behavior: "instant" });
-            }}>{item.label}</button>)}
-          </div>
+        {exerciseHistoryId ? <nav aria-label="記録履歴の追加読み込み" className="space-y-2 pb-4">
+          {workouts.length ? <p className="text-center text-xs text-[var(--muted)]">{workouts.length}件表示中</p> : null}
+          {detailsLoading ? <p role="status" className="text-center text-sm text-[var(--muted)]">記録を読み込み中</p> : null}
+          {historyLoadError ? <div role="alert" className="space-y-2 text-center text-sm text-[var(--warning)]"><p>記録を読み込めませんでした．</p><button type="button" className="ui-action w-full justify-center" onClick={() => historyLoadError === "more" ? void loadMoreHistory() : void loadSelectedDate().catch(() => undefined)}>再読み込み</button></div> : historyHasMore ? <button type="button" disabled={detailsLoading || Boolean(savingKey)} className="ui-action w-full justify-center disabled:opacity-40" onClick={() => void loadMoreHistory()}>もっと見る</button> : null}
         </nav> : null}
 
       </section>

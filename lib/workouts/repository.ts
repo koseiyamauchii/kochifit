@@ -872,6 +872,10 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
 
 export const EXERCISE_HISTORY_PAGE_SIZE = 5;
 
+export function appendHistoryRecords(current: Workout[], next: Workout[]): Workout[] {
+  return [...new Map([...current, ...next].map(workout => [workout.id, workout])).values()];
+}
+
 export async function getWorkoutsForExercise(
   client: Client,
   exerciseId: string,

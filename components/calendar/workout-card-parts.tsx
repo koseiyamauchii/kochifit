@@ -1,16 +1,13 @@
 import * as React from "react";
 
-export function WorkoutMemoSummary({ note, masterMemo, sets }: {
+export function WorkoutMemoSummary({ note, masterMemo }: {
   note: string | null;
   masterMemo?: string | null;
-  sets: Array<{ id: string; note: string | null }>;
 }) {
-  const notes = sets.flatMap((set, index) => set.note?.trim() ? [{ ...set, number: index + 1 }] : []);
-  if (!note?.trim() && !masterMemo?.trim() && !notes.length) return null;
+  if (!note?.trim() && !masterMemo?.trim()) return null;
   return <div className="space-y-1.5 border-b border-[var(--hairline)] px-3 py-2 text-xs leading-relaxed text-[var(--muted)]">
     {note?.trim() ? <p className="whitespace-pre-wrap break-words">{note}</p> : null}
-    {masterMemo?.trim() ? <p className="whitespace-pre-wrap break-words"><span className="font-medium">共通メモ（種目マスタ） </span>{masterMemo}</p> : null}
-    {notes.map(set => <div key={set.id} className="flex items-start gap-2"><span className="shrink-0 font-medium">{set.number}セット目</span><p className="min-w-0 whitespace-pre-wrap break-words">{set.note}</p></div>)}
+    {masterMemo?.trim() ? <p className="whitespace-pre-wrap break-words"><span className="font-medium">メモ </span>{masterMemo}</p> : null}
   </div>;
 }
 

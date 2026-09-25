@@ -9,7 +9,7 @@ import { WorkoutCalendar } from "@/components/calendar/workout-calendar";
 import { createClient } from "@/lib/supabase/client";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
 import { getBodyPartWorkoutDistribution, getWorkoutStats } from "@/lib/workouts/repository";
-import { isGoalDue } from "@/lib/goals/goals";
+import { formatGoalDate, isGoalDue } from "@/lib/goals/goals";
 import { toDateKey } from "@/lib/workouts/date";
 import type { BodyPartWorkoutDistribution, WorkoutStats } from "@/lib/workouts/types";
 
@@ -19,19 +19,6 @@ const emptyStats: WorkoutStats = {
   weeklyAverageWorkoutDays: 0,
   averageDailyCalories: 0,
 };
-
-function formatDate(value: string | null) {
-  if (!value) {
-    return "";
-  }
-
-  const [year, month, day] = value.split("-");
-  if (!year || !month || !day) {
-    return value;
-  }
-
-  return `${Number(year)}年${Number(month)}月${Number(day)}日`;
-}
 
 function GoalValue({ children }: { children: React.ReactNode }) {
   return <p className="mt-2 whitespace-pre-wrap break-words text-base leading-relaxed text-[var(--text)]">{children}</p>;
@@ -163,7 +150,7 @@ export function HomeDashboard() {
                   <span className="shrink-0">{label}</span>
                   {date ? (
                     <span className="text-right text-[11px] font-normal">
-                      ～{formatDate(date)}
+                      ～{formatGoalDate(date)}
                     </span>
                   ) : null}
                 </h3>
