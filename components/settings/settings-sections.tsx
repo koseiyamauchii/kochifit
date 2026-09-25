@@ -5,6 +5,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Dumbbell,
+  Download,
   Mail,
   Sun,
   Target,
@@ -21,6 +22,7 @@ import { GoalsSettingsCard } from "@/components/settings/goals-settings-card";
 import { SupabaseAccountCard } from "@/components/settings/supabase-account-card";
 import { SupportCard } from "@/components/settings/support-card";
 import { ThemeSelector } from "@/components/settings/theme-selector";
+import { ExportPanel } from "@/components/history/export-panel";
 
 export type SettingsSection =
   | "profile"
@@ -30,6 +32,7 @@ export type SettingsSection =
   | "exercises"
   | "formula"
   | "support"
+  | "export"
   | "account";
 
 const sectionItems: Array<{
@@ -45,11 +48,14 @@ const sectionItems: Array<{
   { id: "formula", title: "計算式", detailTitle: "計算式", icon: <Calculator size={21} /> },
   { id: "accessibility", title: "テーマ", detailTitle: "テーマ", icon: <Sun size={21} /> },
   { id: "support", title: "問い合わせ", detailTitle: "問い合わせ", icon: <Mail size={21} /> },
+  { id: "export", title: "データをエクスポート", detailTitle: "記録をエクスポート", icon: <Download size={21} /> },
   { id: "account", title: "アカウント", detailTitle: "アカウント設定", icon: <UserCircle size={21} /> },
 ];
 
 function renderSection(section: SettingsSection, setActiveSection: (section: SettingsSection) => void) {
   switch (section) {
+    case "export":
+      return <ExportPanel />;
     case "profile":
       return <ProfileSettingsCard mode="profile" />;
     case "goals":

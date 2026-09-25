@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUpRight, ChartNoAxesCombined, History, Target } from "lucide-react";
+import { ArrowUpRight, ChartNoAxesCombined, Download, History, Target } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
@@ -73,7 +73,7 @@ export function HomeDashboard() {
                   ) : null}
                 </h3>
                 <GoalValue>{value}</GoalValue>
-                {isGoalDue(value, date ?? "", today) ? <Link href="/settings?section=goals&returnTo=%2F" className="mt-3 flex min-h-11 items-center justify-between gap-3 rounded-xl bg-[var(--surface-soft)] px-3 text-sm font-medium"><span>期限を迎えました．振り返りましょう</span><ArrowUpRight size={17} className="shrink-0" /></Link> : null}
+                {isGoalDue(value, date ?? "", today) ? <Link href="/settings?section=goals&returnTo=%2F" className="mt-3 flex min-h-11 items-center justify-between gap-3 rounded-xl bg-[var(--surface-soft)] px-3 text-sm font-medium"><span>期限を迎えました。振り返りましょう</span><ArrowUpRight size={17} className="shrink-0" /></Link> : null}
               </div>
             ))}
             {finalGoal ? (
@@ -91,13 +91,18 @@ export function HomeDashboard() {
         className="ui-card ui-action w-full"
       >
         <History size={18} className="text-[var(--muted)]" />
-        <span className="flex-1">記録の履歴</span>
+        <span className="flex-1">履歴</span>
         <ArrowUpRight size={16} className="text-[var(--muted)]" />
       </Link>
 
       <Link href="/stats" className="ui-card ui-action w-full">
         <ChartNoAxesCombined size={18} className="text-[var(--muted)]" />
         <span className="flex-1">集計を表示</span>
+        <ArrowUpRight size={16} className="text-[var(--muted)]" />
+      </Link>
+      <Link href="/export" className="ui-card ui-action w-full">
+        <Download size={18} className="text-[var(--muted)]" />
+        <span className="flex-1">データをエクスポート</span>
         <ArrowUpRight size={16} className="text-[var(--muted)]" />
       </Link>
     </main>

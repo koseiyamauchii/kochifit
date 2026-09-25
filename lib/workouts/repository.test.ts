@@ -58,14 +58,22 @@ describe("previous exercise records", () => {
 });
 
 describe("record details", () => {
+  it("shows a condition recorded under another exercise on the same day", async () => {
+    const { client } = mockClient({
+      workouts: [[{ ...workout("first", "09:00"), workout_exercises: [entry("first")] }], [{ id: "other", workout_date: date }], []],
+      exercises: [{ name: "ベンチプレス" }], sets: [[set]],
+      workout_exercises: [[{ id: "other-entry", workout_id: "other", condition: "その日の体調", created_at: "10:00" }], []],
+    });
+    expect((await getWorkoutsForExercise(client, "bench")).workouts[0].dayCondition).toBe("その日の体調");
+  });
   it("preserves both set and exercise notes in exercise history", async () => {
     const { client } = mockClient({ workouts: [[{ ...workout("first", "09:00"), workout_exercises: [entry("first")] }]], exercises: [{ name: "ベンチプレス" }], sets: [[set]] });
     expect(await getWorkoutsForExercise(client, "bench")).toMatchObject({ hasMore: false, workouts: [{ exercises: [{ note: "種目メモ", condition: "好調", sets: [{ note: "セットメモ", isAssisted: true }] }] }] });
   });
   it("loads the selected day's condition without loading sets", async () => {
-    const { client, calls } = mockClient({ workouts: [[{ id: "first" }]], workout_exercises: [[{ condition: "好調" }]] });
+    const { client, calls } = mockClient({ workouts: [[{ id: "first", workout_date: date }]], workout_exercises: [[{ id: "e", workout_id: "first", condition: "好調", created_at: "2026-09-25" }]] });
     expect(await getDayCondition(client, date)).toBe("好調");
-    expect(calls).toContainEqual({ table: "workouts", method: "eq", args: ["workout_date", date] });
+    expect(calls).toContainEqual({ table: "workouts", method: "in", args: ["workout_date", [date]] });
     expect(calls.some(call => call.table === "sets")).toBe(false);
   });
 });

@@ -1,8 +1,8 @@
 // A recoverable, device-local draft only. Confirmed records remain in PostgreSQL.
 export function shouldConfirmWorkoutClose(exerciseId: string, sets: Array<Partial<Record<
-  "weightKg" | "reps" | "leftReps" | "rightReps" | "distanceKm" | "durationMin" | "speedKmh" | "caloriesKcal", string>>>) {
+  "weightKg" | "reps" | "leftReps" | "rightReps" | "distanceKm" | "durationMin" | "speedKmh" | "caloriesKcal" | "note", string>>>) {
   return Boolean(exerciseId) && sets.some(set => [set.weightKg, set.reps, set.leftReps, set.rightReps,
-    set.distanceKm, set.durationMin, set.speedKmh, set.caloriesKcal].some(value => Boolean(value?.trim())));
+    set.distanceKm, set.durationMin, set.speedKmh, set.caloriesKcal, set.note].some(value => Boolean(value?.trim())));
 }
 
 export interface DraftEnvelope<T> {

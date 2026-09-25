@@ -9,10 +9,16 @@ import { createClient } from "@/lib/supabase/client";
 import { toDateKey } from "@/lib/workouts/date";
 import { GoalReviewForm } from "./goal-review-form";
 
+const confirmedGoalNavigation = new WeakSet<Event>();
+
 function useUnsavedGoal(dirty: boolean) {
   useEffect(() => {
     if (!dirty) return;
-    const nav = (event: Event) => { if (!window.confirm("目標の変更はまだ保存されていません。閉じますか？")) event.preventDefault(); };
+    const nav = (event: Event) => {
+      if (event.defaultPrevented || confirmedGoalNavigation.has(event)) return;
+      confirmedGoalNavigation.add(event);
+      if (!window.confirm("目標の変更はまだ保存されていません。閉じますか？")) event.preventDefault();
+    };
     const unload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("kochifit:confirm-navigation", nav);
     window.addEventListener("beforeunload", unload);
@@ -20,31 +26,38 @@ function useUnsavedGoal(dirty: boolean) {
   }, [dirty]);
 }
 
-function GoalEditor({ goal, done }: { goal: { key: GoalKind; text: string; deadline: string }; done: () => Promise<void> }) {
+function GoalEditor({ goal, done }: { goal: { key: GoalKind; label: string; text: string; deadline: string }; done: () => Promise<void> }) {
   const { user } = useAuth();
   const client = useMemo(() => createClient(), []);
   const [text, setText] = useState(goal.text);
   const [date, setDate] = useState(goal.deadline);
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [baseline, setBaseline] = useState({ text: goal.text, date: goal.deadline });
+  const inFlight = useRef(false);
   const [error, setError] = useState<string | null>(null);
-  useUnsavedGoal(!saved && (text !== goal.text || date !== goal.deadline));
+  const dirty = text !== baseline.text || date !== baseline.date;
+  useUnsavedGoal(dirty);
   const save = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!user || saving) return;
+    if (!user || inFlight.current || !dirty) return;
+    inFlight.current = true;
     setSaving(true); setError(null);
     try {
       const update: Database["public"]["Tables"]["profiles"]["Update"] = { [`${goal.key}_goal_text`]: text.trim() || null, [`${goal.key}_goal_date`]: date || null };
       const { error } = await client.from("profiles").update(update).eq("id", user.id);
       if (error) throw error;
-      setSaved(true);
-      await done();
-    } catch { setError("目標を保存できませんでした。"); } finally { setSaving(false); }
+      const savedText = text.trim();
+      setText(savedText);
+      setBaseline({ text: savedText, date });
+      try { await done(); } catch { setError("目標は保存しましたが、最新情報を取得できませんでした。画面を再読み込みしてください。"); }
+    } catch { setError("目標を保存できませんでした。"); } finally { inFlight.current = false; setSaving(false); }
   };
-  return <form onSubmit={e => void save(e)} className="mt-3 space-y-3">
+  return <form aria-label={`${goal.label}の設定`} onSubmit={e => void save(e)} className="mt-3 space-y-3">
+    <fieldset disabled={saving} className="space-y-3">
     <label className="block space-y-1 text-sm">目標の内容<textarea rows={2} maxLength={200} value={text} onChange={e => setText(e.target.value)} className="ui-field" /></label>
     <label className="block space-y-1 text-sm">期限<input type="date" value={date} onChange={e => setDate(e.target.value)} className="ui-field" /></label>
-    <button type="submit" disabled={saving} className="ui-primary w-full"><Check size={16} />{saving ? "保存中" : "目標を保存"}</button>
+    <button type="submit" disabled={saving || !dirty} className="ui-primary w-full"><Check size={16} />{saving ? "保存中" : dirty ? "変更を保存" : "保存済み"}</button>
+    </fieldset>
     {error ? <p role="alert" className="text-sm text-[var(--warning)]">{error}</p> : null}
   </form>;
 }
@@ -82,7 +95,7 @@ export function GoalsSettingsCard() {
   const [historyLimit, setHistoryLimit] = useState(30);
   const [historyError, setHistoryError] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(true);
-  const [active, setActive] = useState<{ key: GoalKind; mode: "edit" | "review" } | null>(null);
+  const [active, setActive] = useState<GoalKind | null>(null);
   const request = useRef(0);
   const today = toDateKey(new Date());
   const load = useCallback(async () => {
@@ -101,30 +114,27 @@ export function GoalsSettingsCard() {
   };
   if (!profile) return <p role="status" className="text-sm text-[var(--muted)]">目標を読み込み中</p>;
   return <div className="space-y-5 pb-6">
-    <p className="text-sm leading-relaxed text-[var(--muted)]">目標を立てる，実績を振り返る，次につなげる．</p>
+    <p className="text-sm leading-relaxed text-[var(--muted)]">目標を立てる、実績を振り返る、次につなげる。</p>
     <PurposeEditor key={`${profile.training_purpose}:${profile.final_goal}`} profile={profile} />
     <div className="space-y-3"><h2 className="ui-section-title">いま取り組む目標</h2>
       {getGoals(profile).map(goal => {
         const due = isGoalDue(goal.text, goal.deadline, today);
         const previous = reviews.find(review => review.goal_kind === goal.key && review.next_goal_deadline === goal.deadline && review.next_goal_text === goal.text);
-        return <section key={goal.key} className="ui-card space-y-3 p-4">
+        return <section id={`goal-${goal.key}`} key={goal.key} className="ui-card scroll-mt-4 space-y-3 p-4">
           <div className="flex items-center justify-between gap-2"><h3 className="ui-section-title">{goal.label}</h3><span className="text-xs text-[var(--muted)]">{formatGoalDate(goal.deadline) || "期限未設定"}</span></div>
-          <p className="whitespace-pre-wrap break-words text-base leading-relaxed">{goal.text || "目標を設定しましょう"}</p>
           <div className="flex items-center justify-between gap-3">
-            {due ? <button type="button" className="ui-primary" onClick={() => navigate({ key: goal.key, mode: "review" })}>振り返る</button> : <span className="text-xs text-[var(--muted)]">{goal.text ? "取り組み中" : "未設定"}</span>}
-            <button type="button" className="min-h-10 rounded-xl px-3 text-sm font-medium text-[var(--muted)]" onClick={() => navigate({ key: goal.key, mode: "edit" })}>目標を編集</button>
+            {due ? <button type="button" className="ui-primary" onClick={() => navigate(active === goal.key ? null : goal.key)}>{active === goal.key ? "振り返りを閉じる" : "振り返る"}</button> : <span className="text-xs text-[var(--muted)]">{goal.text ? "取り組み中" : "未設定"}</span>}
           </div>
-          {active?.key === goal.key && active.mode === "edit" ? <GoalEditor key={`${goal.text}:${goal.deadline}`} goal={goal} done={async () => { await refreshProfile(); setActive(null); }} /> : null}
-          {active?.key === goal.key && active.mode === "review" ? <GoalReviewForm key={`${goal.text}:${goal.deadline}`} goal={goal} periodStart={previous ? toDateKey(new Date(previous.reviewed_at)) : undefined} onComplete={async () => { await refreshProfile(); await load(); setActive(null); }} /> : null}
+          {active === goal.key ? <GoalReviewForm key={`${goal.text}:${goal.deadline}`} goal={goal} periodStart={previous ? toDateKey(new Date(previous.reviewed_at)) : undefined} onComplete={async () => { await refreshProfile(); await load(); setActive(null); }} /> : <GoalEditor key={`${goal.text}:${goal.deadline}`} goal={goal} done={refreshProfile} />}
         </section>;
       })}
     </div>
     <section className="space-y-3"><h2 className="ui-section-title flex items-center gap-2"><History size={17} />これまでの振り返り</h2>
-      {historyLoading ? <p role="status" className="text-sm text-[var(--muted)]">履歴を読み込み中</p> : historyError ? <div role="alert" className="rounded-xl border border-[var(--border)] p-3 text-sm text-[var(--warning)]">履歴を読み込めません．DBの目標履歴機能が未設定，または通信に問題があります．<button type="button" className="ml-2 underline" onClick={() => void load()}>再試行</button></div> : reviews.length === 0 ? <p className="text-sm text-[var(--muted)]">保存した振り返りがここに残ります．</p> : null}
+      {historyLoading ? <p role="status" className="text-sm text-[var(--muted)]">履歴を読み込み中</p> : historyError ? <div role="alert" className="rounded-xl border border-[var(--border)] p-3 text-sm text-[var(--warning)]">履歴を読み込めません。DBの目標履歴機能が未設定、または通信に問題があります。<button type="button" className="ml-2 underline" onClick={() => void load()}>再試行</button></div> : reviews.length === 0 ? <p className="text-sm text-[var(--muted)]">保存した振り返りがここに残ります。</p> : null}
       {goalKinds.map(kind => <details key={kind.key} className="ui-card p-4">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">{kind.label}<ChevronDown size={16} /></summary>
         <div className="mt-3 space-y-3">
-        {!historyLoading && !historyError && !reviews.some(review => review.goal_kind === kind.key) ? <p className="text-sm text-[var(--muted)]">この期間の振り返りはまだありません．</p> : null}
+        {!historyLoading && !historyError && !reviews.some(review => review.goal_kind === kind.key) ? <p className="text-sm text-[var(--muted)]">この期間の振り返りはまだありません。</p> : null}
         {reviews.filter(review => review.goal_kind === kind.key).map(review => <details key={review.id} className="rounded-xl border border-[var(--border)] p-3">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold"><span>{formatGoalDate(review.period_start)}–{formatGoalDate(review.goal_deadline)}</span><ChevronDown size={16} className="shrink-0" /></summary>
         <div className="mt-4 space-y-3 border-t border-[var(--hairline)] pt-3 text-sm leading-relaxed">

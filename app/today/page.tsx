@@ -16,7 +16,7 @@ function formatDateHeading(dateKey: string) {
 export default async function TodayPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ date?: string; exercise?: string }>;
+  searchParams?: Promise<{ date?: string; exercise?: string; add?: string }>;
 }) {
   const params = await searchParams;
   const selectedDate = params?.date;
@@ -27,6 +27,8 @@ export default async function TodayPage({
       <AuthGate>
         <main>
           <WorkoutCalendar
+            key={`${selectedDate ?? "today"}:${params?.add ?? ""}`}
+            showAddForm={params?.add === "1"}
             backHref="/"
             detailsHeading={heading}
             exerciseFilterId={params?.exercise}

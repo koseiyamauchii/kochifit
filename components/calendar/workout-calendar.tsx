@@ -16,7 +16,6 @@ import {
   deleteWorkout,
   EXERCISE_HISTORY_PAGE_SIZE,
   getBodyParts,
-  getDayCondition,
   getExerciseRecords,
   getExercises,
   getExerciseWeightRecords,
@@ -56,6 +55,7 @@ import {
   toSetInputs,
 } from "@/lib/workouts/entry-draft";
 import { WorkoutEntryForm, WorkoutReadOnlyCard } from "./workout-entry-form";
+import { ScreenshotButton } from "@/components/screenshot-button";
 const weekdays = ["月", "火", "水", "木", "金", "土", "日"];
 interface WorkoutCalendarProps {
   backHref?: string;
@@ -76,8 +76,11 @@ export function WorkoutCalendar({
   showCalendar = true,
   showWorkoutDetails = true,
   selectedDateOverride,
-  showAddForm = false,
+  showAddForm: initialShowAddForm = false,
 }: WorkoutCalendarProps) {
+  const captureRef = useRef<HTMLElement>(null);
+  const [showAddForm, setShowAddForm] = useState(initialShowAddForm);
+  const addFormRef = useRef<HTMLDivElement>(null);
   const { user, authStatus, profile, profileStatus } = useAuth();
   const todayKey = toDateKey(new Date());
   const defaultSetCount = clampDefaultSetCount(profile?.default_set_count);
@@ -109,7 +112,6 @@ export function WorkoutCalendar({
   const [dayConditionDraft, setDayConditionDraft] = useState("");
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [draftReadyKey, setDraftReadyKey] = useState<string | null>(null);
-  const [addDayCondition, setAddDayCondition] = useState("");
   const [savedFeedback, setSavedFeedback] = useState(false);
   const leavingPage = useRef(false);
   const previousRequest = useRef(0);
@@ -192,7 +194,7 @@ export function WorkoutCalendar({
     );
     return addCalories + savedCalories;
   }, [addDraft, editDrafts, exercises, isAddFormActive, profile]);
-  const isAddDraftDirty = showAddForm && shouldConfirmWorkoutClose(addDraft.exerciseId, addDraft.sets);
+  const isAddDraftDirty = showAddForm && (shouldConfirmWorkoutClose(addDraft.exerciseId, addDraft.sets) || Boolean(addDraft.note.trim()));
   const editingExerciseId = editingWorkoutId ? (editDrafts[editingWorkoutId]?.exerciseId ?? "") : "";
   const isEditDraftDirty = Boolean(
     editingWorkoutId &&
@@ -223,15 +225,7 @@ export function WorkoutCalendar({
     return profile?.session_sort_order === "asc" ? filtered : filtered.reverse();
   }, [exerciseFilterId, exerciseHistoryId, profile?.session_sort_order, workouts]);
   const savedDayCondition = useMemo(() => {
-    for (const workout of workouts) {
-      for (const exercise of workout.exercises) {
-        const condition = exercise.condition?.trim();
-        if (condition) {
-          return condition;
-        }
-      }
-    }
-    return "";
+    return workouts[0]?.dayCondition ?? "";
   }, [workouts]);
   const isDayConditionDirty = dayConditionDraft.trim() !== savedDayCondition;
   const sessionNumberByWorkoutId = useMemo(
@@ -263,7 +257,7 @@ export function WorkoutCalendar({
   }, [client, month, showCalendar, user]);
 
   const loadSelectedDate = useCallback(async () => {
-    if (!user || !showWorkoutDetails || showAddForm) {
+    if (!user || !showWorkoutDetails) {
       return;
     }
     setDetailsLoading(true);
@@ -289,7 +283,7 @@ export function WorkoutCalendar({
     } finally {
       if (detailRequest.current === request) setDetailsLoading(false);
     }
-  }, [client, effectiveSelectedDate, exerciseHistoryId, showAddForm, showWorkoutDetails, user]);
+  }, [client, effectiveSelectedDate, exerciseHistoryId, showWorkoutDetails, user]);
 
   const loadMoreHistory = async () => {
     if (!exerciseHistoryId || detailsLoading || savingKey || historyMoreInFlight.current) return;
@@ -378,9 +372,10 @@ export function WorkoutCalendar({
       return;
     }
     let active = true;
-    const ids = new Set(showAddForm
-      ? [addDraft.exerciseId]
-      : workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.exerciseId)));
+    const ids = new Set([
+      ...(showAddForm ? [addDraft.exerciseId] : []),
+      ...workouts.flatMap((workout) => workout.exercises.map((exercise) => exercise.exerciseId)),
+    ]);
     const selected = exercises.filter((exercise) => ids.has(exercise.id));
     setExerciseRecords([]);
     if (selected.length > 0) {
@@ -434,16 +429,6 @@ export function WorkoutCalendar({
       });
     }
   }, [authStatus, loadSelectedDate, profileStatus]);
-
-  useEffect(() => {
-    if (!user || !showAddForm) return;
-    let active = true;
-    setAddDayCondition("");
-    void getDayCondition(client, effectiveSelectedDate).then(condition => {
-      if (active) setAddDayCondition(condition);
-    }).catch(() => { if (active) setError("体調・コンディションを読み込めませんでした．"); });
-    return () => { active = false; };
-  }, [client, effectiveSelectedDate, showAddForm, user]);
 
   useEffect(() => {
     if (!savedFeedback) return;
@@ -532,7 +517,7 @@ export function WorkoutCalendar({
         workoutDate: effectiveSelectedDate,
         exerciseId: addDraft.exerciseId,
         note: addDraft.note.trim() || null,
-        condition: addDayCondition.trim() || null,
+        condition: dayConditionDraft.trim() || null,
         elapsedSec: getDraftElapsedSec(addDraft),
         sets: toSetInputs(
           addDraft.sets,
@@ -552,8 +537,11 @@ export function WorkoutCalendar({
         sets: createSetDrafts(defaultSetCount),
       });
       setPreviousWorkout(null);
+      setShowAddForm(false);
       setSavedFeedback(true);
-      await Promise.all([loadMonth(), loadSelectedDate()]);
+      await Promise.all([loadMonth(), loadSelectedDate()]).catch(() => {
+        setError("保存は完了しましたが、一覧を更新できませんでした。再読み込みしてください。");
+      });
     } catch (saveError) {
       console.error("Workout save error", saveError);
       setError("トレーニングの保存に失敗しました。入力値を確認してください。");
@@ -563,7 +551,7 @@ export function WorkoutCalendar({
     }
   }, [
     addDraft,
-    addDayCondition,
+    dayConditionDraft,
     addStorageKey,
     clearLocalDraft,
     client,
@@ -648,7 +636,7 @@ export function WorkoutCalendar({
   }, [activeStorageKey, backHref, clearLocalDraft, confirmUnsavedNavigation, hasUnprotectedDraft, isDayConditionDirty, router]);
 
   const handleDayConditionSave = async () => {
-    if (!user || savingKey || workouts.length === 0) {
+    if (!user || savingKey || saveInFlight.current || workouts.length === 0) {
       return;
     }
     const workoutExerciseIds = workouts.flatMap((workout) =>
@@ -658,6 +646,7 @@ export function WorkoutCalendar({
     const activeEditWasClean = Boolean(
       activeEditDraft && editingBaseline && JSON.stringify(activeEditDraft) === editingBaseline,
     );
+    saveInFlight.current = true;
     setSavingKey("day-condition");
     setError(null);
     try {
@@ -665,6 +654,7 @@ export function WorkoutCalendar({
       await updateWorkoutExerciseConditions(client, user.id, workoutExerciseIds, nextCondition);
       setWorkouts((current) => current.map((workout) => ({
         ...workout,
+        dayCondition: nextCondition ?? "",
         exercises: workout.exercises.map((exercise) => ({
           ...exercise,
           condition: nextCondition,
@@ -726,9 +716,12 @@ export function WorkoutCalendar({
         ),
       });
       clearLocalDraft(activeStorageKey);
-      await Promise.all([loadMonth(), loadSelectedDate(), loadPreviousWorkout()]);
       setEditingWorkoutId(null);
       setEditingBaseline(null);
+      setSavedFeedback(true);
+      await Promise.all([loadMonth(), loadSelectedDate(), loadPreviousWorkout()]).catch(() => {
+        setError("保存は完了しましたが、一覧を更新できませんでした。再読み込みしてください。");
+      });
     } catch (saveError) {
       console.error("Workout update error", saveError);
       setError("トレーニングの更新に失敗しました。");
@@ -804,6 +797,38 @@ export function WorkoutCalendar({
     : {};
 
   const draftNotice = draftStorageError ? <p role="alert" className="px-3 py-2 text-xs text-[var(--warning)]">{draftStorageError}</p> : null;
+  const canAdd = !showCalendar && !exerciseHistoryId;
+  const addAtBottom = profile?.session_sort_order === "asc";
+  const openAddForm = () => {
+    if (savingKey || detailsLoading || isLoading) return;
+    if (isEditDraftDirty && !window.confirm("編集中の変更を破棄して、新しい記録を追加しますか？")) return;
+    if (editingWorkoutId) clearLocalDraft(activeStorageKey);
+    setEditingWorkoutId(null);
+    setEditingBaseline(null);
+    setShowAddForm(true);
+    window.setTimeout(() => addFormRef.current?.scrollIntoView({ block: "start", behavior: "smooth" }), 0);
+  };
+  const addSlot = canAdd ? <div ref={addFormRef} role="region" aria-label="記録の追加" data-screenshot-exclude className="scroll-mt-4 space-y-3">
+    {showAddForm ? <>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="text-sm font-semibold">新しい記録</h2>
+        <div className="flex gap-2">
+          <button type="button" aria-label="記録入力を閉じる" disabled={Boolean(savingKey)} className="ui-icon-button" onClick={() => {
+            if (isAddDraftDirty && !window.confirm("入力中の記録を破棄して閉じますか？")) return;
+            clearLocalDraft(addStorageKey);
+            setShowAddForm(false);
+          }}><X size={20} /></button>
+          <button type="button" aria-label="記録を保存" disabled={!addDraft.exerciseId || !hasAnySetInput(addDraft, profile) || Boolean(savingKey) || detailsLoading} className="ui-icon-button text-white disabled:opacity-40" style={{ background: "var(--accent)" }} onClick={() => void handleAddSave()}><Check size={20} /></button>
+        </div>
+      </div>
+      <WorkoutEntryForm bodyParts={bodyParts} defaultSetCount={defaultSetCount} draft={addDraft} draftNotice={draftNotice}
+        exerciseRecords={exerciseRecords} exercises={exercises} historyReturnHref={`/today?date=${effectiveSelectedDate}&add=1`}
+        isSaving={Boolean(savingKey) || detailsLoading || isLoading} masterReturnHref={`/today?date=${effectiveSelectedDate}&add=1`} mode="add"
+        onDraftChange={setAddDraft} onSave={() => void handleAddSave()} previousWorkout={previousWorkout} profile={profile}
+        selectedBodyPartId={selectedBodyPartId} setSelectedBodyPartId={setSelectedBodyPartId} />
+    </> : <button type="button" disabled={detailsLoading || isLoading || Boolean(savingKey)} onClick={openAddForm}
+      className="flex min-h-11 w-full items-center justify-center gap-2 rounded-[12px] bg-[var(--surface-soft)] text-sm font-medium disabled:opacity-40"><Plus size={18} />記録を追加</button>}
+  </div> : null;
 
   return (
     <div {...swipeHandlers}>
@@ -874,28 +899,18 @@ export function WorkoutCalendar({
                     const isSelected = cell.dateKey === effectiveSelectedDate;
                     const summaryBodyParts = summary?.bodyParts.slice(0, 7) ?? [];
                     return (
-                      <button
-                        key={`${page.key}-${cell.dateKey}`}
-                        type="button"
-                        onClick={() => handleDateClick(cell.dateKey)}
-                        className={[
-                          "calendar-day relative flex h-11 w-full max-w-11 flex-col items-center justify-start rounded-[12px] pt-0.5 text-sm font-medium",
-                          cell.isCurrentMonth ? "bg-transparent" : "bg-transparent opacity-40",
-                          isSelected && !isToday ? "bg-[var(--surface-soft)]" : "",
-                        ].join(" ")}
-                      >
-                        <span
+                      <div key={`${page.key}-${cell.dateKey}`} className="relative flex h-11 w-full items-start justify-center pt-0.5">
+                        <button type="button" onClick={() => handleDateClick(cell.dateKey)} aria-label={cell.dateKey}
+                          aria-current={isToday ? "date" : undefined}
                           className={[
-                            "flex h-8 w-8 items-center justify-center rounded-full",
-                            isToday ? "accent-orb text-white" : "",
-                          ].join(" ")}
-                        >
-                          {cell.day}
-                        </span>
+                            "calendar-day flex h-8 w-8 items-center justify-center rounded-full text-sm font-medium",
+                            !cell.isCurrentMonth ? "opacity-40" : "",
+                            isToday ? "accent-orb text-white" : isSelected ? "bg-[var(--surface-soft)]" : "",
+                          ].join(" ")}>{cell.day}</button>
                         {summaryBodyParts.length > 0 ? (
                           <span
                             className={[
-                              "absolute bottom-0 flex max-w-8 flex-wrap justify-center gap-0.5",
+                              "pointer-events-none absolute bottom-0 flex max-w-8 flex-wrap justify-center gap-0.5",
                               cell.isCurrentMonth ? "" : "opacity-60",
                             ].join(" ")}
                           >
@@ -912,7 +927,7 @@ export function WorkoutCalendar({
                             })}
                           </span>
                         ) : null}
-                      </button>
+                      </div>
                     );
                   })}
                 </div>
@@ -921,7 +936,7 @@ export function WorkoutCalendar({
           </div>
 
           <Link
-            href="/today"
+            href={`/today?date=${todayKey}&add=1`}
             aria-label="今日のトレーニングを追加"
             className="ui-fab"
           >
@@ -937,146 +952,50 @@ export function WorkoutCalendar({
       ) : null}
 
       {showWorkoutDetails ? (
-      <section className={[!showCalendar && detailsHeading ? "mt-0" : "mt-5", "space-y-3"].join(" ")}>
+      <section ref={captureRef} className={[!showCalendar && detailsHeading ? "mt-0" : "mt-5", "space-y-3"].join(" ")}>
 
-        {!showCalendar && detailsHeading ? (
-          <div className={showAddForm ? "sticky top-0 z-30 -mx-3 flex items-center justify-between gap-2 bg-[color-mix(in_srgb,var(--background)_82%,transparent)] px-3 py-2 backdrop-blur-xl" : "flex items-center justify-between gap-2"}>
-            <div className="flex min-w-0 flex-1 items-center gap-2">
-              {backHref ? (
-                showAddForm ? (
-                  <button
-                    type="button"
-                    onClick={handleBackNavigation}
-                    aria-label="閉じる"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
-                  >
-                    <X size={22} />
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleBackNavigation}
-                    aria-label="戻る"
-                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--text)] hover:bg-[var(--border)]"
-                  >
-                    <ChevronLeft size={22} />
-                  </button>
-                )
-              ) : null}
-              <h1 className="min-w-0 truncate whitespace-nowrap text-base font-semibold leading-tight sm:text-lg">
-                {resolvedDetailsHeading}
-              </h1>
-            </div>
-            {showAddForm ? (
-              <button
-                type="button"
-                onClick={() => void handleAddSave()}
-                disabled={!addDraft.exerciseId || !hasAnySetInput(addDraft, profile) || savingKey === "add"}
-                aria-label="記録を保存"
-                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
-              >
-                <Check size={22} />
-              </button>
-            ) : exerciseHistoryId ? null : (
-              <div className="shrink-0 whitespace-nowrap rounded-[12px] bg-[var(--surface-soft)] px-2 py-1 text-[11px] font-semibold text-[var(--muted)]">
-                合計 約{totalCalories}kcal
-              </div>
-            )}
+        {!showCalendar && detailsHeading ? <div className="flex items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
+            {backHref ? <button type="button" data-screenshot-exclude onClick={handleBackNavigation} aria-label="戻る" className="ui-icon-button shrink-0"><ChevronLeft size={22} /></button> : null}
+            <h1 className="min-w-0 text-base font-semibold">{resolvedDetailsHeading}</h1>
           </div>
-        ) : (
-        <div className="flex items-start justify-end gap-3">
-          <div className="flex flex-col items-end gap-2">
-            <div className="whitespace-nowrap rounded-[12px] border border-[var(--border)] bg-[var(--surface-soft)] px-2.5 py-1.5 text-xs font-semibold text-[var(--muted)]">
-              合計 約{totalCalories}kcal
-            </div>
-          </div>
-          {isLoading ? <span className="text-sm text-[var(--muted)]">読込中</span> : null}
-        </div>
-        )}
+          {!exerciseHistoryId ? <span className="shrink-0 rounded-xl bg-[var(--surface-soft)] px-2 py-1 text-xs text-[var(--muted)]">合計 約{totalCalories}kcal</span> : null}
+        </div> : null}
 
-        {showAddForm && addDayCondition ? <section className="rounded-xl bg-[var(--surface-soft)] px-3 py-2"><h2 className="text-xs font-semibold text-[var(--muted)]">体調・コンディション</h2><p className="mt-1 whitespace-pre-wrap break-words text-sm">{addDayCondition}</p></section> : null}
-        {savedFeedback ? <p role="status" className="text-sm text-[var(--accent-strong)]">記録を保存しました．続けて種目を追加できます．</p> : null}
+        {savedFeedback ? <p role="status" data-screenshot-exclude className="text-sm text-emerald-500">保存しました。</p> : null}
 
-        {!showCalendar && !showAddForm && !exerciseHistoryId && workouts.length > 0 ? (
+        {!showCalendar && !exerciseHistoryId && !detailsLoading ? <ScreenshotButton targetRef={captureRef} filename={`KochiFit_${effectiveSelectedDate}.png`} disabled={isLoading || Boolean(error) || workouts.length === 0 || Boolean(editingWorkoutId) || showAddForm || isDayConditionDirty} /> : null}
+        {!showCalendar && !exerciseHistoryId && !detailsLoading ? (
           <section className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2.5 shadow-[var(--shadow)]">
             <h2 className="text-xs font-semibold text-[var(--muted)]">体調・コンディション</h2>
             <div className="mt-1 flex items-center gap-2">
               <input
+                aria-label="その日のコンディション"
+                onFocus={event => event.currentTarget.select()}
+                disabled={Boolean(savingKey)}
                 value={dayConditionDraft}
                 onChange={(event) => setDayConditionDraft(event.target.value)}
                 placeholder="その日の体調など"
-                className="h-10 min-w-0 flex-1 rounded-[12px] bg-[var(--surface)] px-3 text-sm"
+                className="h-11 min-w-0 flex-1 rounded-[12px] bg-[var(--surface)] px-3 text-base"
               />
               <button
+                data-screenshot-exclude
                 type="button"
                 onClick={() => void handleDayConditionSave()}
-                disabled={!isDayConditionDirty || savingKey === "day-condition"}
+                disabled={!isDayConditionDirty || Boolean(savingKey) || workouts.length === 0}
                 aria-label="体調・コンディションを保存"
                 className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[var(--accent)] text-white disabled:opacity-40"
               >
                 <Check size={20} />
               </button>
             </div>
+            {workouts.length === 0 ? <p className="mt-1 text-xs text-[var(--muted)]">最初の記録と一緒に保存されます。</p> : null}
           </section>
         ) : null}
 
-        {showCalendar ? (
-          <Link
-            href={`/today/add?date=${effectiveSelectedDate}`}
-            aria-label="記録を追加"
-            className="ui-fab"
-          >
-            <Plus size={20} />
-          </Link>
-        ) : null}
+        {canAdd && !addAtBottom ? addSlot : null}
 
-        {!showCalendar && !showAddForm && !exerciseHistoryId ? (
-          <Link
-            href={`/today/add?date=${effectiveSelectedDate}`}
-            aria-label="記録を追加"
-            className="ui-fab"
-          >
-            <Plus size={22} />
-          </Link>
-        ) : null}
-
-        {showAddForm ? (
-          <WorkoutEntryForm
-            bodyParts={bodyParts}
-            defaultSetCount={defaultSetCount}
-            draft={addDraft}
-            draftNotice={draftNotice}
-            exerciseRecords={exerciseRecords}
-            exercises={exercises}
-            historyReturnHref={`/today/add?date=${effectiveSelectedDate}`}
-            isSaving={savingKey === "add"}
-            masterReturnHref={`/today/add?date=${effectiveSelectedDate}`}
-            mode="add"
-            onDraftChange={setAddDraft}
-            onSave={() => void handleAddSave()}
-            previousWorkout={previousWorkout}
-            profile={profile}
-            selectedBodyPartId={selectedBodyPartId}
-            setSelectedBodyPartId={setSelectedBodyPartId}
-          />
-        ) : null}
-
-        {!showCalendar && !showAddForm && !isLoading && !detailsLoading && !historyLoadError && workouts.length === 0 ? (
-          exerciseHistoryId ? (
-            <p className="flex min-h-[calc(100svh-13rem)] items-center justify-center text-center text-sm font-medium text-[var(--muted)]">
-              この種目の記録はまだありません
-            </p>
-          ) : (
-            <Link
-              href={`/today/add?date=${effectiveSelectedDate}`}
-              className="flex min-h-[calc(100svh-13rem)] items-center justify-center text-center text-sm font-medium text-[var(--muted)]"
-            >
-              タップして種目を追加
-            </Link>
-          )
-        ) : null}
-
-        {!showAddForm ? displayWorkouts.map((workout, index) => {
+        {displayWorkouts.map((workout, index) => {
           if (!showCalendar && editingWorkoutId !== workout.id) {
             return (
             <WorkoutReadOnlyCard
@@ -1084,6 +1003,10 @@ export function WorkoutCalendar({
               exerciseRecords={exerciseRecords}
               exercises={exercises}
               onEdit={() => {
+                if (savingKey) return;
+                if ((isAddDraftDirty || isEditDraftDirty) && !window.confirm("入力中の変更を破棄して、この記録を編集しますか？")) return;
+                clearLocalDraft(activeStorageKey);
+                setShowAddForm(false);
                 let value = editDrafts[workout.id];
                 if (!value || !user) return;
                 const baseline = JSON.stringify(value);
@@ -1125,6 +1048,7 @@ export function WorkoutCalendar({
                 isSaving={savingKey === workout.id}
                 mode="edit"
                 recordDate={exerciseHistoryId ? workout.workoutDate : undefined}
+                recordCondition={workout.dayCondition}
                 onDelete={() => void handleDelete(workout.id)}
                 onDraftChange={(nextDraft) =>
                   setEditDrafts((current) => ({ ...current, [workout.id]: nextDraft }))
@@ -1152,12 +1076,13 @@ export function WorkoutCalendar({
                 sessionNumber={exerciseHistoryId ? undefined : sessionNumberByWorkoutId.get(workout.id) ?? index + 1}
               />
             );
-        }) : null}
+        })}
+        {canAdd && addAtBottom ? addSlot : null}
 
         {exerciseHistoryId ? <nav aria-label="記録履歴の追加読み込み" className="space-y-2 pb-4">
           {workouts.length ? <p className="text-center text-xs text-[var(--muted)]">{workouts.length}件表示中</p> : null}
           {detailsLoading ? <p role="status" className="text-center text-sm text-[var(--muted)]">記録を読み込み中</p> : null}
-          {historyLoadError ? <div role="alert" className="space-y-2 text-center text-sm text-[var(--warning)]"><p>記録を読み込めませんでした．</p><button type="button" className="ui-action w-full justify-center" onClick={() => historyLoadError === "more" ? void loadMoreHistory() : void loadSelectedDate().catch(() => undefined)}>再読み込み</button></div> : historyHasMore ? <button type="button" disabled={detailsLoading || Boolean(savingKey)} className="ui-action w-full justify-center disabled:opacity-40" onClick={() => void loadMoreHistory()}>もっと見る</button> : null}
+          {historyLoadError ? <div role="alert" className="space-y-2 text-center text-sm text-[var(--warning)]"><p>記録を読み込めませんでした。</p><button type="button" className="ui-action w-full justify-center" onClick={() => historyLoadError === "more" ? void loadMoreHistory() : void loadSelectedDate().catch(() => undefined)}>再読み込み</button></div> : historyHasMore ? <button type="button" disabled={detailsLoading || Boolean(savingKey)} className="ui-action w-full justify-center disabled:opacity-40" onClick={() => void loadMoreHistory()}>もっと見る</button> : null}
         </nav> : null}
 
       </section>

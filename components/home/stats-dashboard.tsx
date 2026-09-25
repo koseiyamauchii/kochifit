@@ -1,7 +1,9 @@
 "use client";
 
 import type { CSSProperties } from "react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
+import { ScreenshotButton } from "@/components/screenshot-button";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
@@ -39,6 +41,7 @@ function StatCard({
 }
 
 export function StatsDashboard() {
+  const captureRef = useRef<HTMLDivElement>(null);
   const { authStatus, profile, profileStatus, user } = useAuth();
   const client = useMemo(() => createClient(), []);
   const [period, setPeriod] = useState<RecordPeriod>("month");
@@ -92,6 +95,12 @@ export function StatsDashboard() {
 
   return (
     <div className="space-y-4 pb-16">
+      <div className="flex flex-wrap items-start gap-2">
+        <ScreenshotButton targetRef={captureRef} filename={`KochiFit_集計_${period}_${today}.png`} disabled={statsLoading || Boolean(error)} />
+        <Link href="/export" className="ui-action inline-flex min-h-11 items-center">データをエクスポート</Link>
+      </div>
+      <div ref={captureRef} className="space-y-4">
+      <p className="text-sm font-semibold">KochiFit · トレーニング集計</p>
       <RecordPeriodSelector value={period} today={new Date(`${today}T12:00:00`)} onChange={value => {
         if (value !== period) { setStatsLoading(true); setPeriod(value); }
       }} />
@@ -160,6 +169,7 @@ export function StatsDashboard() {
 
       </> : null}
       {error ? <div role="alert" className="space-y-2 text-sm text-[var(--warning)]"><p>{error}</p><button type="button" onClick={() => setRetry(value => value + 1)} className="ui-action">再読み込み</button></div> : null}
+      </div>
     </div>
   );
 }

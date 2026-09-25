@@ -150,7 +150,7 @@ export function WorkoutReadOnlyCard({
           </span>
       </WorkoutCardHeader>
       <WorkoutMemoSummary note={exercise.note} masterMemo={masterExercise?.memo} />
-      {showDate && exercise.condition ? <p className="whitespace-pre-wrap break-words border-b border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">体調・コンディション：{exercise.condition}</p> : null}
+      {showDate ? <p className="whitespace-pre-wrap break-words border-b border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">その日のコンディション：{workout.dayCondition || "未記入"}</p> : null}
       <div className={[isCardio ? "grid-cols-[2.4rem_1fr_1fr_1fr]" : "grid-cols-[2.4rem_0.9fr_1.3fr_0.9fr_2.5rem]", "grid gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]"].join(" ")}>
         <span>セット</span>
         <span>{isCardio ? "距離" : "重量"}</span>
@@ -196,6 +196,7 @@ export function WorkoutEntryForm({
   profile,
   sessionNumber,
   recordDate,
+  recordCondition,
   draftNotice,
   selectedBodyPartId,
   setSelectedBodyPartId,
@@ -217,6 +218,7 @@ export function WorkoutEntryForm({
   profile: ReturnType<typeof useAuth>["profile"];
   sessionNumber?: number;
   recordDate?: string;
+  recordCondition?: string;
   draftNotice?: React.ReactNode;
   selectedBodyPartId?: string;
   setSelectedBodyPartId?: (bodyPartId: string) => void;
@@ -348,14 +350,14 @@ export function WorkoutEntryForm({
 
   return (
     <section className="ui-card overflow-hidden">
-      {mode === "add" && !selectedExercise ? null : (
+      {mode === "add" ? null : (
         <WorkoutCardHeader title={recordDate ? recordDate.replaceAll("-", "/") : headerTitle} sessionNumber={mode === "edit" ? sessionNumber : undefined} onClose={onHeaderClick}>
           <span>{mode === "edit" ? `${draft.sets.length}セット` : `約${estimatedCalories}kcal`}</span>
         </WorkoutCardHeader>
       )}
       <div className="space-y-2.5 p-2.5">
       {draftNotice}
-      {recordDate && draft.condition ? <p className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-sm">体調・コンディション：{draft.condition}</p> : null}
+      {recordDate ? <p className="whitespace-pre-wrap break-words rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-sm">その日のコンディション：{recordCondition || "未記入"}</p> : null}
 
       {mode === "add" && selectedBodyPartId && setSelectedBodyPartId ? (
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
@@ -652,6 +654,7 @@ export function WorkoutEntryForm({
                 onChange={(event) => updateSet(index, { note: event.target.value })}
                 onFocus={(event) => {
                   const target = event.currentTarget;
+                  target.select();
                   window.setTimeout(() => target.scrollIntoView({ block: "center", inline: "nearest" }), 180);
                 }}
                 rows={2}
@@ -731,6 +734,8 @@ export function WorkoutEntryForm({
           </button>
         </div>
       ) : null}
+      {mode === "add" ? <button type="button" onClick={onSave} disabled={!canSave || isSaving}
+        className="ui-primary w-full"><Check size={17} />{isSaving ? "保存中" : "保存"}</button> : null}
       </div>
     </section>
   );

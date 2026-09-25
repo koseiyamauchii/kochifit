@@ -705,10 +705,15 @@ export async function getBodyPartWorkoutDistribution(
 }
 
 export async function getWorkoutsByDate(client: Client, workoutDate: string): Promise<Workout[]> {
+  return getWorkoutsInRange(client, { start: workoutDate, end: workoutDate });
+}
+
+export async function getWorkoutsInRange(client: Client, range?: DateRange): Promise<Workout[]> {
   const { data: workouts, error: workoutError } = await readAll((from, to) => client
     .from("workouts")
     .select("id, workout_date, note, created_at")
-    .eq("workout_date", workoutDate)
+    .gte("workout_date", range?.start ?? "0001-01-01")
+    .lte("workout_date", range?.end ?? "9999-12-31")
     .order("created_at", { ascending: false }).order("id").range(from, to));
 
   if (workoutError) {
@@ -721,7 +726,7 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
   const workoutIds = workouts.map((workout) => workout.id);
   const { data: workoutExercises, error: workoutExerciseError } = await readByIds(workoutIds, (chunk, from, to) => client
     .from("workout_exercises")
-    .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
+    .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec, created_at")
     .in("workout_id", chunk)
     .order("display_order").order("id").range(from, to));
 
@@ -766,7 +771,7 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
       id: workoutExercise.id,
       exerciseId: workoutExercise.exercise_id,
       exerciseName: exerciseNames.get(workoutExercise.exercise_id) ?? "未設定の種目",
-      workoutDate: workoutDateById.get(workoutExercise.workout_id) ?? workoutDate,
+      workoutDate: workoutDateById.get(workoutExercise.workout_id) ?? "",
       displayOrder: workoutExercise.display_order,
       note: workoutExercise.note,
       condition: workoutExercise.condition,
@@ -776,8 +781,14 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
     exercisesByWorkout.set(workoutExercise.workout_id, current);
   }
 
+  const conditions: Record<string, string> = {};
+  for (const entry of [...workoutExercises].sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))) {
+    const date = workoutDateById.get(entry.workout_id);
+    if (date && !conditions[date] && entry.condition?.trim()) conditions[date] = entry.condition.trim();
+  }
   return workouts.map((workout) => ({
     id: workout.id,
+    dayCondition: conditions[workout.workout_date] ?? "",
     workoutDate: workout.workout_date,
     createdAt: workout.created_at,
     note: workout.note,
@@ -816,6 +827,7 @@ export async function getWorkoutsForExercise(
   if (exerciseError) throw exerciseError;
   const ids = visible.flatMap(workout => workout.workout_exercises.map(entry => entry.id));
   const sets = await getSetsByWorkoutExerciseIds(client, ids);
+  const conditions = await getDayConditions(client, visible.map(workout => workout.workout_date));
   const setsByExercise = new Map<string, WorkoutSet[]>();
   for (const set of sets) {
     const group = setsByExercise.get(set.workout_exercise_id) ?? [];
@@ -826,6 +838,7 @@ export async function getWorkoutsForExercise(
     hasMore: data.length > EXERCISE_HISTORY_PAGE_SIZE,
     workouts: visible.map(workout => ({
       id: workout.id, workoutDate: workout.workout_date,
+      dayCondition: conditions[workout.workout_date] ?? "",
       createdAt: workout.created_at, note: workout.note,
       exercises: workout.workout_exercises.map(entry => ({
         id: entry.id, exerciseId: entry.exercise_id, exerciseName: exercise.name,
@@ -930,14 +943,24 @@ export async function getLatestWorkoutForExerciseBeforeDate(
 }
 
 export async function getDayCondition(client: Client, date: string): Promise<string> {
-  const { data: workouts, error } = await readAll((from, to) => client.from("workouts").select("id").eq("workout_date", date).order("id").range(from, to));
+  return (await getDayConditions(client, [date]))[date] ?? "";
+}
+
+export async function getDayConditions(client: Client, dates: string[]): Promise<Record<string, string>> {
+  const { data: workouts, error } = await readByIds(dates, (chunk, from, to) => client.from("workouts")
+    .select("id, workout_date").in("workout_date", chunk).order("id").range(from, to));
   if (error) throw error;
-  if (!workouts.length) return "";
-  const { data, error: conditionError } = await client.from("workout_exercises").select("condition")
-    .in("workout_id", workouts.map(workout => workout.id)).not("condition", "is", null)
-    .neq("condition", "").order("created_at", { ascending: false }).limit(1);
+  const { data, error: conditionError } = await readByIds(workouts.map(workout => workout.id), (chunk, from, to) => client
+    .from("workout_exercises").select("id, workout_id, condition, created_at")
+    .in("workout_id", chunk).order("created_at", { ascending: false }).order("id").range(from, to));
   if (conditionError) throw conditionError;
-  return data[0]?.condition ?? "";
+  const datesById = new Map(workouts.map(workout => [workout.id, workout.workout_date]));
+  const result: Record<string, string> = {};
+  for (const entry of data.sort((a, b) => b.created_at.localeCompare(a.created_at) || a.id.localeCompare(b.id))) {
+    const date = datesById.get(entry.workout_id);
+    if (date && !result[date] && entry.condition?.trim()) result[date] = entry.condition.trim();
+  }
+  return result;
 }
 
 export async function getExerciseRecords(

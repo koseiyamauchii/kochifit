@@ -4,6 +4,7 @@ import {
   Calculator,
   ChevronRight,
   Dumbbell,
+  Download,
   Flag,
   LogOut,
   Mail,
@@ -34,7 +35,8 @@ const settingsGroups: Array<{
   },
   {
     label: "記録",
-    items: [{ label: "計算式", section: "formula", icon: <Calculator size={18} /> }],
+    items: [{ label: "計算式", section: "formula", icon: <Calculator size={18} /> },
+      { label: "データをエクスポート", section: "export", icon: <Download size={18} /> }],
   },
 ];
 

@@ -3,7 +3,7 @@ import { AuthGate } from "@/components/auth/auth-gate";
 import { SettingsSections, type SettingsSection } from "@/components/settings/settings-sections";
 
 const settingsSections = new Set<SettingsSection>([
-  "profile", "goals", "accessibility", "bodyParts", "exercises", "formula", "support", "account",
+  "profile", "goals", "accessibility", "bodyParts", "exercises", "formula", "support", "account", "export",
 ]);
 
 export default async function SettingsPage({
@@ -16,14 +16,14 @@ export default async function SettingsPage({
   const initialSection = section && settingsSections.has(section as SettingsSection)
     ? section as SettingsSection
     : null;
-  const returnHref = params?.returnTo && (params.returnTo === "/" || /^\/today\/add(?:\?|$)/.test(params.returnTo))
+  const returnHref = params?.returnTo && (params.returnTo === "/" || /^\/today(?:\/add)?(?:\?|$)/.test(params.returnTo))
     ? params.returnTo
     : undefined;
   return (
     <AppShell active="settings">
       <AuthGate>
         <main className="space-y-4">
-          <SettingsSections initialSection={initialSection} returnHref={returnHref} />
+          <SettingsSections key={initialSection} initialSection={initialSection} returnHref={returnHref} />
         </main>
       </AuthGate>
     </AppShell>

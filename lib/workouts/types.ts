@@ -90,6 +90,7 @@ export interface WorkoutExercise {
 
 export interface Workout {
   id: string;
+  dayCondition?: string;
   workoutDate: string;
   createdAt: string;
   note: string | null;

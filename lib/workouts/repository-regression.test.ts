@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { createWorkout, getBodyPartWorkoutDistribution, getExerciseRecords, getWorkoutStats, updateWorkout } from "./repository";
+import { createWorkout, getBodyPartWorkoutDistribution, getDayConditions, getExerciseRecords, getWorkoutsInRange, getWorkoutStats, updateWorkout } from "./repository";
 import { createInitialSetDraft, toSetInputs } from "./entry-draft";
 import type { CreateWorkoutInput, Exercise } from "./types";
 
@@ -72,4 +72,25 @@ it("filters home statistics by inclusive dates and computes weekly average over 
   await getBodyPartWorkoutDistribution(client, range);
   expect(calls).toContainEqual({ table: "workout_exercises", method: "gte", args: ["workouts.workout_date", range.start] });
   expect(calls).toContainEqual({ table: "workout_exercises", method: "lte", args: ["workouts.workout_date", range.end] });
+});
+
+it("exports all 1101 sets with inclusive range bounds and excludes out-of-range workouts", async () => {
+  const { client } = dataClient({
+    workouts: [{ id: "w", workout_date: "2026-09-25", created_at: "2026-09-25" }, { id: "old", workout_date: "2026-09-24" }],
+    workout_exercises: [{ id: "e", workout_id: "w", exercise_id: "x", display_order: 1 }],
+    exercises: [{ id: "x", name: "Archived exercise" }],
+    sets: Array.from({ length: 1101 }, (_, i) => ({ id: String(i), workout_exercise_id: "e", set_number: i + 1, weight_kg: 1 })),
+  });
+  const records = await getWorkoutsInRange(client, { start: "2026-09-25", end: "2026-09-25" });
+  expect(records).toHaveLength(1);
+  expect(records[0].exercises[0].sets).toHaveLength(1101);
+});
+
+it("gets the latest nonempty daily condition across exercises and ID batches", async () => {
+  const { client, calls } = dataClient({
+    workouts: Array.from({ length: 102 }, (_, i) => ({ id: String(i), workout_date: "2026-09-25" })),
+    workout_exercises: [{ id: "a", workout_id: "0", condition: "old", created_at: "2026-09-25T01:00:00" }, { id: "b", workout_id: "100", condition: "new", created_at: "2026-09-25T02:00:00" }, { id: "c", workout_id: "101", condition: "  ", created_at: "2026-09-25T03:00:00" }],
+  });
+  expect(await getDayConditions(client, ["2026-09-25"])).toEqual({ "2026-09-25": "new" });
+  expect(calls.filter(call => call.table === "workout_exercises" && call.method === "in").every(call => (call.args[1] as unknown[]).length <= 100)).toBe(true);
 });
