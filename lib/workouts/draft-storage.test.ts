@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { readWorkoutDraft, workoutDraftKey, writeWorkoutDraft } from "./draft-storage";
+import { readWorkoutDraft, shouldConfirmWorkoutClose, workoutDraftKey, writeWorkoutDraft } from "./draft-storage";
+
+describe("close confirmation", () => {
+  it("requires an exercise and at least one measurement, not just a selection", () => {
+    expect(shouldConfirmWorkoutClose("", [{ weightKg: "20" }])).toBe(false);
+    expect(shouldConfirmWorkoutClose("exercise", [{ weightKg: "", reps: " " }])).toBe(false);
+    expect(shouldConfirmWorkoutClose("exercise", [{ weightKg: "0" }])).toBe(true);
+    expect(shouldConfirmWorkoutClose("exercise", [{ reps: "12" }])).toBe(true);
+    expect(shouldConfirmWorkoutClose("exercise", [{ rightReps: "10" }])).toBe(true);
+    expect(shouldConfirmWorkoutClose("cardio", [{ durationMin: "30" }])).toBe(true);
+  });
+});
 
 describe("device draft storage", () => {
   const valid = (v: unknown): v is { note: string } => typeof v === "object" && v !== null && "note" in v && typeof v.note === "string";

@@ -951,62 +951,85 @@ export async function getLatestWorkoutForExerciseBeforeDate(
   client: Client,
   exerciseId: string,
   beforeDate: string,
+  reference?: { id: string; createdAt: string },
 ): Promise<WorkoutExercise | null> {
-  const { data: workouts, error: workoutError } = await client
-    .from("workouts")
-    .select("id, workout_date")
-    .lt("workout_date", beforeDate)
-    .order("workout_date", { ascending: false })
-    .limit(60);
+  // Include earlier sessions on the same day, but never the record being edited.
+  for (let offset = 0; ; offset += 60) {
+    const { data: workouts, error: workoutError } = await client
+      .from("workouts")
+      .select("id, workout_date, created_at")
+      .lte("workout_date", beforeDate)
+      .order("workout_date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .range(offset, offset + 59);
 
-  if (workoutError) {
-    throw workoutError;
+    if (workoutError) {
+      throw workoutError;
+    }
+    if (workouts.length === 0) {
+      return null;
+    }
+
+    const workoutIds = workouts.filter(workout => !reference || (workout.id !== reference.id &&
+      (workout.workout_date < beforeDate || workout.created_at < reference.createdAt))).map((workout) => workout.id);
+    if (workoutIds.length === 0) {
+      if (workouts.length < 60) return null;
+      continue;
+    }
+    const workoutDateById = new Map(workouts.map((workout) => [workout.id, workout.workout_date]));
+    const { data: workoutExercises, error: workoutExerciseError } = await client
+      .from("workout_exercises")
+      .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
+      .eq("exercise_id", exerciseId)
+      .in("workout_id", workoutIds);
+
+    if (workoutExerciseError) {
+      throw workoutExerciseError;
+    }
+    if (workoutExercises.length === 0) {
+      if (workouts.length < 60) return null;
+      continue;
+    }
+
+    const latest = [...workoutExercises].sort((a, b) =>
+      workoutIds.indexOf(a.workout_id) - workoutIds.indexOf(b.workout_id),
+    )[0];
+    const { data: exercise, error: exerciseError } = await client
+      .from("exercises")
+      .select("name")
+      .eq("id", exerciseId)
+      .single();
+
+    if (exerciseError) {
+      throw exerciseError;
+    }
+
+    const sets = await getSetsByWorkoutExerciseId(client, latest.id);
+
+    return {
+      id: latest.id,
+      exerciseId,
+      exerciseName: exercise.name,
+      workoutDate: workoutDateById.get(latest.workout_id) ?? beforeDate,
+      displayOrder: latest.display_order,
+      note: latest.note,
+      condition: latest.condition,
+      elapsedSec: latest.elapsed_sec,
+      sets: sets.map(mapSet),
+    };
   }
-  if (workouts.length === 0) {
-    return null;
-  }
+}
 
-  const workoutIds = workouts.map((workout) => workout.id);
-  const workoutDateById = new Map(workouts.map((workout) => [workout.id, workout.workout_date]));
-  const { data: workoutExercises, error: workoutExerciseError } = await client
-    .from("workout_exercises")
-    .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
-    .eq("exercise_id", exerciseId)
-    .in("workout_id", workoutIds);
-
-  if (workoutExerciseError) {
-    throw workoutExerciseError;
-  }
-  if (workoutExercises.length === 0) {
-    return null;
-  }
-
-  const latest = [...workoutExercises].sort((a, b) =>
-    String(workoutDateById.get(b.workout_id)).localeCompare(String(workoutDateById.get(a.workout_id))),
-  )[0];
-  const { data: exercise, error: exerciseError } = await client
-    .from("exercises")
-    .select("name")
-    .eq("id", exerciseId)
-    .single();
-
-  if (exerciseError) {
-    throw exerciseError;
-  }
-
-  const sets = await getSetsByWorkoutExerciseId(client, latest.id);
-
-  return {
-    id: latest.id,
-    exerciseId,
-    exerciseName: exercise.name,
-    workoutDate: workoutDateById.get(latest.workout_id) ?? beforeDate,
-    displayOrder: latest.display_order,
-    note: latest.note,
-    condition: latest.condition,
-    elapsedSec: latest.elapsed_sec,
-    sets: sets.map(mapSet),
-  };
+export async function getDayCondition(client: Client, date: string): Promise<string> {
+  const { data: workouts, error } = await client.from("workouts").select("id").eq("workout_date", date);
+  if (error) throw error;
+  if (!workouts.length) return "";
+  const { data, error: conditionError } = await client.from("workout_exercises").select("condition")
+    .in("workout_id", workouts.map(workout => workout.id)).not("condition", "is", null)
+    .neq("condition", "").order("created_at", { ascending: false }).limit(1);
+  if (conditionError) throw conditionError;
+  return data[0]?.condition ?? "";
 }
 
 export async function getExerciseRecords(

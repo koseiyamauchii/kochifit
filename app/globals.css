@@ -219,6 +219,31 @@ input[type="checkbox"] {
   accent-color: var(--accent);
 }
 
+/* Native checkboxes can substitute an OS color in Safari. */
+input.assistance-checkbox {
+  appearance: none;
+  border: 1.5px solid var(--muted);
+  border-radius: 5px;
+  position: relative;
+  flex-shrink: 0;
+}
+input.assistance-checkbox:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+input.assistance-checkbox:checked::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 2px;
+  width: 6px;
+  height: 10px;
+  border: solid white;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.accent-dialog::backdrop { background: rgb(0 0 0 / 60%); backdrop-filter: blur(4px); }
+
 input::placeholder, textarea::placeholder {
   color: var(--muted);
   opacity: 0.75;

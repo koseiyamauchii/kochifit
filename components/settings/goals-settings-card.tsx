@@ -121,14 +121,21 @@ export function GoalsSettingsCard() {
     </div>
     <section className="space-y-3"><h2 className="ui-section-title flex items-center gap-2"><History size={17} />これまでの振り返り</h2>
       {historyLoading ? <p role="status" className="text-sm text-[var(--muted)]">履歴を読み込み中</p> : historyError ? <div role="alert" className="rounded-xl border border-[var(--border)] p-3 text-sm text-[var(--warning)]">履歴を読み込めません．DBの目標履歴機能が未設定，または通信に問題があります．<button type="button" className="ml-2 underline" onClick={() => void load()}>再試行</button></div> : reviews.length === 0 ? <p className="text-sm text-[var(--muted)]">保存した振り返りがここに残ります．</p> : null}
-      {reviews.map(review => <details key={review.id} className="ui-card p-4">
-        <summary className="cursor-pointer list-none"><span className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">{goalKinds.find(k => k.key === review.goal_kind)?.label} · {review.goal_deadline}</span><ChevronDown size={16} /></span><span className="mt-2 block whitespace-pre-wrap break-words text-sm">{review.goal_text}</span><span className="mt-2 block text-xs text-[var(--muted)]">{review.achieved ? "達成" : "途中"} · 達成度 {review.achievement_percent}％</span></summary>
+      {goalKinds.map(kind => <details key={kind.key} className="ui-card p-4">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold">{kind.label}<ChevronDown size={16} /></summary>
+        <div className="mt-3 space-y-3">
+        {!historyLoading && !historyError && !reviews.some(review => review.goal_kind === kind.key) ? <p className="text-sm text-[var(--muted)]">この期間の振り返りはまだありません．</p> : null}
+        {reviews.filter(review => review.goal_kind === kind.key).map(review => <details key={review.id} className="rounded-xl border border-[var(--border)] p-3">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold"><span>{review.period_start.replaceAll("-", "/")}–{review.goal_deadline.replaceAll("-", "/")}</span><ChevronDown size={16} className="shrink-0" /></summary>
         <div className="mt-4 space-y-3 border-t border-[var(--hairline)] pt-3 text-sm leading-relaxed">
-          <p className="text-xs text-[var(--muted)]">対象期間：{review.period_start} ～ {review.goal_deadline}</p>
+          <p className="whitespace-pre-wrap break-words">{review.goal_text}</p>
+          <p className="text-xs text-[var(--muted)]">{review.achieved ? "達成" : "途中"} · 達成度 {review.achievement_percent}％</p>
           {review.progress && typeof review.progress === "object" && !Array.isArray(review.progress) ? <p className="text-xs text-[var(--muted)]">実績：{String(review.progress.workoutDays ?? "—")}日 / {String(review.progress.setCount ?? "—")}セット</p> : null}
           <div><h4 className="ui-section-title">振り返り</h4><p className="mt-1 whitespace-pre-wrap break-words">{review.reflection}</p></div>
           <div><h4 className="ui-section-title">次に取り組むこと</h4><p className="mt-1 whitespace-pre-wrap break-words">{review.next_action}</p></div>
           <div><h4 className="ui-section-title">次の目標</h4><p className="mt-1 whitespace-pre-wrap break-words">{review.next_goal_text}</p><p className="text-xs text-[var(--muted)]">期限：{review.next_goal_deadline}</p></div>
+        </div>
+      </details>)}
         </div>
       </details>)}
       {reviews.length >= historyLimit ? <button type="button" onClick={() => setHistoryLimit(n => n + 30)} className="ui-action w-full justify-center">以前の振り返りを表示</button> : null}

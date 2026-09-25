@@ -7,7 +7,7 @@ import type { CSSProperties, TouchEvent as ReactTouchEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { SetAnnotations, WorkoutCardHeader } from "./workout-card-parts";
-import { readWorkoutDraft, workoutDraftKey, writeWorkoutDraft } from "@/lib/workouts/draft-storage";
+import { readWorkoutDraft, shouldConfirmWorkoutClose, workoutDraftKey, writeWorkoutDraft } from "@/lib/workouts/draft-storage";
 import { createClient } from "@/lib/supabase/client";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
 import {
@@ -28,6 +28,7 @@ import {
   createWorkout,
   deleteWorkout,
   getBodyParts,
+  getDayCondition,
   getExerciseRecords,
   getExercises,
   getLatestWorkoutForExerciseBeforeDate,
@@ -183,19 +184,6 @@ function estimateOneRepMax(weightKg: number | null, reps: number | null) {
 function formatRmValue(weightKg: number | null, reps: number | null) {
   const rm = estimateOneRepMax(weightKg, reps);
   return rm === null ? "-" : rm.toFixed(1);
-}
-
-function hasSetMeasurementInput(set: SetDraft) {
-  return [
-    set.weightKg,
-    set.reps,
-    set.distanceKm,
-    set.durationMin,
-    set.speedKmh,
-    set.caloriesKcal,
-    set.leftReps,
-    set.rightReps,
-  ].some((value) => value.trim() !== "");
 }
 
 function formatCardioStoredValue(
@@ -388,21 +376,23 @@ function PreviousWorkoutBlock({
               <div key={set.id} className="grid grid-cols-[3.5rem_1fr] items-start gap-2 rounded-[12px] bg-[var(--surface)] px-2.5 py-1">
                 <span className="font-semibold">{set.isWarmup ? "W" : "セット " + (index + 1)}</span>
                 <div className="min-w-0 space-y-1">
-                  <span className="block">
+                  <div className="flex items-center justify-between gap-2">
+                  <span>
                     {isCardio
                       ? `${formatCardioStoredValue("distance", set.distanceKm, cardioUnits)}${cardioUnitLabels.distance} / ${formatCardioStoredValue("duration", set.durationSec, cardioUnits)}${cardioUnitLabels.duration} / ${formatCardioStoredValue("speed", set.speedKmh, cardioUnits)}${cardioUnitLabels.speed}`
                       : bilateralRepsEnabled
                         ? `${formatWeightNumber(set.weightKg)}kg / 左${set.leftReps ?? set.reps ?? "-"}回 / 右${set.rightReps ?? set.reps ?? "-"}回`
                         : formatSetLine(set.weightKg, set.reps)}
                   </span>
-                  {!isCardio && set.isAssisted ? <span className="block">補助あり</span> : null}
-                  {set.note ? <span className="block whitespace-pre-wrap break-words">メモ：{set.note}</span> : null}
+                  {!isCardio && set.isAssisted ? <span className="shrink-0">補助あり</span> : null}
+                  </div>
+                  {set.note ? <span className="block whitespace-pre-wrap break-words">{set.note}</span> : null}
                 </div>
               </div>
             ))}
           </div>
           {previousWorkout.note ? (
-            <p className="whitespace-pre-wrap break-words text-sm text-[var(--muted)]">前回メモ：{previousWorkout.note}</p>
+            <p className="whitespace-pre-wrap break-words text-sm text-[var(--muted)]">{previousWorkout.note}</p>
           ) : null}
         </div>
       ) : (
@@ -423,7 +413,7 @@ function WorkoutReadOnlyCard({
   exerciseRecords: ExerciseRecord[];
   exercises: Exercise[];
   onEdit: () => void;
-  sessionNumber: number;
+  sessionNumber?: number;
   showDate?: boolean;
   workout: Workout;
 }) {
@@ -474,9 +464,10 @@ function WorkoutReadOnlyCard({
       </div>
       {exercise.note ? (
         <div className="whitespace-pre-wrap break-words border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
-          メモ：{exercise.note}
+          {exercise.note}
         </div>
       ) : null}
+      {showDate && exercise.condition ? <p className="border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">体調・コンディション：{exercise.condition}</p> : null}
       {masterExercise?.memo ? (
         <div className="whitespace-pre-wrap break-words border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
           共通メモ（種目マスタ）：{masterExercise.memo}
@@ -665,6 +656,7 @@ function WorkoutEntryForm({
       )}
       <div className="space-y-2.5 p-2.5">
       {draftNotice}
+      {recordDate && draft.condition ? <p className="rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-sm">体調・コンディション：{draft.condition}</p> : null}
 
       {mode === "add" && selectedBodyPartId && setSelectedBodyPartId ? (
         <div className="-mx-1 overflow-x-auto px-1 pb-1">
@@ -760,7 +752,6 @@ function WorkoutEntryForm({
           ) : null}
           {selectedExercise.memo ? (
             <p>
-              <span className="text-[var(--muted)]">メモ：</span>
               <span className="font-medium">{selectedExercise.memo}</span>
             </p>
           ) : null}
@@ -823,7 +814,7 @@ function WorkoutEntryForm({
             <div className={[
               "grid gap-2",
               selectedExercise?.bilateralRepsEnabled
-                ? "grid-cols-[1.15fr_0.9fr_0.9fr_1fr_2.5rem]"
+                ? "grid-cols-[minmax(0,1fr)_minmax(3.25rem,1fr)_minmax(3.25rem,1fr)_minmax(0,0.85fr)_2rem]"
                 : "grid-cols-[1.2fr_1fr_1fr_2.5rem]",
             ].join(" ")}>
               <div className="min-w-0 space-y-1">
@@ -855,11 +846,12 @@ function WorkoutEntryForm({
                 <div className="relative">
                   <input
                     inputMode="decimal"
+                    aria-label={`セット${index + 1}の重量`}
                     value={set.weightKg}
                     onFocus={(event) => event.currentTarget.select()}
                     onChange={(event) => updateSet(index, { weightKg: event.target.value })}
                     onBlur={(event) => updateSet(index, { weightKg: formatWeightInput(event.target.value) })}
-                    className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-3 pr-9 text-sm"
+                    className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-1.5 pr-6 text-sm"
                   />
                   <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs font-medium text-[var(--muted)]">
                     kg
@@ -888,9 +880,10 @@ function WorkoutEntryForm({
                           value={set[key]}
                           onFocus={(event) => event.currentTarget.select()}
                           onChange={(event) => updateSet(index, { [key]: event.target.value })}
-                          className="min-h-10 w-full rounded-[12px] bg-[var(--surface)] px-3 pr-8 text-sm"
+                          aria-label={`セット${index + 1}の${key === "leftReps" ? "左" : "右"}回数`}
+                          className="min-h-10 w-full min-w-0 rounded-[12px] bg-[var(--surface)] px-1.5 pr-5 text-sm"
                         />
-                        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-xs text-[var(--muted)]">回</span>
+                        <span className="pointer-events-none absolute inset-y-0 right-1 flex items-center text-xs text-[var(--muted)]">回</span>
                       </div>
                     </div>
                   ))}
@@ -912,6 +905,7 @@ function WorkoutEntryForm({
                 <div className="relative">
                   <input
                     inputMode="numeric"
+                    aria-label={`セット${index + 1}の回数`}
                     value={set.reps}
                     onFocus={(event) => event.currentTarget.select()}
                     onChange={(event) => updateSet(index, { reps: event.target.value })}
@@ -946,8 +940,7 @@ function WorkoutEntryForm({
                     checked={set.isAssisted}
                     onChange={(event) => updateSet(index, { isAssisted: event.target.checked })}
                     aria-label={`セット${index + 1}の補助あり`}
-                    className="h-5 w-5"
-                    style={{ accentColor: "var(--accent)" }}
+                    className="assistance-checkbox h-5 w-5"
                   />
                 </label>
               </div>
@@ -1085,7 +1078,10 @@ export function WorkoutCalendar({
   const [dayConditionDraft, setDayConditionDraft] = useState("");
   const [savingKey, setSavingKey] = useState<string | null>(null);
   const [draftReadyKey, setDraftReadyKey] = useState<string | null>(null);
-  const [persistedDraft, setPersistedDraft] = useState("");
+  const [addDayCondition, setAddDayCondition] = useState("");
+  const [savedFeedback, setSavedFeedback] = useState(false);
+  const leavingPage = useRef(false);
+  const previousRequest = useRef(0);
   const [draftStorageError, setDraftStorageError] = useState<string | null>(null);
   const saveInFlight = useRef(false);
   const confirmUnsavedNavigationRef = useRef<(() => boolean) | null>(null);
@@ -1102,18 +1098,15 @@ export function WorkoutCalendar({
     ? workoutDraftKey(user.id, effectiveSelectedDate, editingWorkoutId) : null;
   const activeLocalDraft = showAddForm ? addDraft : editingWorkoutId ? editDrafts[editingWorkoutId] : null;
   const activeDraftSnapshot = activeStorageKey && activeLocalDraft ? activeStorageKey + JSON.stringify(activeLocalDraft) : "";
-  const isDraftProtected = Boolean(activeDraftSnapshot && activeDraftSnapshot === persistedDraft);
 
   useEffect(() => {
     if (!showAddForm || !addStorageKey) return;
     setDraftStorageError(null);
-    setPersistedDraft("");
     try {
       const saved = readWorkoutDraft(window.localStorage, addStorageKey, isEntryDraft);
       const value = saved?.value ?? { exerciseId: "", note: "", condition: "", elapsedSec: null, startedAt: null, lastSetInputAt: null, sets: createSetDrafts(defaultSetCount) };
       setAddDraft(value);
       setDraftReadyKey(addStorageKey);
-      if (saved) setPersistedDraft(addStorageKey + JSON.stringify(saved.value));
     } catch {
       setDraftReadyKey(null);
       setDraftStorageError("下書きを読み込めません。元の下書きは残しています。確定前に内容を確認してください。");
@@ -1123,15 +1116,13 @@ export function WorkoutCalendar({
   }, [addStorageKey, showAddForm]);
 
   useEffect(() => {
-    if (!activeStorageKey || !activeLocalDraft || savingKey || draftStorageError ||
+    if (leavingPage.current || !activeStorageKey || !activeLocalDraft || savingKey || draftStorageError ||
       (showAddForm && draftReadyKey !== activeStorageKey)) return;
     try {
       if (activeLocalDraft.exerciseId) {
         writeWorkoutDraft(window.localStorage, activeStorageKey, activeLocalDraft, showAddForm ? null : editingBaseline);
-        setPersistedDraft(activeDraftSnapshot);
       }
     } catch {
-      setPersistedDraft("");
       setDraftStorageError("端末への下書き保存に失敗しました。閉じる前にチェックで記録を確定してください。");
     }
   }, [activeDraftSnapshot, activeLocalDraft, activeStorageKey, draftReadyKey, draftStorageError, editingBaseline, savingKey, showAddForm]);
@@ -1139,7 +1130,6 @@ export function WorkoutCalendar({
   const clearLocalDraft = useCallback((key: string | null) => {
     if (!key) return;
     try { window.localStorage.removeItem(key); } catch { /* Cleanup failure must not resubmit a confirmed record. */ }
-    setPersistedDraft("");
   }, []);
 
   const calendarPages = useMemo(
@@ -1167,16 +1157,14 @@ export function WorkoutCalendar({
     );
     return addCalories + savedCalories;
   }, [addDraft, editDrafts, exercises, isAddFormActive, profile]);
-  const isAddDraftDirty =
-    showAddForm &&
-    (addDraft.sets.some(hasSetMeasurementInput) || addDraft.sets.some(set => set.note.trim()) || Boolean(addDraft.note.trim()));
+  const isAddDraftDirty = showAddForm && shouldConfirmWorkoutClose(addDraft.exerciseId, addDraft.sets);
   const editingExerciseId = editingWorkoutId ? (editDrafts[editingWorkoutId]?.exerciseId ?? "") : "";
   const isEditDraftDirty = Boolean(
     editingWorkoutId &&
     editingBaseline &&
     JSON.stringify(editDrafts[editingWorkoutId]) !== editingBaseline,
   );
-  const hasUnprotectedDraft = (isAddDraftDirty || isEditDraftDirty) && !isDraftProtected;
+  const hasUnprotectedDraft = isAddDraftDirty || isEditDraftDirty;
   const resolvedDetailsHeading = exerciseHistoryId
     ? `${findExercise(exercises, exerciseHistoryId)?.name ?? "種目"}の記録履歴`
     : detailsHeading;
@@ -1270,13 +1258,14 @@ export function WorkoutCalendar({
   }, [editingWorkoutId, exercises, workouts]);
 
   const loadPreviousWorkout = useCallback(async () => {
+    const request = ++previousRequest.current;
+    setPreviousWorkout(null);
     if (!user || !addDraft.exerciseId) {
       setPreviousWorkout(null);
       return;
     }
-    setPreviousWorkout(
-      await getLatestWorkoutForExerciseBeforeDate(client, addDraft.exerciseId, effectiveSelectedDate),
-    );
+    const previous = await getLatestWorkoutForExerciseBeforeDate(client, addDraft.exerciseId, effectiveSelectedDate);
+    if (request === previousRequest.current) setPreviousWorkout(previous);
   }, [addDraft.exerciseId, client, effectiveSelectedDate, user]);
 
   const loadEditPreviousWorkout = useCallback(
@@ -1285,10 +1274,12 @@ export function WorkoutCalendar({
         setEditPreviousWorkouts((current) => ({ ...current, [workoutId]: null }));
         return;
       }
-      const latest = await getLatestWorkoutForExerciseBeforeDate(client, exerciseId, effectiveSelectedDate);
+      const reference = workouts.find(workout => workout.id === workoutId);
+      if (!reference) return;
+      const latest = await getLatestWorkoutForExerciseBeforeDate(client, exerciseId, reference.workoutDate, reference);
       setEditPreviousWorkouts((current) => ({ ...current, [workoutId]: latest }));
     },
-    [client, effectiveSelectedDate, user],
+    [client, user, workouts],
   );
   const loadBaseData = useCallback(async () => {
     if (!user || !showWorkoutDetails) {
@@ -1374,6 +1365,22 @@ export function WorkoutCalendar({
   }, [authStatus, loadSelectedDate, profileStatus]);
 
   useEffect(() => {
+    if (!user || !showAddForm) return;
+    let active = true;
+    setAddDayCondition("");
+    void getDayCondition(client, effectiveSelectedDate).then(condition => {
+      if (active) setAddDayCondition(condition);
+    }).catch(() => { if (active) setError("体調・コンディションを読み込めませんでした．"); });
+    return () => { active = false; };
+  }, [client, effectiveSelectedDate, showAddForm, user]);
+
+  useEffect(() => {
+    if (!savedFeedback) return;
+    const timer = window.setTimeout(() => setSavedFeedback(false), 2000);
+    return () => window.clearTimeout(timer);
+  }, [savedFeedback]);
+
+  useEffect(() => {
     if (authStatus === "authenticated" && profileStatus === "ready") {
       void loadPreviousWorkout().catch((loadError) => {
         console.error("Previous workout load error", loadError);
@@ -1454,7 +1461,7 @@ export function WorkoutCalendar({
         workoutDate: effectiveSelectedDate,
         exerciseId: addDraft.exerciseId,
         note: addDraft.note.trim() || null,
-        condition: addDraft.condition.trim() || null,
+        condition: addDayCondition.trim() || null,
         elapsedSec: getDraftElapsedSec(addDraft),
         sets: toSetInputs(
           addDraft.sets,
@@ -1473,10 +1480,8 @@ export function WorkoutCalendar({
         sets: createSetDrafts(defaultSetCount),
       });
       setPreviousWorkout(null);
+      setSavedFeedback(true);
       await Promise.all([loadMonth(), loadSelectedDate()]);
-      if (showAddForm && backHref) {
-        router.push(backHref);
-      }
     } catch (saveError) {
       console.error("Workout save error", saveError);
       setError("トレーニングの保存に失敗しました。入力値を確認してください。");
@@ -1486,9 +1491,9 @@ export function WorkoutCalendar({
     }
   }, [
     addDraft,
+    addDayCondition,
     addStorageKey,
     clearLocalDraft,
-    backHref,
     client,
     defaultSetCount,
     effectiveSelectedDate,
@@ -1496,14 +1501,13 @@ export function WorkoutCalendar({
     loadMonth,
     loadSelectedDate,
     profile,
-    router,
     savingKey,
-    showAddForm,
     user,
   ]);
 
   const confirmUnsavedNavigation = useCallback(() => {
-    if ((!hasUnprotectedDraft && !isDayConditionDirty) || savingKey) {
+    if (savingKey) return false;
+    if (!hasUnprotectedDraft && !isDayConditionDirty) {
       return true;
     }
     return window.confirm("保存していない内容があります。保存せず戻りますか？");
@@ -1518,9 +1522,11 @@ export function WorkoutCalendar({
       return;
     }
     if ((confirmUnsavedNavigationRef.current ?? confirmUnsavedNavigation)()) {
+      leavingPage.current = true;
+      clearLocalDraft(activeStorageKey);
       router.push(backHref);
     }
-  }, [backHref, confirmUnsavedNavigation, router]);
+  }, [activeStorageKey, backHref, clearLocalDraft, confirmUnsavedNavigation, router]);
 
   useEffect(() => {
     if (!hasUnprotectedDraft && !isDayConditionDirty) {
@@ -1558,6 +1564,8 @@ export function WorkoutCalendar({
     window.history.pushState({ kochifitUnsavedGuard: true }, "", window.location.href);
     const handlePopState = () => {
       if ((confirmUnsavedNavigationRef.current ?? confirmUnsavedNavigation)()) {
+        leavingPage.current = true;
+        clearLocalDraft(activeStorageKey);
         router.push(backHref);
         return;
       }
@@ -1565,7 +1573,7 @@ export function WorkoutCalendar({
     };
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [backHref, confirmUnsavedNavigation, hasUnprotectedDraft, isDayConditionDirty, router]);
+  }, [activeStorageKey, backHref, clearLocalDraft, confirmUnsavedNavigation, hasUnprotectedDraft, isDayConditionDirty, router]);
 
   const handleDayConditionSave = async () => {
     if (!user || savingKey || workouts.length === 0) {
@@ -1722,18 +1730,7 @@ export function WorkoutCalendar({
       }
     : {};
 
-  const draftNotice = activeLocalDraft?.exerciseId ? <div className="flex items-center justify-between gap-3 rounded-xl bg-[var(--surface-soft)] px-3 py-2 text-xs text-[var(--muted)]">
-          <p role="status">{draftStorageError ?? (isDraftProtected ? "下書き保存済み（この端末）・チェックで記録を確定" : "下書きを保存中")}</p>
-          <button type="button" disabled={Boolean(savingKey)} className="shrink-0 rounded-lg px-2 py-1 underline" onClick={() => {
-            if (!window.confirm("この下書きを破棄しますか？確定済みの記録は変更されません。")) return;
-            clearLocalDraft(activeStorageKey);
-            setDraftStorageError(null);
-            if (showAddForm) {
-              setAddDraft({ exerciseId: "", note: "", condition: "", elapsedSec: null, startedAt: null, lastSetInputAt: null, sets: createSetDrafts(defaultSetCount) });
-              setDraftReadyKey(addStorageKey);
-            } else { setEditingWorkoutId(null); setEditingBaseline(null); }
-          }}>下書きを破棄</button>
-        </div> : null;
+  const draftNotice = draftStorageError ? <p role="alert" className="px-3 py-2 text-xs text-[var(--warning)]">{draftStorageError}</p> : null;
 
   return (
     <div {...swipeHandlers}>
@@ -1924,6 +1921,9 @@ export function WorkoutCalendar({
         </div>
         )}
 
+        {showAddForm && addDayCondition ? <section className="rounded-xl bg-[var(--surface-soft)] px-3 py-2"><h2 className="text-xs font-semibold text-[var(--muted)]">体調・コンディション</h2><p className="mt-1 whitespace-pre-wrap break-words text-sm">{addDayCondition}</p></section> : null}
+        {savedFeedback ? <p role="status" className="text-sm text-[var(--accent-strong)]">記録を保存しました．続けて種目を追加できます．</p> : null}
+
         {!showCalendar && !showAddForm && !exerciseHistoryId && workouts.length > 0 ? (
           <section className="rounded-[12px] bg-[var(--surface-soft)] px-3 py-2.5 shadow-[var(--shadow)]">
             <h2 className="text-xs font-semibold text-[var(--muted)]">体調・コンディション</h2>
@@ -2027,7 +2027,7 @@ export function WorkoutCalendar({
                 setEditingWorkoutId(workout.id);
                 setEditingBaseline(baseline);
               }}
-              sessionNumber={sessionNumberByWorkoutId.get(workout.id) ?? index + 1}
+              sessionNumber={exerciseHistoryId ? undefined : sessionNumberByWorkoutId.get(workout.id) ?? index + 1}
               showDate={Boolean(exerciseHistoryId)}
               workout={workout}
             />
@@ -2058,6 +2058,7 @@ export function WorkoutCalendar({
                 }
                 onHeaderClick={() => {
                   if (confirmUnsavedNavigation()) {
+                    clearLocalDraft(activeStorageKey);
                     const workoutExercise = workout.exercises[0];
                     if (workoutExercise) {
                       setEditDrafts((current) => ({
@@ -2075,7 +2076,7 @@ export function WorkoutCalendar({
                 onSave={() => void handleEditSave(workout)}
                 previousWorkout={editPreviousWorkouts[workout.id] ?? null}
                 profile={profile}
-                sessionNumber={sessionNumberByWorkoutId.get(workout.id) ?? index + 1}
+                sessionNumber={exerciseHistoryId ? undefined : sessionNumberByWorkoutId.get(workout.id) ?? index + 1}
               />
             );
         }) : null}

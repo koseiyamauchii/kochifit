@@ -23,7 +23,6 @@ export default async function SettingsPage({
     <AppShell active="settings">
       <AuthGate>
         <main className="space-y-4">
-          <h1 className="text-base font-semibold">設定</h1>
           <SettingsSections initialSection={initialSection} returnHref={returnHref} />
         </main>
       </AuthGate>

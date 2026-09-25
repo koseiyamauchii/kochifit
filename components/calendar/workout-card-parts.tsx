@@ -47,7 +47,7 @@ export function SetAnnotations({ note, isAssisted, isCardio }: {
       {!isCardio ? (
         <p className="shrink-0 font-medium">{isAssisted ? "補助あり" : "補助なし"}</p>
       ) : null}
-      <p className="min-w-0 flex-1 whitespace-pre-wrap break-words">メモ：{note?.trim() ? note : "—"}</p>
+      {note?.trim() ? <p className="min-w-0 flex-1 whitespace-pre-wrap break-words">{note}</p> : null}
     </div>
   );
 }

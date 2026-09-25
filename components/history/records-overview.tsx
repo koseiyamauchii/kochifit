@@ -1,6 +1,7 @@
 "use client";
 
 import type { CSSProperties } from "react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
@@ -109,7 +110,7 @@ export function RecordsOverview() {
                       key={record.exerciseId}
                       className="rounded-[12px] bg-[var(--surface-soft)] p-3"
                     >
-                      <h3 className="font-semibold">{record.exerciseName}</h3>
+                      <Link href={`/history/exercise?exercise=${record.exerciseId}`} className="flex min-h-10 items-center justify-between gap-3"><h3 className="font-semibold">{record.exerciseName}</h3><span className="shrink-0 text-xs text-[var(--muted)]">記録・メモを見る</span></Link>
                       <dl className="mt-2 grid grid-cols-3 gap-1.5 text-xs">
                         <div className="rounded-[12px] bg-[var(--surface)] px-2.5 py-1.5">
                           <dt className="text-xs text-[var(--muted)]">最高重量</dt>

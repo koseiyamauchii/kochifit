@@ -7,24 +7,29 @@ describe("workout card annotations", () => {
   it("shows a set memo and assistance", () => {
     const html = renderToStaticMarkup(<SetAnnotations note={"最後だけ補助\nフォームを確認"} isAssisted isCardio={false} />);
     expect(html).toContain("補助あり");
-    expect(html).toContain("メモ：最後だけ補助\nフォームを確認");
+    expect(html).toContain("最後だけ補助\nフォームを確認");
+    expect(html).not.toContain("メモ：");
     expect(html).toContain("whitespace-pre-wrap");
   });
 
-  it("makes empty notes and unassisted sets explicit", () => {
+  it("shows assistance without an empty memo label", () => {
     const html = renderToStaticMarkup(<SetAnnotations note={null} isAssisted={false} isCardio={false} />);
     expect(html).toContain("補助なし");
-    expect(html).toContain("メモ：—");
+    expect(html).not.toContain("メモ：");
   });
 
   it("keeps cardio notes without a strength-only assistance label", () => {
     const html = renderToStaticMarkup(<SetAnnotations note="傾斜あり" isAssisted={false} isCardio />);
-    expect(html).toContain("メモ：傾斜あり");
+    expect(html).toContain("傾斜あり");
     expect(html).not.toContain("補助");
   });
 });
 
 describe("workout card header", () => {
+  it("omits session badges for exercise history", () => {
+    const html = renderToStaticMarkup(<WorkoutCardHeader title="履歴" />);
+    expect(html).not.toContain("workout-header-badge");
+  });
   it("uses identical heading markup and a fixed height when opened or closed", () => {
     const props = { title: "ケーブルサイドレイズ", sessionNumber: 3, children: "3セット" };
     const closed = renderToStaticMarkup(<WorkoutCardHeader {...props} />);

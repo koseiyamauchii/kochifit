@@ -100,7 +100,7 @@ export function SettingsSections({
   };
 
   return (
-    <div className={activeSection === "account" ? "space-y-4" : "mx-2 space-y-4"}>
+    <div className="space-y-4">
       {!activeSection ? (
         <>
           <h1 className="text-base font-semibold">設定</h1>

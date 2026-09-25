@@ -1,7 +1,7 @@
 "use client";
 
-import { Check, ChevronDown, Monitor, Moon, Palette, Sun } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { Check, ChevronDown, Monitor, Moon, Palette, Sun, X } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useThemePreference, type AccentPreference, type ThemePreference } from "./theme-provider";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
@@ -26,6 +26,11 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const savingRef = useRef(false);
+  const accentDialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    if (expanded === "accent") accentDialog.current?.showModal();
+    else accentDialog.current?.close();
+  }, [expanded]);
   const save = async (nextTheme: ThemePreference, nextAccent: AccentPreference) => {
     if (savingRef.current) return;
     savingRef.current = true;
@@ -60,17 +65,21 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
         </div> : null}
       </div>
       <div>
-        {compact ? <button type="button" aria-expanded={expanded === "accent"} onClick={() => setExpanded(expanded === "accent" ? null : "accent")} className="flex min-h-14 w-full items-center gap-3 px-4 text-sm font-medium">
+        <button type="button" aria-haspopup="dialog" onClick={() => setExpanded("accent")} className="flex min-h-14 w-full items-center gap-3 px-4 text-sm font-medium">
           <Palette size={18} className="text-[var(--muted)]" /><span className="flex-1 text-left">アクセントカラー</span>
           <span className="accent-preview h-4 w-4 shrink-0 rounded-full" data-accent={accent} />
           <span className="text-[var(--muted)]">{accentChoices.find(c => c.value === accent)?.label}</span><ChevronDown size={16} />
-        </button> : <h3 className="ui-section-title mb-3">アクセントカラー</h3>}
-        {!compact || expanded === "accent" ? <div role="group" aria-label="アクセントカラー" className={compact ? "grid grid-cols-2 gap-2 px-3 pb-4 sm:grid-cols-4" : "grid grid-cols-2 gap-2 sm:grid-cols-4"}>
+        </button>
+        <dialog ref={accentDialog} aria-labelledby="accent-dialog-title" onClose={() => setExpanded(null)} onClick={event => event.stopPropagation()} className="accent-dialog m-auto w-[calc(100%-2rem)] max-w-md rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-[var(--text)] shadow-[var(--shadow)]">
+          <div className="mb-4 flex items-center justify-between gap-3"><h3 id="accent-dialog-title" className="ui-section-title">アクセントカラー</h3><button type="button" aria-label="カラー選択を閉じる" onClick={() => setExpanded(null)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--surface-soft)]"><X size={20} /></button></div>
+        <div role="group" aria-label="アクセントカラー" className="grid grid-cols-2 gap-2">
           {accentChoices.map(choice => <button key={choice.value} type="button" disabled={saving} onClick={() => void save(theme, choice.value)} aria-pressed={accent === choice.value} className={["flex min-h-12 items-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-sm font-medium", accent === choice.value ? "border-[var(--accent)]" : "border-[var(--border)]"].join(" ")}>
             <span aria-hidden="true" className="accent-preview h-6 w-6 shrink-0 rounded-full" data-accent={choice.value} /><span className="flex-1 text-left">{choice.label}</span>
             {accent === choice.value ? <Check size={15} className="shrink-0" /> : null}
           </button>)}
-        </div> : null}
+        </div>
+        {error ? <p role="alert" className="mt-3 text-xs text-[var(--warning)]">{error}<button type="button" disabled={saving} className="ml-2 underline" onClick={() => void save(theme, accent)}>再試行</button></p> : null}
+        </dialog>
       </div>
       {error ? <p role="alert" className="px-3 pb-3 text-xs text-[var(--warning)]">{error}<button type="button" disabled={saving} className="ml-2 underline" onClick={() => void save(theme, accent)}>再試行</button></p> : null}
     </section>

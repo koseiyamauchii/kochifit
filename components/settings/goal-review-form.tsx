@@ -99,7 +99,8 @@ export function GoalReviewForm({ goal, onComplete, periodStart }: {
     <label className="block space-y-1 text-sm">達成度（0～100％）<input type="number" inputMode="numeric" min="0" max="100" step="1" required value={percent} onChange={e => setPercent(e.target.value)} className="ui-field" /></label>
     <label className="block space-y-1 text-sm">どのくらい達成できたか<textarea required maxLength={2000} value={reflection} onChange={e => setReflection(e.target.value)} rows={3} className="ui-field" placeholder="実際の数値や、できたこと・難しかったこと" /></label>
     <label className="block space-y-1 text-sm">次はどうしたいか<textarea required maxLength={2000} value={action} onChange={e => setAction(e.target.value)} rows={3} className="ui-field" placeholder="続けたいこと、変えたいこと" /></label>
-    <div className="space-y-3 rounded-2xl bg-[var(--surface-soft)] p-3"><h4 className="ui-section-title">次の{goal.label}</h4><label className="block space-y-1 text-sm">内容<textarea required maxLength={200} value={nextText} onChange={e => setNextText(e.target.value)} rows={2} className="ui-field" /></label><label className="block space-y-1 text-sm">期限<input type="date" required min={tomorrow} value={nextDate} onChange={e => setNextDate(e.target.value)} className="ui-field" /></label></div>
+    <label className="block space-y-1 text-sm">次の{goal.label}<textarea required maxLength={200} value={nextText} onChange={e => setNextText(e.target.value)} rows={3} className="ui-field" /></label>
+    <label className="block space-y-1 text-sm">次の目標の期限<input type="date" required min={tomorrow} value={nextDate} onChange={e => setNextDate(e.target.value)} className="ui-field" /></label>
     </fieldset>
     <button type="submit" disabled={saving || !progress || achieved === null} className="ui-primary w-full"><Check size={17} />{saving ? "保存中" : attempted ? "同じ内容で保存結果を再確認" : "振り返りを保存して次の目標へ"}</button>
     {error ? <p role="alert" className="text-sm text-[var(--warning)]">{error}</p> : null}
