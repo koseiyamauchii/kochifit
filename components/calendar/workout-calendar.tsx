@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import type { CSSProperties, TouchEvent as ReactTouchEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
-import { SetAnnotations, WorkoutCardHeader } from "./workout-card-parts";
+import { WorkoutMemoSummary, WorkoutCardHeader } from "./workout-card-parts";
 import { readWorkoutDraft, shouldConfirmWorkoutClose, workoutDraftKey, writeWorkoutDraft } from "@/lib/workouts/draft-storage";
 import { createClient } from "@/lib/supabase/client";
 import { getBodyPartColor } from "@/lib/workouts/body-part-colors";
@@ -441,6 +441,7 @@ function WorkoutReadOnlyCard({
             {exercise.sets.length}セット
           </span>
       </WorkoutCardHeader>
+      <WorkoutMemoSummary note={exercise.note} masterMemo={masterExercise?.memo} sets={exercise.sets} />
       {showDate && exercise.condition ? <p className="whitespace-pre-wrap break-words border-b border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">体調・コンディション：{exercise.condition}</p> : null}
       <div className={[isCardio ? "grid-cols-[2.4rem_1fr_1fr_1fr]" : "grid-cols-[2.4rem_0.9fr_1.3fr_0.9fr_2.5rem]", "grid gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]"].join(" ")}>
         <span>セット</span>
@@ -460,20 +461,9 @@ function WorkoutReadOnlyCard({
               {!isCardio ? <span aria-label={set.isAssisted ? "補助あり" : "補助なし"} className="text-center text-[var(--muted)]">{set.isAssisted ? "あり" : "なし"}</span> : null}
             </div>
             {isCardio && set.caloriesKcal !== null ? <p className="mt-1 text-xs text-[var(--muted)]">カロリー：{formatCardioStoredValue("calories", set.caloriesKcal, cardioUnits)}{cardioUnitLabels.calories}</p> : null}
-            <SetAnnotations note={set.note} isAssisted={set.isAssisted} isCardio={isCardio} showAssistance={false} />
           </div>
         ))}
       </div>
-      {exercise.note ? (
-        <div className="whitespace-pre-wrap break-words border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
-          {exercise.note}
-        </div>
-      ) : null}
-      {masterExercise?.memo ? (
-        <div className="whitespace-pre-wrap break-words border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
-          共通メモ（種目マスタ）：{masterExercise.memo}
-        </div>
-      ) : null}
       {!isCardio && maxWeightKg !== null ? <div className="border-t border-[var(--hairline)] px-3 py-2 text-xs font-semibold text-[var(--muted)]">最高重量：{Number(maxWeightKg.toFixed(1))}kg</div> : null}
     </button>
   );

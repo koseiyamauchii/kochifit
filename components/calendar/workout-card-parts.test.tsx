@@ -1,7 +1,22 @@
 import * as React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SetAnnotations, WorkoutCardHeader } from "./workout-card-parts";
+import { SetAnnotations, WorkoutCardHeader, WorkoutMemoSummary } from "./workout-card-parts";
+
+describe("memo summary above sets", () => {
+  it("groups exercise, master and set notes without losing their set numbers", () => {
+    const html = renderToStaticMarkup(<WorkoutMemoSummary note="当日のメモ" masterMemo="器具のメモ" sets={[{ id: "one", note: "" }, { id: "two", note: "フォーム\n確認" }]} />);
+    expect(html).toContain("当日のメモ");
+    expect(html).toContain("器具のメモ");
+    expect(html).toContain("2セット目");
+    expect(html).not.toContain("1セット目");
+    expect(html).toContain("フォーム\n確認");
+    expect(html).not.toContain("メモ：");
+  });
+  it("does not create an empty panel", () => {
+    expect(renderToStaticMarkup(<WorkoutMemoSummary note={null} masterMemo=" " sets={[{ id: "one", note: " " }]} />)).toBe("");
+  });
+});
 
 describe("workout card annotations", () => {
   it("keeps only the memo when assistance is already in the RM row", () => {
