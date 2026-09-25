@@ -989,7 +989,6 @@ export function WorkoutCalendar({
                 <Check size={20} />
               </button>
             </div>
-            {workouts.length === 0 ? <p className="mt-1 text-xs text-[var(--muted)]">最初の記録と一緒に保存されます。</p> : null}
           </section>
         ) : null}
 
