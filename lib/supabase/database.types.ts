@@ -380,6 +380,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      save_workout: {
+        Args: {
+          p_workout_id: string | null; p_workout_exercise_id: string | null;
+          p_workout_date: string; p_exercise_id: string; p_note: string | null;
+          p_condition: string | null; p_elapsed_sec: number | null; p_sets: Json;
+        };
+        Returns: string;
+      };
       complete_goal_review: {
         Args: {
           p_id: string; p_goal_kind: string; p_goal_text: string; p_goal_deadline: string; p_period_start: string;

@@ -1,96 +1,42 @@
 # Repository設計
 
-## 目的
-
-UIやドメインロジックからSupabaseのDB行やSDKレスポンスを直接広げすぎない．
-
-Workout CRUDでは，DB行とドメイン型の変換境界を明確にする．
-
 ## 現在の実装
 
-現在は，月別Workout summary，選択日Workout一覧，1種目単位のWorkout作成，Workout削除を実装する．
+`lib/workouts/repository.ts` の関数が，UIとSupabase PostgreSQLの変換境界を担当する．
+保存正本はSupabase PostgreSQLであり，ブラウザにはpublishable keyと本人のsessionのみを渡す．
+Repositoryクラスや独立したApplication Serviceは，現時点では導入していない．
 
-## 層構造
+## 責務
 
-```text
-UI
- ↓
-Application Service
- ↓
-Domain Model
- ↓
-WorkoutRepository
- ↓
-SupabaseWorkoutRepository
- ↓
-Supabase PostgreSQL
-```
+| 場所 | 責務 |
+|---|---|
+| `components/calendar/workout-calendar.tsx` | カレンダー，画面状態，ロードと保存の制御 |
+| `components/calendar/workout-entry-form.tsx` | 入力フォームと前回・保存済み記録の表示 |
+| `lib/workouts/entry-draft.ts` | 入力変換，下書き型，表示用フォーマット |
+| `lib/workouts/repository.ts` | Workout，種目，部位，履歴・集計のDB操作 |
+| `lib/goals/repository.ts` | 振り返り期間の実績集計 |
+| `lib/supabase/read-all.ts` | 上限を超える取得と親IDの分割 |
+| `lib/domain/` | 推定1RMと左右別ボリュームの計算 |
 
-## Repositoryインターフェース案
+## 保存
 
-```ts
-export interface WorkoutRepository {
-  getBodyParts(): Promise<BodyPart[]>;
+`createWorkout` と `updateWorkout` は `save_workout` RPCを呼ぶ．
+ユーザーIDはDB側の `auth.uid()` から決定し，所有者と親子関係を検証する．
+Workout，Workout内種目，セットは同一トランザクションで保存する．
+編集時は親をロックするが，バージョンによる楽観ロックは行わず，後の保存が優先される．
+APIの失敗を成功として扱ったり，列を捨てて保存したりしない．
+新規作成に対する通信再送の重複排除は未実装である．
 
-  getExercises(): Promise<Exercise[]>;
-  createExercise(input: CreateExerciseInput): Promise<Exercise>;
-  updateExercise(input: UpdateExerciseInput): Promise<Exercise>;
-  archiveExercise(exerciseId: string): Promise<void>;
-  reorderExercises(input: ReorderExerciseInput[]): Promise<void>;
+## 読み込み
 
-  getWorkoutByDate(date: string): Promise<Workout[]>;
-  createWorkout(input: CreateWorkoutInput): Promise<Workout>;
-  updateWorkout(input: UpdateWorkoutInput): Promise<Workout>;
-  deleteWorkout(workoutId: string): Promise<void>;
+全件取得には `readAll` を使い，終了は空ページで判定する．
+並び順の最後に一意なIDを含める．
+親IDによる取得には `readByIds` を使い，100件ずつに分ける．
+種目別詳細は5件ずつ取得し，次ページの存在だけを追加1件で調べる．
+ホームの期間条件はDBクエリにも適用する．
 
-  getExerciseSettings(exerciseId: string): Promise<ExerciseSetting[]>;
-  saveExerciseSettings(exerciseId: string, settings: ExerciseSettingInput[]): Promise<void>;
-}
-```
+## 検証
 
-## Supabase固有の責務
-
-`SupabaseWorkoutRepository` は以下を担当する．
-
-* Supabase clientの受け取り
-* RLS前提のクエリ発行
-* DB行からドメイン型への変換
-* ドメイン入力からDB行への変換
-* PostgreSQL errorのRepository errorへの変換
-* 認証切れ時のエラー整理
-
-Service Role Keyは使用しない．
-
-ブラウザからはpublishable keyとユーザーsessionでRLSを通す．
-
-## Service層の責務
-
-Service層は以下を担当する．
-
-* 種目のアーカイブ判断
-* workoutの日付別整列
-* 前回記録の抽出
-* 過去メモの抽出
-* 最高重量と推定1RMの計算
-* UI用ViewModelへの変換
-
-## エラー型
-
-```ts
-export type RepositoryErrorCode =
-  | "auth_required"
-  | "not_found"
-  | "validation"
-  | "permission_denied"
-  | "network"
-  | "unknown";
-
-export interface RepositoryError extends Error {
-  code: RepositoryErrorCode;
-  retryable: boolean;
-}
-```
-
-RLS違反や他ユーザー行への操作は `permission_denied` として扱う．
-
-楽観ロックは今回のPhaseでは実装しない．
+`repository-regression.test.ts` は取得上限，期間境界のクエリ，左右別集計，RPC失敗時に別の書き込みへ戻らないことを検証する．
+`transactions.test.ts` は実際のmigrationをPGliteへ適用し，ロールバックとRLSを検証する．
+本番反映は [更新手順](update-20260925.md) に従う．

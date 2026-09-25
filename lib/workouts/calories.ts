@@ -1,3 +1,4 @@
+import { getTotalReps } from "@/lib/domain/training-volume";
 import type { Profile } from "@/lib/supabase/database.types";
 import type { Exercise } from "@/lib/workouts/types";
 
@@ -5,6 +6,8 @@ export interface CalorieSet {
   weightKg: number | null;
   reps: number | null;
   isWarmup: boolean;
+  leftReps?: number | null;
+  rightReps?: number | null;
   durationSec?: number | null;
   distanceKm?: number | null;
   speedKmh?: number | null;
@@ -91,7 +94,9 @@ export function estimateWorkoutExerciseCalories(input: {
   if (recordedCalories > 0) {
     return Math.round(recordedCalories);
   }
-  const minutes = estimateMinutes(input.sets);
+  const minutes = estimateMinutes(input.sets.map(set => ({
+    ...set, reps: getTotalReps(set.reps, set.leftReps ?? null, set.rightReps ?? null),
+  })));
   if (minutes === 0) {
     return 0;
   }

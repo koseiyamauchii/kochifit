@@ -1,5 +1,5 @@
-export function estimateOneRepMax(weightKg: number, reps: number): number | null {
-  if (!Number.isFinite(weightKg) || !Number.isFinite(reps)) {
+export function estimateOneRepMax(weightKg: number | null, reps: number | null): number | null {
+  if (weightKg === null || reps === null || !Number.isFinite(weightKg) || !Number.isFinite(reps)) {
     return null;
   }
   if (weightKg <= 0 || reps <= 0) {
@@ -8,5 +8,5 @@ export function estimateOneRepMax(weightKg: number, reps: number): number | null
   if (reps === 1) {
     return weightKg;
   }
-  return Math.round(weightKg * (1 + reps / 30));
+  return weightKg * (1 + reps / 30);
 }

@@ -2,7 +2,7 @@
   "name": "kochifit",
   "version": "0.1.0",
   "private": true,
-  "packageManager": "pnpm@10.14.0",
+  "packageManager": "pnpm@11.19.0",
   "scripts": {
     "dev": "next dev",
     "dev:lan": "next dev --hostname 0.0.0.0",
@@ -10,7 +10,8 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "review:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/review-package.ps1"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.4",
@@ -22,6 +23,7 @@
     "react-dom": "19.2.8"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "0.3.14",
     "@eslint/eslintrc": "3.3.6",
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/react": "16.3.2",

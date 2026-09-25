@@ -13,7 +13,5 @@ tsconfig.tsbuildinfo
 .env.*
 .env.example
 client_secret_*.json
-AGENT.md
-AGENTS.md
 review_packages/
 supabase/.temp/

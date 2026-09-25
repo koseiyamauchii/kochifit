@@ -4,11 +4,19 @@ import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { X } from "lucide-react";
 
 /** Non-modal, top-layer popup anchored to its own trigger, without a backdrop. */
-export function PreferencePopover({ title, trigger, children }: { title: string; trigger: ReactNode; children: ReactNode }) {
+export function PreferencePopover({ title, trigger, children }: {
+  title: string;
+  trigger: ReactNode;
+  children: ReactNode;
+}) {
   const id = useId();
   const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
+  const close = () => {
+    panel.current?.hidePopover();
+    button.current?.focus({ preventScroll: true });
+  };
   const position = () => {
     const anchor = button.current;
     const popup = panel.current;
@@ -54,10 +62,13 @@ export function PreferencePopover({ title, trigger, children }: { title: string;
       }}>{trigger}</button>
     <div id={id} ref={panel} popover="auto" role="dialog" aria-label={title}
       onToggle={event => setOpen(event.newState === "open")}
-      onClick={event => event.stopPropagation()}
+      onClick={event => {
+        event.stopPropagation();
+        if (event.target instanceof Element && event.target.closest("button[data-close-preference]")) close();
+      }}
       className="preference-popover fixed m-0 overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-3 text-[var(--text)] shadow-[var(--shadow)]">
       <div className="mb-2 flex items-center justify-between gap-3"><h3 className="ui-section-title">{title}</h3>
-        <button type="button" aria-label={`${title}を閉じる`} onClick={() => { panel.current?.hidePopover(); button.current?.focus({ preventScroll: true }); }} className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-soft)]"><X size={18} /></button>
+        <button type="button" aria-label={`${title}を閉じる`} onClick={close} className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--surface-soft)]"><X size={18} /></button>
       </div>
       {children}
     </div>

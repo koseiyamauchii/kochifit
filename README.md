@@ -109,6 +109,13 @@ http://<PCのLANホスト名>:3000/auth/callback
 
 Google Cloud側のOAuth redirect URIには，Supabase DashboardのGoogle Provider画面に表示されるcallback URLを登録します．
 
+## 集計期間
+
+ホームの「集計を表示」から開く専用ページで，1週間・1か月・1年・全期間から選択できます．
+今日を含む直近の期間で，初期選択は1か月です．
+履歴一覧は全期間を維持します．
+左右別種目の最大量は，片側の重量×左右回数の合計で計算します．
+
 ## 開発者向け
 
 通常のローカル起動は以下です．
@@ -140,7 +147,7 @@ pnpm -v
 
 ```powershell
 corepack enable
-corepack prepare pnpm@10.14.0 --activate
+corepack prepare pnpm@11.19.0 --activate
 pnpm install
 pnpm run dev:lan -- --port 3000
 ```
@@ -159,3 +166,22 @@ pnpm run typecheck
 pnpm run test
 pnpm run build
 ```
+
+
+## 保存と集計の更新手順
+
+DB migrationを先に適用してからアプリをデプロイします．
+具体的な手順，期間と最大量の定義，自動検証の範囲は [更新手順](docs/update-20260925.md) を参照してください．
+
+開発環境とCIはNode.js 24，pnpm 11.19.0を使用します．
+以前のpnpmストアで `ERR_PNPM_UNEXPECTED_STORE` が出る場合は，既存ストアを指定してインストールするか，開発サーバーを停止して `pnpm install --frozen-lockfile` で依存パッケージを再構築してください．
+ソースコードや `.env.local` を削除する必要はありません．
+
+レビューZIPはWindowsで以下により生成します．
+
+```bash
+pnpm run review:package
+```
+
+日本時間の `YYYYMMDDHHMM_` で始まるZIPを `review_packages/` に出力します．
+秘密情報や依存パッケージを含めない許可リスト方式です．

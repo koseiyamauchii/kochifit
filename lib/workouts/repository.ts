@@ -1,4 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { readAll, readByIds } from "@/lib/supabase/read-all";
+import { trainingVolume } from "@/lib/domain/training-volume";
+import { inclusiveDays, type DateRange } from "@/lib/workouts/period";
 import type { Database, Profile } from "@/lib/supabase/database.types";
 import { getDefaultBodyPartColorKey } from "@/lib/workouts/body-part-colors";
 import { estimateWorkoutExerciseCalories } from "@/lib/workouts/calories";
@@ -79,94 +82,15 @@ type SetRow = {
   right_reps?: number | null;
 };
 
-const setSelectColumns = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup";
-const setSelectColumnsWithNote = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, is_assisted, note, distance_km, duration_sec, speed_kmh, calories_kcal, left_reps, right_reps";
+const setSelectColumns = "id, workout_exercise_id, set_number, weight_kg, reps, rir, is_warmup, is_assisted, note, distance_km, duration_sec, speed_kmh, calories_kcal, left_reps, right_reps";
 
-function isSetNoteUnavailable(error: unknown) {
-  if (!error || typeof error !== "object") {
-    return false;
-  }
-
-  const record = error as { code?: unknown; message?: unknown; details?: unknown; hint?: unknown };
-  const text = [record.code, record.message, record.details, record.hint]
-    .filter((value) => value !== undefined && value !== null)
-    .map(String)
-    .join(" ")
-    .toLowerCase();
-
-  return (
-    text.includes("note") &&
-    text.includes("sets") &&
-    (text.includes("pgrst204") ||
-      text.includes("42703") ||
-      text.includes("schema cache") ||
-      text.includes("could not find") ||
-      text.includes("column"))
-  );
+async function getSetsByWorkoutExerciseIds(client: Client, ids: string[]) {
+  return (await readByIds(ids, (chunk, from, to) => client.from("sets")
+    .select(setSelectColumns).in("workout_exercise_id", chunk).order("set_number").order("id").range(from, to))).data;
 }
 
-function withoutSetNotes<T extends { weight_kg: number | null; reps: number | null; note?: string | null }>(sets: T[]) {
-  return sets
-    .filter((set) => set.weight_kg !== null || set.reps !== null)
-    .map((set) => {
-      const setWithoutNote = { ...set };
-      delete setWithoutNote.note;
-      return setWithoutNote;
-    });
-}
-
-async function getSetsByWorkoutExerciseIds(client: Client, workoutExerciseIds: string[]) {
-  const withNoteResult = await client
-    .from("sets")
-    .select(setSelectColumnsWithNote)
-    .in("workout_exercise_id", workoutExerciseIds)
-    .order("set_number");
-
-  if (!withNoteResult.error) {
-    return withNoteResult.data ?? [];
-  }
-  if (!isSetNoteUnavailable(withNoteResult.error)) {
-    throw withNoteResult.error;
-  }
-
-  const fallbackResult = await client
-    .from("sets")
-    .select(setSelectColumns)
-    .in("workout_exercise_id", workoutExerciseIds)
-    .order("set_number");
-
-  if (fallbackResult.error) {
-    throw fallbackResult.error;
-  }
-
-  return (fallbackResult.data ?? []).map((row) => ({ ...row, note: null }));
-}
-
-async function getSetsByWorkoutExerciseId(client: Client, workoutExerciseId: string) {
-  const withNoteResult = await client
-    .from("sets")
-    .select(setSelectColumnsWithNote)
-    .eq("workout_exercise_id", workoutExerciseId)
-    .order("set_number");
-
-  if (!withNoteResult.error) {
-    return withNoteResult.data ?? [];
-  }
-  if (!isSetNoteUnavailable(withNoteResult.error)) {
-    throw withNoteResult.error;
-  }
-
-  const fallbackResult = await client
-    .from("sets")
-    .select(setSelectColumns)
-    .eq("workout_exercise_id", workoutExerciseId)
-    .order("set_number");
-
-  if (fallbackResult.error) {
-    throw fallbackResult.error;
-  }
-
-  return (fallbackResult.data ?? []).map((row) => ({ ...row, note: null }));
+async function getSetsByWorkoutExerciseId(client: Client, id: string) {
+  return getSetsByWorkoutExerciseIds(client, [id]);
 }
 
 const exerciseSettingLabels: Record<ExerciseSettingKey, string> = {
@@ -185,11 +109,11 @@ async function getExerciseSettings(client: Client, exerciseIds: string[]) {
     return settings;
   }
 
-  const { data, error } = await client
+  const { data, error } = await readByIds(exerciseIds, (chunk, from, to) => client
     .from("exercise_settings")
     .select("exercise_id, setting_key, setting_value")
-    .in("exercise_id", exerciseIds)
-    .in("setting_key", ["rack_position", "memo", "default_set_count", "body_weight_enabled", "bilateral_reps_enabled", "cardio_metrics", "cardio_units"]);
+    .in("exercise_id", chunk)
+    .in("setting_key", ["rack_position", "memo", "default_set_count", "body_weight_enabled", "bilateral_reps_enabled", "cardio_metrics", "cardio_units"]).order("id").range(from, to));
 
   if (error) {
     throw error;
@@ -319,28 +243,18 @@ function mapSet(row: SetRow): WorkoutSet {
 }
 
 export async function getBodyParts(client: Client): Promise<BodyPart[]> {
-  const { data: bodyParts, error: bodyPartError } = await client
+  const { data: bodyParts, error: bodyPartError } = await readAll((from, to) => client
     .from("body_parts")
     .select("id, key, display_name, display_order")
-    .order("display_order");
+    .order("display_order").order("id").range(from, to));
 
   if (bodyPartError) {
     throw bodyPartError;
   }
 
-  const { data: preferences, error: preferenceError } = await client
+  const { data: preferences } = await readAll((from, to) => client
     .from("body_part_preferences")
-    .select("body_part_id, display_order, color_key");
-
-  const isPreferenceTableUnavailable =
-    preferenceError &&
-    (preferenceError.code === "42P01" ||
-      (preferenceError.code === "PGRST205" &&
-        preferenceError.message.includes("body_part_preferences")));
-
-  if (preferenceError && !isPreferenceTableUnavailable) {
-    throw preferenceError;
-  }
+    .select("body_part_id, display_order, color_key").order("id").range(from, to));
 
   const orderByBodyPartId = new Map(
     (preferences ?? []).map((preference) => [preference.body_part_id, preference.display_order]),
@@ -384,16 +298,13 @@ export async function getExercises(
   client: Client,
   options: { includeInactive?: boolean } = {},
 ): Promise<Exercise[]> {
-  let query = client
-    .from("exercises")
-    .select("id, body_part_id, name, display_order, active, body_parts(key)")
-    .order("display_order");
-
-  if (!options.includeInactive) {
-    query = query.eq("active", true);
-  }
-
-  const { data, error } = await query;
+  const { data, error } = await readAll((from, to) => {
+    let query = client.from("exercises")
+      .select("id, body_part_id, name, display_order, active, body_parts(key)")
+      .order("display_order").order("id");
+    if (!options.includeInactive) query = query.eq("active", true);
+    return query.range(from, to);
+  });
 
   if (error) {
     throw error;
@@ -505,13 +416,13 @@ export async function getWorkoutSummaries(
   endDate: string,
   includeSetCounts = true,
 ): Promise<WorkoutSummary[]> {
-  const { data: workouts, error: workoutError } = await client
+  const { data: workouts, error: workoutError } = await readAll((from, to) => client
     .from("workouts")
     .select("id, workout_date, created_at")
     .gte("workout_date", startDate)
     .lte("workout_date", endDate)
     .order("workout_date")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: true }).order("id").range(from, to));
 
   if (workoutError) {
     throw workoutError;
@@ -525,10 +436,10 @@ export async function getWorkoutSummaries(
   const bodyPartMetaByKey = new Map(
     bodyParts.map((bodyPart) => [bodyPart.key, { key: bodyPart.key, colorKey: bodyPart.colorKey }]),
   );
-  const { data: workoutExercises, error: workoutExerciseError } = await client
+  const { data: workoutExercises, error: workoutExerciseError } = await readByIds(workoutIds, (chunk, from, to) => client
     .from("workout_exercises")
     .select("id, workout_id, exercises(body_parts(key))")
-    .in("workout_id", workoutIds);
+    .in("workout_id", chunk).order("id").range(from, to));
 
   if (workoutExerciseError) {
     throw workoutExerciseError;
@@ -537,10 +448,10 @@ export async function getWorkoutSummaries(
   const workoutExerciseIds = workoutExercises.map((item) => item.id);
   const setsByWorkoutExercise = new Map<string, number>();
   if (includeSetCounts && workoutExerciseIds.length > 0) {
-    const { data: sets, error: setError } = await client
+    const { data: sets, error: setError } = await readByIds(workoutExerciseIds, (chunk, from, to) => client
       .from("sets")
       .select("workout_exercise_id")
-      .in("workout_exercise_id", workoutExerciseIds);
+      .in("workout_exercise_id", chunk).order("id").range(from, to));
 
     if (setError) {
       throw setError;
@@ -625,11 +536,13 @@ export async function getWorkoutStats(
   client: Client,
   profile: Profile | null = null,
   today = new Date(),
+  range?: DateRange,
 ): Promise<WorkoutStats> {
-  const { data, error } = await client
-    .from("workouts")
-    .select("id, workout_date")
-    .order("workout_date");
+  const { data, error } = await readAll((from, to) => {
+    let query = client.from("workouts").select("id, workout_date").order("workout_date").order("id");
+    if (range) query = query.gte("workout_date", range.start).lte("workout_date", range.end);
+    return query.range(from, to);
+  });
 
   if (error) {
     throw error;
@@ -650,13 +563,9 @@ export async function getWorkoutStats(
     };
   }
 
-  const firstWorkoutDate = new Date(`${workoutDates[0]}T00:00:00`);
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  const elapsedDays = Math.max(
-    1,
-    Math.floor((todayStart.getTime() - firstWorkoutDate.getTime()) / 86_400_000) + 1,
-  );
-  const elapsedWeeks = Math.max(1, Math.ceil(elapsedDays / 7));
+  const end = range?.end ?? `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const elapsedDays = inclusiveDays(range?.start ?? workoutDates[0], end);
+  const elapsedWeeks = Math.max(1, elapsedDays / 7);
 
   return {
     totalWorkoutDays,
@@ -679,10 +588,10 @@ async function getAverageDailyCalories(
   const exerciseById = new Map(exercises.map((exercise) => [exercise.id, exercise]));
   const workoutDateById = new Map(workouts.map((workout) => [workout.id, workout.workout_date]));
   const workoutIds = workouts.map((workout) => workout.id);
-  const { data: workoutExercises, error: workoutExerciseError } = await client
+  const { data: workoutExercises, error: workoutExerciseError } = await readByIds(workoutIds, (chunk, from, to) => client
     .from("workout_exercises")
     .select("id, workout_id, exercise_id")
-    .in("workout_id", workoutIds);
+    .in("workout_id", chunk).order("id").range(from, to));
 
   if (workoutExerciseError) {
     throw workoutExerciseError;
@@ -692,21 +601,23 @@ async function getAverageDailyCalories(
   }
 
   const workoutExerciseIds = workoutExercises.map((item) => item.id);
-  const { data: sets, error: setError } = await client
+  const { data: sets, error: setError } = await readByIds(workoutExerciseIds, (chunk, from, to) => client
     .from("sets")
-    .select("workout_exercise_id, weight_kg, reps, is_warmup, duration_sec, distance_km, speed_kmh, calories_kcal")
-    .in("workout_exercise_id", workoutExerciseIds);
+    .select("workout_exercise_id, weight_kg, reps, left_reps, right_reps, is_warmup, duration_sec, distance_km, speed_kmh, calories_kcal")
+    .in("workout_exercise_id", chunk).order("id").range(from, to));
 
   if (setError) {
     throw setError;
   }
 
-  const setsByWorkoutExercise = new Map<string, Array<{ weightKg: number | null; reps: number | null; isWarmup: boolean; durationSec: number | null; distanceKm: number | null; speedKmh: number | null; caloriesKcal: number | null }>>();
+  const setsByWorkoutExercise = new Map<string, Array<{ weightKg: number | null; reps: number | null; leftReps: number | null; rightReps: number | null; isWarmup: boolean; durationSec: number | null; distanceKm: number | null; speedKmh: number | null; caloriesKcal: number | null }>>();
   for (const set of sets) {
     const current = setsByWorkoutExercise.get(set.workout_exercise_id) ?? [];
     current.push({
       weightKg: set.weight_kg,
       reps: set.reps,
+      leftReps: set.left_reps,
+      rightReps: set.right_reps,
       isWarmup: set.is_warmup,
       durationSec: set.duration_sec,
       distanceKm: set.distance_km,
@@ -736,10 +647,14 @@ async function getAverageDailyCalories(
 
 export async function getBodyPartWorkoutDistribution(
   client: Client,
+  range?: DateRange,
 ): Promise<BodyPartWorkoutDistribution[]> {
-  const { data, error } = await client
-    .from("workout_exercises")
-    .select("workouts(workout_date), exercises(body_part_id, body_parts(key, display_name))");
+  const { data, error } = await readAll((from, to) => {
+    let query = client.from("workout_exercises")
+      .select("workouts!inner(workout_date), exercises(body_part_id, body_parts(key, display_name))").order("id");
+    if (range) query = query.gte("workouts.workout_date", range.start).lte("workouts.workout_date", range.end);
+    return query.range(from, to);
+  });
 
   if (error) {
     throw error;
@@ -790,11 +705,11 @@ export async function getBodyPartWorkoutDistribution(
 }
 
 export async function getWorkoutsByDate(client: Client, workoutDate: string): Promise<Workout[]> {
-  const { data: workouts, error: workoutError } = await client
+  const { data: workouts, error: workoutError } = await readAll((from, to) => client
     .from("workouts")
     .select("id, workout_date, note, created_at")
     .eq("workout_date", workoutDate)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false }).order("id").range(from, to));
 
   if (workoutError) {
     throw workoutError;
@@ -804,11 +719,11 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
   }
 
   const workoutIds = workouts.map((workout) => workout.id);
-  const { data: workoutExercises, error: workoutExerciseError } = await client
+  const { data: workoutExercises, error: workoutExerciseError } = await readByIds(workoutIds, (chunk, from, to) => client
     .from("workout_exercises")
     .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
-    .in("workout_id", workoutIds)
-    .order("display_order");
+    .in("workout_id", chunk)
+    .order("display_order").order("id").range(from, to));
 
   if (workoutExerciseError) {
     throw workoutExerciseError;
@@ -817,10 +732,10 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
   const exerciseIds = [...new Set(workoutExercises.map((item) => item.exercise_id))];
   const exerciseNames = new Map<string, string>();
   if (exerciseIds.length > 0) {
-    const { data: exercises, error: exerciseError } = await client
+    const { data: exercises, error: exerciseError } = await readByIds(exerciseIds, (chunk, from, to) => client
       .from("exercises")
       .select("id, name")
-      .in("id", exerciseIds);
+      .in("id", chunk).order("id").range(from, to));
 
     if (exerciseError) {
       throw exerciseError;
@@ -971,11 +886,11 @@ export async function getLatestWorkoutForExerciseBeforeDate(
       continue;
     }
     const workoutDateById = new Map(workouts.map((workout) => [workout.id, workout.workout_date]));
-    const { data: workoutExercises, error: workoutExerciseError } = await client
+    const { data: workoutExercises, error: workoutExerciseError } = await readByIds(workoutIds, (chunk, from, to) => client
       .from("workout_exercises")
       .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
       .eq("exercise_id", exerciseId)
-      .in("workout_id", workoutIds);
+      .in("workout_id", chunk).order("id").range(from, to));
 
     if (workoutExerciseError) {
       throw workoutExerciseError;
@@ -1015,7 +930,7 @@ export async function getLatestWorkoutForExerciseBeforeDate(
 }
 
 export async function getDayCondition(client: Client, date: string): Promise<string> {
-  const { data: workouts, error } = await client.from("workouts").select("id").eq("workout_date", date);
+  const { data: workouts, error } = await readAll((from, to) => client.from("workouts").select("id").eq("workout_date", date).order("id").range(from, to));
   if (error) throw error;
   if (!workouts.length) return "";
   const { data, error: conditionError } = await client.from("workout_exercises").select("condition")
@@ -1035,10 +950,10 @@ export async function getExerciseRecords(
   }
 
   const exerciseIds = exercises.map((exercise) => exercise.id);
-  const { data: workoutExercises, error: workoutExerciseError } = await client
+  const { data: workoutExercises, error: workoutExerciseError } = await readByIds(exerciseIds, (chunk, from, to) => client
     .from("workout_exercises")
     .select("id, workout_id, exercise_id")
-    .in("exercise_id", exerciseIds);
+    .in("exercise_id", chunk).order("id").range(from, to));
 
   if (workoutExerciseError) {
     throw workoutExerciseError;
@@ -1064,10 +979,10 @@ export async function getExerciseRecords(
   }
 
   const workoutIds = [...new Set(workoutExercises.map((item) => item.workout_id))];
-  const { data: workouts, error: workoutError } = await client
+  const { data: workouts, error: workoutError } = await readByIds(workoutIds, (chunk, from, to) => client
     .from("workouts")
     .select("id, workout_date")
-    .in("id", workoutIds);
+    .in("id", chunk).order("id").range(from, to));
 
   if (workoutError) {
     throw workoutError;
@@ -1080,13 +995,10 @@ export async function getExerciseRecords(
   const workoutIdByWorkoutExerciseId = new Map(
     workoutExercises.map((item) => [item.id, item.workout_id]),
   );
-  const { data: sets, error: setError } = await client
+  const { data: sets, error: setError } = await readByIds(workoutExercises.map((item) => item.id), (chunk, from, to) => client
     .from("sets")
-    .select("workout_exercise_id, weight_kg, reps")
-    .in(
-      "workout_exercise_id",
-      workoutExercises.map((item) => item.id),
-    );
+    .select("workout_exercise_id, weight_kg, reps, left_reps, right_reps")
+    .in("workout_exercise_id", chunk).order("id").range(from, to));
 
   if (setError) {
     throw setError;
@@ -1112,8 +1024,8 @@ export async function getExerciseRecords(
     if (set.weight_kg !== null) {
       record.maxWeightKg = Math.max(record.maxWeightKg ?? 0, set.weight_kg);
     }
-    if (set.weight_kg !== null && set.reps !== null) {
-      const volume = set.weight_kg * set.reps;
+    const volume = trainingVolume(set.weight_kg, set.reps, set.left_reps, set.right_reps);
+    if (volume !== null) {
       record.maxVolumeKg = Math.max(record.maxVolumeKg ?? 0, volume);
     }
     const workoutId = workoutIdByWorkoutExerciseId.get(set.workout_exercise_id);
@@ -1126,145 +1038,34 @@ export async function getExerciseRecords(
   return [...records.values()].sort((a, b) => a.displayOrder - b.displayOrder);
 }
 
-async function insertSets(
-  client: Client,
-  input: Pick<CreateWorkoutInput, "sets" | "userId"> & { workoutExerciseId: string },
-) {
-  const validSets = input.sets.filter((set) =>
-    set.weightKg !== null || set.reps !== null || set.note !== null ||
-    set.distanceKm !== null || set.durationSec !== null || set.speedKmh !== null ||
-    set.caloriesKcal !== null || set.leftReps !== null || set.rightReps !== null,
-  );
-  if (validSets.length === 0) {
-    return;
-  }
-
-  const payload = validSets.map((set, index) => ({
-    user_id: input.userId,
-    workout_exercise_id: input.workoutExerciseId,
-    set_number: index + 1,
-    weight_kg: set.weightKg,
-    reps: set.reps,
-    rir: null,
-    is_warmup: set.isWarmup,
-    is_assisted: set.isAssisted,
-    note: set.note,
-    distance_km: set.distanceKm,
-    duration_sec: set.durationSec,
-    speed_kmh: set.speedKmh,
-    calories_kcal: set.caloriesKcal,
-    left_reps: set.leftReps,
-    right_reps: set.rightReps,
-  }));
-  const { error } = await client.from("sets").insert(payload);
-
-  if (!error) {
-    return;
-  }
-  if (!isSetNoteUnavailable(error)) {
-    throw error;
-  }
-
-  const fallbackPayload = withoutSetNotes(payload);
-  if (fallbackPayload.length === 0) {
-    return;
-  }
-
-  const { error: fallbackError } = await client.from("sets").insert(fallbackPayload);
-  if (fallbackError) {
-    throw fallbackError;
-  }
+async function saveWorkout(client: Client, input: CreateWorkoutInput | UpdateWorkoutInput) {
+  const sets = input.sets.filter(set =>
+    [set.weightKg, set.reps, set.note, set.distanceKm, set.durationSec, set.speedKmh,
+      set.caloriesKcal, set.leftReps, set.rightReps].some(value => value !== null));
+  if (!sets.length || sets.length > 200) throw new Error("Expected 1 to 200 sets");
+  const { data, error } = await client.rpc("save_workout", {
+    p_workout_id: "workoutId" in input ? input.workoutId : null,
+    p_workout_exercise_id: "workoutExerciseId" in input ? input.workoutExerciseId : null,
+    p_workout_date: input.workoutDate, p_exercise_id: input.exerciseId,
+    p_note: input.note, p_condition: input.condition, p_elapsed_sec: input.elapsedSec,
+    p_sets: sets.map(set => ({
+      weight_kg: set.weightKg, reps: set.reps, is_warmup: set.isWarmup,
+      is_assisted: set.isAssisted, note: set.note, distance_km: set.distanceKm,
+      duration_sec: set.durationSec, speed_kmh: set.speedKmh, calories_kcal: set.caloriesKcal,
+      left_reps: set.leftReps, right_reps: set.rightReps,
+    })),
+  });
+  // Never fall back to separate writes or discard unsupported fields.
+  if (error) throw error;
+  return data;
 }
 
 export async function createWorkout(client: Client, input: CreateWorkoutInput) {
-  const { data: workout, error: workoutError } = await client
-    .from("workouts")
-    .insert({
-      user_id: input.userId,
-      workout_date: input.workoutDate,
-      note: input.note,
-    })
-    .select("id")
-    .single();
-
-  if (workoutError) {
-    throw workoutError;
-  }
-
-  try {
-    const { data: workoutExercise, error: workoutExerciseError } = await client
-      .from("workout_exercises")
-      .insert({
-        user_id: input.userId,
-        workout_id: workout.id,
-        exercise_id: input.exerciseId,
-        display_order: 1,
-        note: input.note,
-        condition: input.condition,
-        elapsed_sec: input.elapsedSec,
-      })
-      .select("id")
-      .single();
-
-    if (workoutExerciseError) {
-      throw workoutExerciseError;
-    }
-
-    await insertSets(client, {
-      userId: input.userId,
-      workoutExerciseId: workoutExercise.id,
-      sets: input.sets,
-    });
-  } catch (error) {
-    await client.from("workouts").delete().eq("id", workout.id);
-    throw error;
-  }
+  return saveWorkout(client, input);
 }
 
 export async function updateWorkout(client: Client, input: UpdateWorkoutInput) {
-  const { error: workoutError } = await client
-    .from("workouts")
-    .update({
-      workout_date: input.workoutDate,
-      note: input.note,
-    })
-    .eq("id", input.workoutId)
-    .eq("user_id", input.userId);
-
-  if (workoutError) {
-    throw workoutError;
-  }
-
-  const { error: workoutExerciseError } = await client
-    .from("workout_exercises")
-    .update({
-      exercise_id: input.exerciseId,
-      note: input.note,
-      condition: input.condition,
-      elapsed_sec: input.elapsedSec,
-    })
-    .eq("id", input.workoutExerciseId)
-    .eq("user_id", input.userId);
-
-  if (workoutExerciseError) {
-    throw workoutExerciseError;
-  }
-
-  const { error: deleteSetError } = await client
-    .from("sets")
-    .delete()
-    .eq("workout_exercise_id", input.workoutExerciseId)
-    .eq("user_id", input.userId);
-
-  if (deleteSetError) {
-    throw deleteSetError;
-  }
-
-  await insertSets(client, {
-    userId: input.userId,
-    workoutExerciseId: input.workoutExerciseId,
-    sets: input.sets,
-  });
+  return saveWorkout(client, input);
 }
 
 export async function updateWorkoutExerciseConditions(

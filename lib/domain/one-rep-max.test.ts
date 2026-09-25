@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { estimateOneRepMax } from "./one-rep-max";
 
 describe("estimateOneRepMax", () => {
-  it("uses the Epley estimate rounded to kilograms", () => {
-    expect(estimateOneRepMax(80, 5)).toBe(93);
+  it("preserves precision for the presentation layer", () => {
+    expect(estimateOneRepMax(80, 5)).toBeCloseTo(93.333333);
   });
 
   it("returns the same weight for one rep", () => {

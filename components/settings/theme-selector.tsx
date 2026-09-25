@@ -53,13 +53,12 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
           <span className="text-[var(--muted)]">{choices.find(c => c.value === theme)?.label}</span><ChevronDown size={16} />
         </>}>
           <div role="group" aria-label="外観" className="grid grid-cols-3 gap-2">
-            {choices.map(({ value, label, icon: Icon }) => <button key={value} type="button" disabled={saving} aria-pressed={theme === value} onClick={() => void save(value, accent)} className={["theme-choice min-w-0 rounded-2xl border p-2", theme === value ? "border-[var(--accent)]" : "border-[var(--border)]"].join(" ")}>
+            {choices.map(({ value, label, icon: Icon }) => <button key={value} type="button" disabled={saving && theme !== value} aria-pressed={theme === value} data-close-preference onClick={() => { if (value !== theme) void save(value, accent); }} className={["theme-choice min-w-0 rounded-2xl border p-2", theme === value ? "border-[var(--accent)]" : "border-[var(--border)]"].join(" ")}>
               <span aria-hidden="true" className={"theme-preview theme-preview-" + value}><span /><span /><span /></span>
               <span className="mt-2 flex items-center justify-center gap-1 text-xs font-semibold"><Icon size={14} />{label}</span>
               <span className="mt-1 flex h-4 justify-center">{theme === value ? <Check size={14} className="text-[var(--accent-strong)]" /> : null}</span>
             </button>)}
           </div>
-          {saveError}
         </PreferencePopover>
       </div>
       <PreferencePopover title="アクセントカラー" trigger={<>
@@ -68,13 +67,13 @@ export function ThemeSelector({ compact = false }: { compact?: boolean }) {
         <span className="text-[var(--muted)]">{accentChoices.find(c => c.value === accent)?.label}</span><ChevronDown size={16} />
       </>}>
         <div role="group" aria-label="アクセントカラー" className="grid grid-cols-2 gap-2">
-          {accentChoices.map(choice => <button key={choice.value} type="button" disabled={saving} onClick={() => void save(theme, choice.value)} aria-pressed={accent === choice.value} className={["flex min-h-12 items-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-sm font-medium", accent === choice.value ? "border-[var(--accent)]" : "border-[var(--border)]"].join(" ")}>
+          {accentChoices.map(choice => <button key={choice.value} type="button" disabled={saving && accent !== choice.value} data-close-preference onClick={() => { if (choice.value !== accent) void save(theme, choice.value); }} aria-pressed={accent === choice.value} className={["flex min-h-12 items-center gap-2 rounded-xl border bg-[var(--surface)] px-3 text-sm font-medium", accent === choice.value ? "border-[var(--accent)]" : "border-[var(--border)]"].join(" ")}>
             <span aria-hidden="true" className="accent-preview h-6 w-6 shrink-0 rounded-full" data-accent={choice.value} /><span className="flex-1 text-left">{choice.label}</span>
             {accent === choice.value ? <Check size={15} className="shrink-0" /> : null}
           </button>)}
         </div>
-        {saveError}
       </PreferencePopover>
+      {saveError}
     </section>
   );
 }

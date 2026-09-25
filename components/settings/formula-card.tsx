@@ -30,6 +30,11 @@ export function FormulaCard() {
       </p>
 
       <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
+        <h3 className="text-sm font-semibold">最大量</h3>
+        <p className="text-sm text-[var(--muted)]">1セットの重量×回数の最大値です。左右別種目は片側の重量×（左回数＋右回数）で計算します。</p>
+      </div>
+
+      <div className="space-y-2 rounded-[12px] bg-[var(--surface-soft)] p-3">
         <h3 className="text-sm font-semibold">推定消費カロリー</h3>
         <MathBlock tex={String.raw`\mathrm{kcal} = \frac{\mathrm{MET} \times 3.5 \times W}{200} \times T \times A`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
@@ -74,7 +79,7 @@ export function FormulaCard() {
         <MathBlock tex={String.raw`\mathrm{1RM} = w \left(1 + \frac{r}{30}\right)`} />
         <div className="space-y-1 text-sm leading-6 text-[var(--muted)]">
           <p>w はセット重量kgです。</p>
-          <p>r は回数です。</p>
+          <p>r は回数です。左右別種目では多い側の回数を使います。</p>
           <p>1回だけのセットは、入力重量をそのまま1RMとして扱います。</p>
         </div>
       </div>

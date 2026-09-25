@@ -1,145 +1,52 @@
-# 推奨アーキテクチャ
+# 現行アーキテクチャ
 
 ## 全体構成
 
 ```text
-iPhone / PC
-    ↓
-Vercel
-└─ Next.js App Router
-    ↓
-Supabase
-├─ Auth
-│  └─ Google OAuth
-└─ PostgreSQL
-   ├─ profiles
-   ├─ body_parts
-   ├─ body_part_preferences
-   ├─ exercises
-   ├─ workouts
-   ├─ workout_exercises
-   ├─ sets
-   └─ exercise_settings
+ iPhone / PC
+      ↓
+ Next.js App Router / Vercel
+      ↓
+ Supabase Auth（Google OAuth） / PostgreSQL
 ```
 
-## 採用技術
+Next.js，React，TypeScript，Tailwind CSSを使用する．
+認証とCookie sessionは `@supabase/ssr` で管理し，`proxy.ts` で更新する．
+Google認証のcallback後に `initialize_current_user()` でプロフィールと初期種目を冪等に補完する．
+確定記録はPostgreSQLへ保存し，端末内のlocalStorageは下書きと表示設定に限定する．
 
-| 領域 | 採用案 | 理由 |
-|---|---|---|
-| Webフレームワーク | Next.js App Router | ReactとTypeScriptで段階的に実装しやすいため |
-| Hosting | Vercel | Next.jsとの相性がよく，少人数利用の初期運用に向くため |
-| 認証 | Supabase Auth | Google OAuthとPostgreSQL/RLSを統合しやすいため |
-| Auth Provider | Google OAuth | ユーザーの利用開始が簡単であるため |
-| DB | Supabase PostgreSQL | RLSと外部キーを利用できるため |
-| Supabase package | `@supabase/ssr`，`@supabase/supabase-js` | Next.js App RouterでCookie sessionを扱うため |
-| UI | Tailwind CSS | モバイル優先の密度調整とダークモードを実装しやすいため |
-| 状態管理 | React stateとContext | 初期版では大きな状態管理ライブラリが不要であるため |
+## 画面
 
-## ディレクトリ構成
+| URL | 内容 |
+|---|---|
+| `/` | ホーム，カレンダー，目標，集計ページへのリンク |
+| `/stats` | 期間別集計と部位別円グラフ |
+| `/today` | 選択日の記録と編集 |
+| `/today/add` | 記録入力 |
+| `/history` | 全期間の種目別記録概要 |
+| `/history/exercise` | 種目別履歴の追加読み込み |
+| `/settings` | プロフィール，目標，マスタ，表示設定 |
+| `/auth/callback` | OAuth codeの交換 |
 
-```text
-kochifit/
-  app/
-    auth/
-      callback/
-        route.ts
-      auth-code-error/
-        page.tsx
-    settings/
-      page.tsx
-    layout.tsx
-    page.tsx
-    globals.css
-  components/
-    app-shell.tsx
-    auth/
-      auth-gate.tsx
-      auth-provider.tsx
-      account-menu.tsx
-    calendar/
-      workout-calendar.tsx
-      body-part-filter.tsx
-    settings/
-      supabase-account-card.tsx
-      theme-provider.tsx
-      theme-selector.tsx
-  lib/
-    domain/
-      one-rep-max.ts
-    supabase/
-      client.ts
-      server.ts
-      proxy.ts
-      env.ts
-      database.types.ts
-  supabase/
-    migrations/
-      20260812180000_initial_supabase_schema.sql
-  proxy.ts
-```
+## 保存先
 
-## 認証フロー
+`profiles`，`body_parts`，`body_part_preferences`，`exercises`，`workouts`，`workout_exercises`，`sets`，`exercise_settings`，`goal_reviews` を管理する．
+共通部位マスタを除くユーザーデータはRLSで分離する．
+親子の所有者の一致は複合外部キーでも保証する．
+Data API権限はmigrationのGRANTで管理する．
 
-```text
-未ログイン画面
-  ↓
-Googleでログイン
-  ↓
-Supabase Auth OAuth
-  ↓
-/auth/callback
-  ↓
-exchangeCodeForSession
-  ↓
-Cookie session
-  ↓
-initialize_current_user()
-  ↓
-カレンダー
-```
+## 実装の境界
 
-## 初期化方針
+UIは `lib/workouts/repository.ts` の関数を経由してWorkoutを操作する．
+記録保存は `save_workout`，目標の振り返りと繰り越しは `complete_goal_review` によりDB内で一括実行する．
+フォーム表示と純粋な下書き変換・計算を画面の状態制御から分離する．
+詳しくは [Repository設計](repository-design.md) を参照する．
 
-新規ユーザー作成時には，DB triggerで `profiles` と初期 `exercises` を作成する．
+## 検証と反映
 
-アプリ起動後にも `initialize_current_user()` を呼び，既存ユーザーや途中失敗を冪等に補完する．
+lint，型検査，Vitest，Next.js buildをGitHub Actionsでも実行する．
+Vitestはmigration，保存失敗時のロールバック，RLS，集計の取得上限を含む．
+OAuthの実環境動作とiPhone操作は別途確認する．
+新しいDB関数が必要な更新は，migration適用後にアプリを配信する．
 
-この方式により，Service Role Keyをブラウザへ渡さず，初期化処理をDB側に閉じ込める．
-
-## 層構造
-
-Workout CRUDでは，UIからRepository層を経由してSupabase PostgreSQLへアクセスする．
-
-```text
-UI
- ↓
-Application Service
- ↓
-Domain Model
- ↓
-WorkoutRepository
- ↓
-SupabaseWorkoutRepository
- ↓
-Supabase PostgreSQL
-```
-
-UIはSupabaseの生レスポンスを無制限に扱わない．
-
-Repository層でDB行とドメイン型の変換を行う．
-
-## キャッシュとsession
-
-Supabase SSRではCookieにsessionを保存する．
-
-`proxy.ts` でsession更新を行う．
-
-認証済みページを将来server-renderする場合は，ユーザーごとのsessionが混ざらないよう，ISRや共有cacheに注意する．
-
-## 将来のExcel出力
-
-Excelは保存正本ではない．
-
-将来，Supabase PostgreSQLのデータから一方向にエクスポートする．
-
-インポートや双方向同期は初期版では扱わない．
+Excelは将来の一方向エクスポート先であり，保存正本や双方向同期先にはしない．
