@@ -7,6 +7,9 @@ export const goalKinds = [
   { key: "one_year", label: "1年目標", months: 12 },
 ] as const;
 export type GoalKind = typeof goalKinds[number]["key"];
+export function formatGoalDate(date: string) {
+  return date.replaceAll("-", "/");
+}
 export function getGoals(profile: Profile | null) {
   return goalKinds.map(kind => ({ ...kind, text: profile?.[`${kind.key}_goal_text`] ?? "", deadline: profile?.[`${kind.key}_goal_date`] ?? "" }));
 }

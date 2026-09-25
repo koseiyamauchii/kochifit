@@ -30,6 +30,8 @@ import {
   getBodyParts,
   getDayCondition,
   getExerciseRecords,
+  getExerciseWeightRecords,
+  EXERCISE_HISTORY_PAGE_SIZE,
   getExercises,
   getLatestWorkoutForExerciseBeforeDate,
   getWorkoutsForExercise,
@@ -434,31 +436,31 @@ function WorkoutReadOnlyCard({
       aria-expanded="false"
       className="ui-card block w-full overflow-hidden text-left"
     >
-      <WorkoutCardHeader title={exercise.exerciseName} sessionNumber={sessionNumber}>
-          {showDate ? (
-            <span>{workout.workoutDate.replaceAll("-", "/")}</span>
-          ) : null}
+      <WorkoutCardHeader title={showDate ? workout.workoutDate.replaceAll("-", "/") : exercise.exerciseName} sessionNumber={sessionNumber}>
           <span>
             {exercise.sets.length}セット
           </span>
       </WorkoutCardHeader>
-      <div className={isCardio ? "grid grid-cols-[2.4rem_1fr_1fr_1fr] gap-2 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]" : "grid grid-cols-[2.4rem_1fr_1fr_1fr] gap-2 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]"}>
+      {showDate && exercise.condition ? <p className="whitespace-pre-wrap break-words border-b border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">体調・コンディション：{exercise.condition}</p> : null}
+      <div className={[isCardio ? "grid-cols-[2.4rem_1fr_1fr_1fr]" : "grid-cols-[2.4rem_0.9fr_1.3fr_0.9fr_2.5rem]", "grid gap-1.5 px-3 py-1.5 text-[11px] font-semibold text-[var(--muted)]"].join(" ")}>
         <span>セット</span>
         <span>{isCardio ? "距離" : "重量"}</span>
         <span>{isCardio ? "時間" : "回数"}</span>
         <span>{isCardio ? "速さ" : "RM"}</span>
+        {!isCardio ? <span className="text-center">補助</span> : null}
       </div>
       <div className="divide-y divide-[var(--hairline)] px-3">
         {exercise.sets.map((set, index) => (
           <div key={set.id} className="py-1.5">
-            <div className="grid min-h-7 grid-cols-[2.4rem_1fr_1fr_1fr] items-center gap-2 text-xs">
+            <div className={[isCardio ? "grid-cols-[2.4rem_1fr_1fr_1fr]" : "grid-cols-[2.4rem_0.9fr_1.3fr_0.9fr_2.5rem]", "grid min-h-7 items-center gap-1.5 text-xs"].join(" ")}>
               <span className="font-semibold text-[var(--muted)]">{set.isWarmup ? "W" : index + 1}</span>
               <span className="font-medium">{isCardio ? `${formatCardioStoredValue("distance", set.distanceKm, cardioUnits)}${cardioUnitLabels.distance}` : `${formatWeightNumber(set.weightKg)}kg`}</span>
               <span className="font-medium">{isCardio ? `${formatCardioStoredValue("duration", set.durationSec, cardioUnits)}${cardioUnitLabels.duration}` : masterExercise?.bilateralRepsEnabled ? `左${set.leftReps ?? set.reps ?? "-"}/右${set.rightReps ?? set.reps ?? "-"}` : `${set.reps ?? "-"}回`}</span>
               <span className="font-semibold text-[var(--muted)]">{isCardio ? `${formatCardioStoredValue("speed", set.speedKmh, cardioUnits)}${cardioUnitLabels.speed}` : formatRm(set.weightKg, set.reps ?? (Math.max(set.leftReps ?? 0, set.rightReps ?? 0) || null))}</span>
+              {!isCardio ? <span aria-label={set.isAssisted ? "補助あり" : "補助なし"} className="text-center text-[var(--muted)]">{set.isAssisted ? "あり" : "なし"}</span> : null}
             </div>
             {isCardio && set.caloriesKcal !== null ? <p className="mt-1 text-xs text-[var(--muted)]">カロリー：{formatCardioStoredValue("calories", set.caloriesKcal, cardioUnits)}{cardioUnitLabels.calories}</p> : null}
-            <SetAnnotations note={set.note} isAssisted={set.isAssisted} isCardio={isCardio} />
+            <SetAnnotations note={set.note} isAssisted={set.isAssisted} isCardio={isCardio} showAssistance={false} />
           </div>
         ))}
       </div>
@@ -467,7 +469,6 @@ function WorkoutReadOnlyCard({
           {exercise.note}
         </div>
       ) : null}
-      {showDate && exercise.condition ? <p className="border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">体調・コンディション：{exercise.condition}</p> : null}
       {masterExercise?.memo ? (
         <div className="whitespace-pre-wrap break-words border-t border-[var(--hairline)] px-3 py-2 text-xs text-[var(--muted)]">
           共通メモ（種目マスタ）：{masterExercise.memo}
@@ -649,8 +650,7 @@ function WorkoutEntryForm({
   return (
     <section className="ui-card overflow-hidden">
       {mode === "add" && !selectedExercise ? null : (
-        <WorkoutCardHeader title={headerTitle} sessionNumber={mode === "edit" ? sessionNumber : undefined} onClose={onHeaderClick}>
-          {recordDate ? <span>{recordDate.replaceAll("-", "/")}</span> : null}
+        <WorkoutCardHeader title={recordDate ? recordDate.replaceAll("-", "/") : headerTitle} sessionNumber={mode === "edit" ? sessionNumber : undefined} onClose={onHeaderClick}>
           <span>{mode === "edit" ? `${draft.sets.length}セット` : `約${estimatedCalories}kcal`}</span>
         </WorkoutCardHeader>
       )}
@@ -1090,6 +1090,9 @@ export function WorkoutCalendar({
   const monthRequest = useRef(0);
   const detailRequest = useRef(0);
   const [detailsLoading, setDetailsLoading] = useState(true);
+  const [historyPage, setHistoryPage] = useState(0);
+  const [historyHasMore, setHistoryHasMore] = useState(false);
+  const [historyLoadError, setHistoryLoadError] = useState(false);
 
   const router = useRouter();
   const client = useMemo(() => createClient(), []);
@@ -1169,6 +1172,7 @@ export function WorkoutCalendar({
     ? `${findExercise(exercises, exerciseHistoryId)?.name ?? "種目"}の記録履歴`
     : detailsHeading;
   const displayWorkouts = useMemo(() => {
+    if (exerciseHistoryId) return workouts;
     const ascending = [...workouts].sort((a, b) =>
       exerciseHistoryId
         ? a.workoutDate.localeCompare(b.workoutDate) || a.createdAt.localeCompare(b.createdAt)
@@ -1231,16 +1235,28 @@ export function WorkoutCalendar({
       return;
     }
     setDetailsLoading(true);
+    setHistoryLoadError(false);
     const request = ++detailRequest.current;
     try {
-      const nextWorkouts = exerciseHistoryId
-        ? await getWorkoutsForExercise(client, exerciseHistoryId)
-        : await getWorkoutsByDate(client, effectiveSelectedDate);
-      if (detailRequest.current === request) setWorkouts(nextWorkouts);
+      if (exerciseHistoryId) {
+        const page = await getWorkoutsForExercise(client, exerciseHistoryId, historyPage);
+        if (detailRequest.current !== request) return;
+        // If the final record on this page was deleted, return to the preceding page.
+        if (!page.workouts.length && historyPage > 0) { setHistoryPage(historyPage - 1); return; }
+        setWorkouts(page.workouts);
+        setHistoryHasMore(page.hasMore);
+        setError(null);
+      } else {
+        const nextWorkouts = await getWorkoutsByDate(client, effectiveSelectedDate);
+        if (detailRequest.current === request) setWorkouts(nextWorkouts);
+      }
+    } catch (error) {
+      if (detailRequest.current === request) setHistoryLoadError(true);
+      throw error;
     } finally {
       if (detailRequest.current === request) setDetailsLoading(false);
     }
-  }, [client, effectiveSelectedDate, exerciseHistoryId, showAddForm, showWorkoutDetails, user]);
+  }, [client, effectiveSelectedDate, exerciseHistoryId, historyPage, showAddForm, showWorkoutDetails, user]);
 
   useEffect(() => {
     setEditDrafts((current) => {
@@ -1313,7 +1329,7 @@ export function WorkoutCalendar({
     const selected = exercises.filter((exercise) => ids.has(exercise.id));
     setExerciseRecords([]);
     if (selected.length > 0) {
-      void getExerciseRecords(client, selected).then((records) => {
+      void (exerciseHistoryId ? getExerciseWeightRecords(client, selected) : getExerciseRecords(client, selected)).then((records) => {
         if (active) setExerciseRecords(records);
       }).catch((recordError) => {
         if (active) {
@@ -1323,7 +1339,7 @@ export function WorkoutCalendar({
       });
     }
     return () => { active = false; };
-  }, [addDraft.exerciseId, client, exercises, profileStatus, showAddForm, showWorkoutDetails, user, workouts]);
+  }, [addDraft.exerciseId, client, exercises, exerciseHistoryId, profileStatus, showAddForm, showWorkoutDetails, user, workouts]);
 
   useEffect(() => {
     if (selectedDateOverride) {
@@ -1988,7 +2004,7 @@ export function WorkoutCalendar({
           />
         ) : null}
 
-        {!showCalendar && !showAddForm && !isLoading && !detailsLoading && workouts.length === 0 ? (
+        {!showCalendar && !showAddForm && !isLoading && !detailsLoading && !historyLoadError && workouts.length === 0 ? (
           exerciseHistoryId ? (
             <p className="flex min-h-[calc(100svh-13rem)] items-center justify-center text-center text-sm font-medium text-[var(--muted)]">
               この種目の記録はまだありません
@@ -2080,6 +2096,25 @@ export function WorkoutCalendar({
               />
             );
         }) : null}
+
+        {exerciseHistoryId ? <nav aria-label="記録履歴のページ" className="space-y-2 pb-4">
+          {detailsLoading ? <p role="status" className="text-center text-sm text-[var(--muted)]">記録を読み込み中</p> : historyLoadError ? <button type="button" className="ui-action w-full justify-center" onClick={() => void loadSelectedDate().catch(() => undefined)}>再読み込み</button> : workouts.length ? <p className="text-center text-xs text-[var(--muted)]">{historyPage * EXERCISE_HISTORY_PAGE_SIZE + 1}–{historyPage * EXERCISE_HISTORY_PAGE_SIZE + workouts.length}件目</p> : null}
+          <div className="flex gap-2">
+            {[
+              { show: historyPage > 0, next: historyPage - 1, label: "前の5件" },
+              { show: historyHasMore, next: historyPage + 1, label: "もっと見る" },
+            ].filter(item => item.show).map(item => <button key={item.label} type="button" disabled={detailsLoading || Boolean(savingKey)} className="ui-action flex-1 justify-center disabled:opacity-40" onClick={() => {
+              if (!confirmUnsavedNavigation()) return;
+              clearLocalDraft(activeStorageKey);
+              setEditingWorkoutId(null);
+              setEditingBaseline(null);
+              setWorkouts([]);
+              setDetailsLoading(true);
+              setHistoryPage(item.next);
+              window.scrollTo({ top: 0, behavior: "instant" });
+            }}>{item.label}</button>)}
+          </div>
+        </nav> : null}
 
       </section>
       ) : null}

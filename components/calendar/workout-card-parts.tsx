@@ -37,14 +37,16 @@ export function WorkoutCardHeader({
   );
 }
 
-export function SetAnnotations({ note, isAssisted, isCardio }: {
+export function SetAnnotations({ note, isAssisted, isCardio, showAssistance = true }: {
   note: string | null;
   isAssisted: boolean;
   isCardio: boolean;
+  showAssistance?: boolean;
 }) {
+  if (!note?.trim() && (!showAssistance || isCardio)) return null;
   return (
     <div className="mt-1.5 flex items-start gap-3 text-xs leading-relaxed text-[var(--muted)]">
-      {!isCardio ? (
+      {!isCardio && showAssistance ? (
         <p className="shrink-0 font-medium">{isAssisted ? "補助あり" : "補助なし"}</p>
       ) : null}
       {note?.trim() ? <p className="min-w-0 flex-1 whitespace-pre-wrap break-words">{note}</p> : null}

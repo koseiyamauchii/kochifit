@@ -17,6 +17,7 @@ export default async function ExerciseHistoryPage({
       <AuthGate>
         <main>
           <WorkoutCalendar
+            key={params?.exercise}
             backHref={returnHref}
             detailsHeading="種目別の記録履歴"
             exerciseHistoryId={params?.exercise}

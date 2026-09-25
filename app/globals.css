@@ -242,7 +242,15 @@ input.assistance-checkbox:checked::after {
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
 }
-.accent-dialog::backdrop { background: rgb(0 0 0 / 60%); backdrop-filter: blur(4px); }
+.preference-popover::backdrop { background: transparent; pointer-events: none; }
+.preference-popover:popover-open { animation: preference-appear 140ms ease-out; }
+@keyframes preference-appear {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .preference-popover:popover-open { animation: none; }
+}
 
 input::placeholder, textarea::placeholder {
   color: var(--muted);

@@ -261,7 +261,13 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [{
+          foreignKeyName: "workout_exercises_workout_owner_fk";
+          columns: ["workout_id", "user_id"];
+          isOneToOne: false;
+          referencedRelation: "workouts";
+          referencedColumns: ["id", "user_id"];
+        }];
       };
       sets: {
         Row: {
@@ -327,7 +333,13 @@ export interface Database {
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [{
+          foreignKeyName: "sets_workout_exercise_owner_fk";
+          columns: ["workout_exercise_id", "user_id"];
+          isOneToOne: false;
+          referencedRelation: "workout_exercises";
+          referencedColumns: ["id", "user_id"];
+        }];
       };
       exercise_settings: {
         Row: {

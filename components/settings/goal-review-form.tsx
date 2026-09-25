@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, RotateCcw } from "lucide-react";
 import { useAuth } from "@/components/auth/auth-provider";
 import { createClient } from "@/lib/supabase/client";
-import { goalPeriodStart, shiftGoalMonth, type GoalKind } from "@/lib/goals/goals";
+import { formatGoalDate, goalPeriodStart, shiftGoalMonth, type GoalKind } from "@/lib/goals/goals";
 import { getGoalProgress, type GoalProgress } from "@/lib/goals/repository";
 import { toDateKey } from "@/lib/workouts/date";
 import type { Database } from "@/lib/supabase/database.types";
@@ -93,7 +93,7 @@ export function GoalReviewForm({ goal, onComplete, periodStart }: {
     <fieldset disabled={saving || attempted} className="space-y-4">
     <div><h4 className="flex items-center gap-2 text-base font-semibold"><RotateCcw size={17} />目標を達成できましたか？</h4><p className="mt-1 text-xs leading-relaxed text-[var(--muted)]">実績を参考に振り返ります。達成度は自己評価です。</p></div>
     <label className="block space-y-1 text-sm">実績を集計する開始日<input type="date" required max={goal.deadline} value={start} onChange={e => setStart(e.target.value)} className="ui-field" /></label>
-    <p className="text-xs text-[var(--muted)]">集計期間：{start} ～ {goal.deadline}</p>
+    <p className="text-xs text-[var(--muted)]">集計期間：{formatGoalDate(start)} ～ {formatGoalDate(goal.deadline)}</p>
     {progress ? <GoalProgressView progress={progress} /> : statsError ? <button type="button" onClick={() => setRetry(n => n + 1)} className="text-sm text-[var(--warning)] underline">実績の読み込みに失敗しました。再試行</button> : <p role="status" className="text-sm text-[var(--muted)]">実績を読み込み中</p>}
     <div role="group" aria-label="目標の達成結果" className="grid grid-cols-2 gap-2">{[{ value: true, label: "達成できた" }, { value: false, label: "まだ途中" }].map(option => <button key={option.label} type="button" aria-pressed={achieved === option.value} onClick={() => { setAchieved(option.value); if (option.value) setPercent("100"); }} className={`min-h-11 rounded-xl border px-3 text-sm font-medium ${achieved === option.value ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--border)]"}`}>{option.label}</button>)}</div>
     <label className="block space-y-1 text-sm">達成度（0～100％）<input type="number" inputMode="numeric" min="0" max="100" step="1" required value={percent} onChange={e => setPercent(e.target.value)} className="ui-field" /></label>

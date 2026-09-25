@@ -3,7 +3,7 @@
 import { Check, ChevronDown, Flag, History, Target } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-provider";
-import { getGoals, goalKinds, isGoalDue, type GoalKind } from "@/lib/goals/goals";
+import { formatGoalDate, getGoals, goalKinds, isGoalDue, type GoalKind } from "@/lib/goals/goals";
 import type { Database, GoalReviewRow, Profile } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/client";
 import { toDateKey } from "@/lib/workouts/date";
@@ -108,7 +108,7 @@ export function GoalsSettingsCard() {
         const due = isGoalDue(goal.text, goal.deadline, today);
         const previous = reviews.find(review => review.goal_kind === goal.key && review.next_goal_deadline === goal.deadline && review.next_goal_text === goal.text);
         return <section key={goal.key} className="ui-card space-y-3 p-4">
-          <div className="flex items-center justify-between gap-2"><h3 className="ui-section-title">{goal.label}</h3><span className="text-xs text-[var(--muted)]">{goal.deadline || "期限未設定"}</span></div>
+          <div className="flex items-center justify-between gap-2"><h3 className="ui-section-title">{goal.label}</h3><span className="text-xs text-[var(--muted)]">{formatGoalDate(goal.deadline) || "期限未設定"}</span></div>
           <p className="whitespace-pre-wrap break-words text-base leading-relaxed">{goal.text || "目標を設定しましょう"}</p>
           <div className="flex items-center justify-between gap-3">
             {due ? <button type="button" className="ui-primary" onClick={() => navigate({ key: goal.key, mode: "review" })}>振り返る</button> : <span className="text-xs text-[var(--muted)]">{goal.text ? "取り組み中" : "未設定"}</span>}
@@ -126,14 +126,14 @@ export function GoalsSettingsCard() {
         <div className="mt-3 space-y-3">
         {!historyLoading && !historyError && !reviews.some(review => review.goal_kind === kind.key) ? <p className="text-sm text-[var(--muted)]">この期間の振り返りはまだありません．</p> : null}
         {reviews.filter(review => review.goal_kind === kind.key).map(review => <details key={review.id} className="rounded-xl border border-[var(--border)] p-3">
-        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold"><span>{review.period_start.replaceAll("-", "/")}–{review.goal_deadline.replaceAll("-", "/")}</span><ChevronDown size={16} className="shrink-0" /></summary>
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold"><span>{formatGoalDate(review.period_start)}–{formatGoalDate(review.goal_deadline)}</span><ChevronDown size={16} className="shrink-0" /></summary>
         <div className="mt-4 space-y-3 border-t border-[var(--hairline)] pt-3 text-sm leading-relaxed">
           <p className="whitespace-pre-wrap break-words">{review.goal_text}</p>
           <p className="text-xs text-[var(--muted)]">{review.achieved ? "達成" : "途中"} · 達成度 {review.achievement_percent}％</p>
           {review.progress && typeof review.progress === "object" && !Array.isArray(review.progress) ? <p className="text-xs text-[var(--muted)]">実績：{String(review.progress.workoutDays ?? "—")}日 / {String(review.progress.setCount ?? "—")}セット</p> : null}
           <div><h4 className="ui-section-title">振り返り</h4><p className="mt-1 whitespace-pre-wrap break-words">{review.reflection}</p></div>
           <div><h4 className="ui-section-title">次に取り組むこと</h4><p className="mt-1 whitespace-pre-wrap break-words">{review.next_action}</p></div>
-          <div><h4 className="ui-section-title">次の目標</h4><p className="mt-1 whitespace-pre-wrap break-words">{review.next_goal_text}</p><p className="text-xs text-[var(--muted)]">期限：{review.next_goal_deadline}</p></div>
+          <div><h4 className="ui-section-title">次の目標</h4><p className="mt-1 whitespace-pre-wrap break-words">{review.next_goal_text}</p><p className="text-xs text-[var(--muted)]">期限：{formatGoalDate(review.next_goal_deadline)}</p></div>
         </div>
       </details>)}
         </div>

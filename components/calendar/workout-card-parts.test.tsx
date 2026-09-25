@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 import { SetAnnotations, WorkoutCardHeader } from "./workout-card-parts";
 
 describe("workout card annotations", () => {
+  it("keeps only the memo when assistance is already in the RM row", () => {
+    const html = renderToStaticMarkup(<SetAnnotations note="フォーム確認" isAssisted isCardio={false} showAssistance={false} />);
+    expect(html).toContain("フォーム確認");
+    expect(html).not.toContain("補助");
+    expect(renderToStaticMarkup(<SetAnnotations note={null} isAssisted isCardio={false} showAssistance={false} />)).toBe("");
+  });
   it("shows a set memo and assistance", () => {
     const html = renderToStaticMarkup(<SetAnnotations note={"最後だけ補助\nフォームを確認"} isAssisted isCardio={false} />);
     expect(html).toContain("補助あり");

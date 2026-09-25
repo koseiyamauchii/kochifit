@@ -870,81 +870,70 @@ export async function getWorkoutsByDate(client: Client, workoutDate: string): Pr
   }));
 }
 
+export const EXERCISE_HISTORY_PAGE_SIZE = 5;
+
 export async function getWorkoutsForExercise(
   client: Client,
   exerciseId: string,
-): Promise<Workout[]> {
-  const { data: workoutExercises, error: workoutExerciseError } = await client
-    .from("workout_exercises")
-    .select("id, workout_id, exercise_id, display_order, note, condition, elapsed_sec")
-    .eq("exercise_id", exerciseId);
-
-  if (workoutExerciseError) {
-    throw workoutExerciseError;
-  }
-  if (workoutExercises.length === 0) {
-    return [];
-  }
-
-  const workoutIds = [...new Set(workoutExercises.map((item) => item.workout_id))];
-  const { data: workouts, error: workoutError } = await client
-    .from("workouts")
-    .select("id, workout_date, note, created_at")
-    .in("id", workoutIds)
+  page = 0,
+): Promise<{ workouts: Workout[]; hasMore: boolean }> {
+  if (!Number.isInteger(page) || page < 0) throw new Error("Invalid history page");
+  const offset = page * EXERCISE_HISTORY_PAGE_SIZE;
+  // One extra metadata row determines whether another page exists. Only the
+  // visible five workouts have their sets fetched; no full-history ID query.
+  const { data, error } = await client.from("workouts")
+    .select("id, workout_date, note, created_at, workout_exercises!inner(id, exercise_id, display_order, note, condition, elapsed_sec)")
+    .eq("workout_exercises.exercise_id", exerciseId)
     .order("workout_date", { ascending: false })
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .range(offset, offset + EXERCISE_HISTORY_PAGE_SIZE);
+  if (error) throw error;
+  const visible = data.slice(0, EXERCISE_HISTORY_PAGE_SIZE);
+  if (!visible.length) return { workouts: [], hasMore: false };
 
-  if (workoutError) {
-    throw workoutError;
-  }
-
-  const { data: exercise, error: exerciseError } = await client
-    .from("exercises")
-    .select("name")
-    .eq("id", exerciseId)
-    .single();
-
-  if (exerciseError) {
-    throw exerciseError;
-  }
-
-  const sets = await getSetsByWorkoutExerciseIds(
-    client,
-    workoutExercises.map((item) => item.id),
-  );
-  const setsByWorkoutExercise = new Map<string, WorkoutSet[]>();
+  const { data: exercise, error: exerciseError } = await client.from("exercises")
+    .select("name").eq("id", exerciseId).single();
+  if (exerciseError) throw exerciseError;
+  const ids = visible.flatMap(workout => workout.workout_exercises.map(entry => entry.id));
+  const sets = await getSetsByWorkoutExerciseIds(client, ids);
+  const setsByExercise = new Map<string, WorkoutSet[]>();
   for (const set of sets) {
-    const current = setsByWorkoutExercise.get(set.workout_exercise_id) ?? [];
-    current.push(mapSet(set));
-    setsByWorkoutExercise.set(set.workout_exercise_id, current);
+    const group = setsByExercise.get(set.workout_exercise_id) ?? [];
+    group.push(mapSet(set));
+    setsByExercise.set(set.workout_exercise_id, group);
   }
+  return {
+    hasMore: data.length > EXERCISE_HISTORY_PAGE_SIZE,
+    workouts: visible.map(workout => ({
+      id: workout.id, workoutDate: workout.workout_date,
+      createdAt: workout.created_at, note: workout.note,
+      exercises: workout.workout_exercises.map(entry => ({
+        id: entry.id, exerciseId: entry.exercise_id, exerciseName: exercise.name,
+        workoutDate: workout.workout_date, displayOrder: entry.display_order,
+        note: entry.note, condition: entry.condition, elapsedSec: entry.elapsed_sec,
+        sets: setsByExercise.get(entry.id) ?? [],
+      })),
+    })),
+  };
+}
 
-  const workoutExerciseByWorkoutId = new Map(
-    workoutExercises.map((item) => [item.workout_id, item]),
-  );
-  return workouts.flatMap((workout) => {
-    const workoutExercise = workoutExerciseByWorkoutId.get(workout.id);
-    if (!workoutExercise) {
-      return [];
-    }
-    return [{
-      id: workout.id,
-      workoutDate: workout.workout_date,
-      createdAt: workout.created_at,
-      note: workout.note,
-      exercises: [{
-        id: workoutExercise.id,
-        exerciseId,
-        exerciseName: exercise.name,
-        workoutDate: workout.workout_date,
-        displayOrder: workoutExercise.display_order,
-        note: workoutExercise.note,
-        condition: workoutExercise.condition,
-        elapsedSec: workoutExercise.elapsed_sec,
-        sets: setsByWorkoutExercise.get(workoutExercise.id) ?? [],
-      }],
-    }];
-  });
+// The history cards only need the maximum weight, not every historical set.
+export async function getExerciseWeightRecords(client: Client, exercises: Exercise[]): Promise<ExerciseRecord[]> {
+  return Promise.all(exercises.map(async exercise => {
+    const { data, error } = await client.from("sets")
+      .select("weight_kg, workout_exercises!inner(exercise_id)")
+      .eq("workout_exercises.exercise_id", exercise.id)
+      .not("weight_kg", "is", null)
+      .order("weight_kg", { ascending: false }).limit(1);
+    if (error) throw error;
+    return {
+      exerciseId: exercise.id, exerciseName: exercise.name,
+      bodyPartId: exercise.bodyPartId, displayOrder: exercise.displayOrder,
+      maxWeightKg: data[0]?.weight_kg ?? null,
+      maxVolumeKg: null, lastWorkoutDate: null,
+    };
+  }));
 }
 
 export async function getLatestWorkoutForExerciseBeforeDate(

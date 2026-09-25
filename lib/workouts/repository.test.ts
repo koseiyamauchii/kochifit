@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
-import { getDayCondition, getLatestWorkoutForExerciseBeforeDate, getWorkoutsForExercise } from "./repository";
+import { getDayCondition, getExerciseWeightRecords, getLatestWorkoutForExerciseBeforeDate, getWorkoutsForExercise } from "./repository";
+import type { Exercise } from "./types";
 
 function mockClient(responses: Record<string, unknown[]>) {
   const calls: { table: string; method: string; args: unknown[] }[] = [];
@@ -41,13 +42,54 @@ describe("previous exercise records", () => {
 
 describe("record details", () => {
   it("preserves both set and exercise notes in exercise history", async () => {
-    const { client } = mockClient({ workout_exercises: [[entry("first")]], workouts: [[workout("first", "09:00")]], exercises: [{ name: "ベンチプレス" }], sets: [[set]] });
-    expect(await getWorkoutsForExercise(client, "bench")).toMatchObject([{ exercises: [{ note: "種目メモ", condition: "好調", sets: [{ note: "セットメモ", isAssisted: true }] }] }]);
+    const { client } = mockClient({ workouts: [[{ ...workout("first", "09:00"), workout_exercises: [entry("first")] }]], exercises: [{ name: "ベンチプレス" }], sets: [[set]] });
+    expect(await getWorkoutsForExercise(client, "bench")).toMatchObject({ hasMore: false, workouts: [{ exercises: [{ note: "種目メモ", condition: "好調", sets: [{ note: "セットメモ", isAssisted: true }] }] }] });
   });
   it("loads the selected day's condition without loading sets", async () => {
     const { client, calls } = mockClient({ workouts: [[{ id: "first" }]], workout_exercises: [[{ condition: "好調" }]] });
     expect(await getDayCondition(client, date)).toBe("好調");
     expect(calls).toContainEqual({ table: "workouts", method: "eq", args: ["workout_date", date] });
     expect(calls.some(call => call.table === "sets")).toBe(false);
+  });
+});
+
+describe("five-record history pages", () => {
+  it("loads only one maximum-weight row instead of all historical sets", async () => {
+    const { client, calls } = mockClient({ sets: [[{ weight_kg: 45 }]] });
+    const exercise = { id: "bench", name: "ベンチプレス", bodyPartId: "chest", displayOrder: 1 } as Exercise;
+    expect(await getExerciseWeightRecords(client, [exercise])).toMatchObject([{ exerciseId: "bench", maxWeightKg: 45 }]);
+    expect(calls).toContainEqual({ table: "sets", method: "limit", args: [1] });
+    expect(calls).toContainEqual({ table: "sets", method: "eq", args: ["workout_exercises.exercise_id", "bench"] });
+  });
+  const rows = (count: number, offset = 0) => Array.from({ length: count }, (_, i) => {
+    const id = String(i + offset);
+    return { ...workout(id, "09:00"), workout_exercises: [entry(id)] };
+  });
+  it("fetches only five records' sets and uses one metadata row for hasMore", async () => {
+    const { client, calls } = mockClient({ workouts: [rows(6)], exercises: [{ name: "ベンチプレス" }], sets: [[]] });
+    const page = await getWorkoutsForExercise(client, "bench");
+    expect(page.workouts).toHaveLength(5);
+    expect(page.hasMore).toBe(true);
+    expect(calls).toContainEqual({ table: "workouts", method: "range", args: [0, 5] });
+    expect(calls).toContainEqual({ table: "workouts", method: "eq", args: ["workout_exercises.exercise_id", "bench"] });
+    expect(calls).toContainEqual({ table: "sets", method: "in", args: ["workout_exercise_id", ["entry-0", "entry-1", "entry-2", "entry-3", "entry-4"]] });
+    expect(calls.some(call => call.table === "workout_exercises")).toBe(false);
+  });
+  it("returns the next five without accumulating older pages and hides more at the end", async () => {
+    const { client, calls } = mockClient({ workouts: [rows(5, 5)], exercises: [{ name: "ベンチプレス" }], sets: [[]] });
+    const page = await getWorkoutsForExercise(client, "bench", 1);
+    expect(page.workouts.map(workout => workout.id)).toEqual(["5", "6", "7", "8", "9"]);
+    expect(page.hasMore).toBe(false);
+    expect(calls).toContainEqual({ table: "workouts", method: "range", args: [5, 10] });
+    expect(calls).toContainEqual({ table: "workouts", method: "order", args: ["id", { ascending: false }] });
+  });
+  it("handles an empty page without loading sets", async () => {
+    const { client, calls } = mockClient({ workouts: [[]] });
+    expect(await getWorkoutsForExercise(client, "bench")).toEqual({ workouts: [], hasMore: false });
+    expect(calls.some(call => call.table === "sets")).toBe(false);
+  });
+  it("rejects invalid page numbers", async () => {
+    const { client } = mockClient({});
+    await expect(getWorkoutsForExercise(client, "bench", -1)).rejects.toThrow("Invalid history page");
   });
 });

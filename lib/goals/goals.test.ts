@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { goalPeriodStart, isGoalDue, shiftGoalMonth } from "./goals";
+import { formatGoalDate, goalPeriodStart, isGoalDue, shiftGoalMonth } from "./goals";
 describe("goal review dates", () => {
+  it("uses slash dates without changing date input values", () => {
+    const stored = "2026-09-25";
+    expect(formatGoalDate(stored)).toBe("2026/09/25");
+    expect(stored).toBe("2026-09-25");
+    expect(formatGoalDate("")).toBe("");
+  });
   it("offers review on the deadline and after, never for empty goals", () => {
     expect(isGoalDue("週3回", "2026-09-07", "2026-09-07")).toBe(true);
     expect(isGoalDue("週3回", "2026-09-06", "2026-09-07")).toBe(true);
